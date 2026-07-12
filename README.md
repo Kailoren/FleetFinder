@@ -16,7 +16,7 @@ The app has three tabs:
 
 - **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">https://github.com/jixxed/ed-odyssey-materials-helper</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
-  <img width="1711" height="1439" alt="Screenshot 2026-07-11 202347" src="https://github.com/user-attachments/assets/ccf7cc63-d875-4a0f-a6bf-cc7bf7ddc884" />
+<img width="1711" height="1439" alt="Screenshot 2026-07-12 133722" src="https://github.com/user-attachments/assets/7e1d67d8-b4a6-4fae-b5ff-aaed86ebea81" />
 
 And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
 
