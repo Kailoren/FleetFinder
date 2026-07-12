@@ -631,7 +631,6 @@
 
                     <Grid>
                     <DataGrid ItemsSource="{Binding ListingsView}"
-                              Grid.IsSharedSizeScope="True"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto"
                               CanUserSortColumns="True"
@@ -677,115 +676,46 @@
                             <!-- Every matching commodity this carrier sells, one per line, with how many of
                                  each you still need alongside it. Qty/Price below line up with each commodity
                                  too. Row height grows to fit them all.
-                                 Components+Needed are combined into one column (a single ItemsControl per row
-                                 instead of two) purely as a performance fix — with a broad multi-component
-                                 search returning 100+ carriers, having 4 separate per-item ItemsControls
-                                 (Components/Needed/Qty/Price all independently iterating the same Items list)
-                                 made sorting visibly take several seconds, since WPF has to tear down and
-                                 rebuild every newly-visible row's cells on every resort, and this row's height
-                                 auto-grows to fit every item (see CarrierGroupRow), so there's no virtualization
-                                 within a row to fall back on. Neither Components nor Needed is independently
-                                 sortable (CanUserSort was already False on both), so merging them costs nothing
-                                 — unlike Qty/Price below, which keep their own independent SortMemberPath and
-                                 are deliberately left as separate columns/ItemsControls. The two TextBlocks
-                                 share Grid.IsSharedSizeScope-backed SharedSizeGroups with the header below so
-                                 the header labels stay aligned with each column of values beneath them, the
-                                 same way the DataGrid would auto-size two real columns. -->
-                            <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
-                                <!-- Custom header ControlTemplate, applied only to this column: three prior
-                                     attempts at a full-height divider all failed for the same underlying
-                                     reason and are recorded here so they aren't retried.
-                                     (1) VerticalAlignment="Stretch" on the HeaderTemplate's own Grid, plus a
-                                     HeaderStyle Setter for VerticalContentAlignment="Stretch" - did nothing.
-                                     (2) Binding the divider's Height to the ancestor header's own ActualHeight
-                                     - created a measure/arrange circular dependency (the header's height is
-                                     determined by measuring this exact content, which was in turn reading
-                                     that not-yet-determined height) and hung the whole UI thread; confirmed
-                                     via System.Windows.Automation's FindAll throwing a COMException timeout.
-                                     (3) A hand-drawn divider Border with a negative vertical margin, meant to
-                                     bleed past its own content area into the header's Padding="8,6" - tested
-                                     up to Margin="0,-50,0,-50" with zero visible effect at any magnitude,
-                                     proving the header's ContentPresenter genuinely clips its child to a tight
-                                     arrange rect (not just "doesn't offer extra space" - actively clips).
-                                     Root cause behind all three: the default DataGridColumnHeader template's
-                                     ContentPresenter apparently never wires VerticalContentAlignment through
-                                     to itself at all (unlike HorizontalContentAlignment, which the "Access"/
-                                     "Callsign"/etc. headers elsewhere in this file rely on via CenterHeader
-                                     and which does work) - so no Style Setter or binding on the *content* can
-                                     ever get more vertical room, no matter how it's phrased. The only fix left
-                                     is to stop depending on the default template's wiring and supply our own,
-                                     with VerticalAlignment="Stretch" hardcoded directly on the ContentPresenter
-                                     rather than template-bound to a Style property. -->
-                                <DataGridTemplateColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader"
-                                           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="DataGridColumnHeader">
-                                                    <Border Background="{TemplateBinding Background}"
-                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                            BorderThickness="{TemplateBinding BorderThickness}">
-                                                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                                          VerticalAlignment="Stretch"
-                                                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </DataGridTemplateColumn.HeaderStyle>
-                                <DataGridTemplateColumn.HeaderTemplate>
-                                    <DataTemplate>
-                                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                            <Grid.ColumnDefinitions>
-                                                <!-- Width="Auto" is required for SharedSizeGroup to actually
-                                                     take part in shared auto-sizing (it's a no-op on Star-width
-                                                     columns, the implicit default) - without it, a short
-                                                     component name can size this column narrower than the
-                                                     "Components"/"Needed" header text, which then overflows
-                                                     into its neighbor since Grid doesn't clip by default. -->
-                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Needed"/>
-                                            </Grid.ColumnDefinitions>
-                                            <!-- Left-aligned, not centered: the Components column's shared width
-                                                 is dictated by this header word (10 characters, wider than most
-                                                 short component names like "RDX"), so a centered label floats
-                                                 disconnected from the left-aligned data beneath it, leaving a
-                                                 gap that reads as belonging to the Needed/Have column instead.
-                                                 Left-aligning keeps header and data flush on the same edge. -->
-                                            <TextBlock Grid.Column="0" Text="Components" VerticalAlignment="Center" Margin="7,0"/>
-                                            <!-- Border, not just the DataGrid's own VerticalGridLinesBrush, since
-                                                 that only draws between separate DataGridColumns - Components and
-                                                 Needed are two TextBlocks inside one merged DataGridTemplateColumn,
-                                                 so this divider has to be drawn by hand to match (repeated per row
-                                                 in the cell template below so it reads as one continuous line).
-                                                 Now that the custom HeaderStyle above genuinely offers this Grid
-                                                 the full row height, plain VerticalAlignment="Stretch" (no margin
-                                                 tricks, no bindings) is all that's needed. -->
-                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True"
-                                                    VerticalAlignment="Stretch">
-                                                <TextBlock Text="Needed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.HeaderTemplate>
+                                 Components and Needed are two independent real DataGridColumns (each with its
+                                 own ItemsControl) - NOT merged into one. They were merged for a few hours on
+                                 2026-07-12 as a sort-speed fix (cutting 4 independent per-item ItemsControls
+                                 per row down to 3), then unmerged again the same day after a long, failed
+                                 chain of attempts to hand-draw a header divider between the two merged labels
+                                 (Stretch alignment, an ancestor-Height binding that hung the UI thread, a
+                                 negative-margin bleed proven clipped even at -50px, then a custom header
+                                 ControlTemplate that still wasn't reliably reproducing what a real column
+                                 boundary gives for free) - a real DataGridColumn boundary gets its divider,
+                                 clickability, and correct header/cell alignment from the framework itself,
+                                 with zero custom code, which is what these columns actually needed all along.
+                                 The sort-speed cost of going back to 4 ItemsControls per row is an accepted
+                                 tradeoff versus continuing to fight this. Neither is independently sortable
+                                 (CanUserSort="False" on both, same as before the merge) - unlike Qty/Price
+                                 below, which keep their own SortMemberPath. -->
+                            <DataGridTemplateColumn Header="Components" Width="Auto" CanUserResize="False" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ItemsControl ItemsSource="{Binding Items}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Needed"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
-                                                            <TextBlock Text="{Binding Needed}" Margin="7,3"
-                                                                       HorizontalAlignment="Center"
-                                                                       Foreground="{StaticResource Accent}" FontWeight="Bold"/>
-                                                        </Border>
-                                                    </Grid>
+                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- How many more you still need (Target minus current Have, floored at 0) -
+                                 orange/bold so it's obvious what's still outstanding. -->
+                            <DataGridTemplateColumn Header="Needed" Width="Auto" CanUserResize="False" CanUserSort="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Needed}" Margin="7,3"
+                                                               HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -923,7 +853,6 @@
 
                     <Grid>
                     <DataGrid ItemsSource="{Binding SellListingsView}"
-                              Grid.IsSharedSizeScope="True"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Auto"
                               CanUserSortColumns="True"
@@ -949,83 +878,36 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <!-- Every matching commodity this carrier buys, one per line, with how many
-                                 of each you currently Have alongside it (mirrors the "Where to Buy"
-                                 grid's merged Components+Needed column, same SharedSizeGroup trick to
-                                 keep the two header labels aligned with their value columns - see the
-                                 comment on that column for the full performance rationale). Have is
-                                 shown here instead of Needed since selling has no "still need" concept. -->
-                            <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
-                                <!-- Custom header ControlTemplate - see the matching comment on the buy grid's
-                                     Components+Needed column for the full history of what was tried and
-                                     abandoned first (Stretch alignment alone, then an ancestor-Height binding
-                                     that hung the UI thread, then a negative-margin bleed that stayed invisible
-                                     even at Margin="0,-50,0,-50"). The default DataGridColumnHeader template
-                                     never wires VerticalContentAlignment through to its ContentPresenter, so
-                                     this template hardcodes VerticalAlignment="Stretch" directly instead of
-                                     relying on that Style property. -->
-                                <DataGridTemplateColumn.HeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader"
-                                           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="DataGridColumnHeader">
-                                                    <Border Background="{TemplateBinding Background}"
-                                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                                            BorderThickness="{TemplateBinding BorderThickness}">
-                                                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                                                          VerticalAlignment="Stretch"
-                                                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
-                                                    </Border>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-                                    </Style>
-                                </DataGridTemplateColumn.HeaderStyle>
-                                <DataGridTemplateColumn.HeaderTemplate>
-                                    <DataTemplate>
-                                        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                            <Grid.ColumnDefinitions>
-                                                <!-- Width="Auto" required for SharedSizeGroup to actually
-                                                     auto-size (no-op on the implicit Star-width default) -
-                                                     see the matching comment on the buy grid's Components+
-                                                     Needed column for why this matters. -->
-                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Component"/>
-                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Have"/>
-                                            </Grid.ColumnDefinitions>
-                                            <!-- Left-aligned to match the data beneath it - see the matching
-                                                 comment on the buy grid's Components+Needed column for why a
-                                                 centered header here looked disconnected from short values
-                                                 like "RDX". -->
-                                            <TextBlock Grid.Column="0" Text="Components" VerticalAlignment="Center" Margin="7,0"/>
-                                            <!-- See the matching divider comment on the buy grid's Components+Needed
-                                                 column - a hand-drawn Border, since the DataGrid's own vertical grid
-                                                 lines only draw between separate DataGridColumns, not between these
-                                                 two TextBlocks sharing one merged DataGridTemplateColumn. -->
-                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True"
-                                                    VerticalAlignment="Stretch">
-                                                <TextBlock Text="Have" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
-                                            </Border>
-                                        </Grid>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.HeaderTemplate>
+                            <!-- Every matching commodity this carrier buys, one per line, with how many of
+                                 each you currently Have alongside it. Have is shown here instead of Needed
+                                 since selling has no "still need" concept. Components and Have are two
+                                 independent real DataGridColumns, not merged - see the matching comment on
+                                 the buy grid's Components+Needed columns for why (a long failed chain of
+                                 attempts to hand-draw a divider between two merged labels, abandoned in
+                                 favor of just using real columns, which get a divider for free). -->
+                            <DataGridTemplateColumn Header="Components" Width="Auto" CanUserResize="False" CanUserSort="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ItemsControl ItemsSource="{Binding Items}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Component"/>
-                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Have"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
-                                                            <TextBlock Text="{Binding Have}" Margin="7,3"
-                                                                       HorizontalAlignment="Center"
-                                                                       Foreground="{StaticResource Accent}" FontWeight="Bold"/>
-                                                        </Border>
-                                                    </Grid>
+                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Have" Width="Auto" CanUserResize="False" CanUserSort="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Have}" Margin="7,3"
+                                                               HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
