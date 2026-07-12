@@ -692,6 +692,48 @@
                                  the header labels stay aligned with each column of values beneath them, the
                                  same way the DataGrid would auto-size two real columns. -->
                             <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
+                                <!-- Custom header ControlTemplate, applied only to this column: three prior
+                                     attempts at a full-height divider all failed for the same underlying
+                                     reason and are recorded here so they aren't retried.
+                                     (1) VerticalAlignment="Stretch" on the HeaderTemplate's own Grid, plus a
+                                     HeaderStyle Setter for VerticalContentAlignment="Stretch" - did nothing.
+                                     (2) Binding the divider's Height to the ancestor header's own ActualHeight
+                                     - created a measure/arrange circular dependency (the header's height is
+                                     determined by measuring this exact content, which was in turn reading
+                                     that not-yet-determined height) and hung the whole UI thread; confirmed
+                                     via System.Windows.Automation's FindAll throwing a COMException timeout.
+                                     (3) A hand-drawn divider Border with a negative vertical margin, meant to
+                                     bleed past its own content area into the header's Padding="8,6" - tested
+                                     up to Margin="0,-50,0,-50" with zero visible effect at any magnitude,
+                                     proving the header's ContentPresenter genuinely clips its child to a tight
+                                     arrange rect (not just "doesn't offer extra space" - actively clips).
+                                     Root cause behind all three: the default DataGridColumnHeader template's
+                                     ContentPresenter apparently never wires VerticalContentAlignment through
+                                     to itself at all (unlike HorizontalContentAlignment, which the "Access"/
+                                     "Callsign"/etc. headers elsewhere in this file rely on via CenterHeader
+                                     and which does work) - so no Style Setter or binding on the *content* can
+                                     ever get more vertical room, no matter how it's phrased. The only fix left
+                                     is to stop depending on the default template's wiring and supply our own,
+                                     with VerticalAlignment="Stretch" hardcoded directly on the ContentPresenter
+                                     rather than template-bound to a Style property. -->
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"
+                                           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGridColumnHeader">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                                          VerticalAlignment="Stretch"
+                                                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
                                 <DataGridTemplateColumn.HeaderTemplate>
                                     <DataTemplate>
                                         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -717,23 +759,11 @@
                                                  Needed are two TextBlocks inside one merged DataGridTemplateColumn,
                                                  so this divider has to be drawn by hand to match (repeated per row
                                                  in the cell template below so it reads as one continuous line).
-                                                 Negative top/bottom margin equal to the base header style's
-                                                 Padding="8,6" (the "6"), so the Border's rendered bounds bleed
-                                                 past its own content area into the header's padding on both
-                                                 sides, reaching the true full row height. Two things were tried
-                                                 and abandoned first: VerticalAlignment="Stretch" (plus a
-                                                 HeaderStyle VerticalContentAlignment="Stretch" override) silently
-                                                 did nothing - the default DataGridColumnHeader template's
-                                                 ContentPresenter apparently doesn't wire VerticalContentAlignment
-                                                 through, so the content always measured at its own natural (text)
-                                                 height regardless. Binding Height to the ancestor header's own
-                                                 ActualHeight seemed like a fix but created a measure/arrange
-                                                 circular dependency (the header's height is determined by
-                                                 measuring this content, which was in turn asking for the header's
-                                                 already-measured height) that hung the whole UI thread - do not
-                                                 reintroduce an ancestor-Height binding here. -->
+                                                 Now that the custom HeaderStyle above genuinely offers this Grid
+                                                 the full row height, plain VerticalAlignment="Stretch" (no margin
+                                                 tricks, no bindings) is all that's needed. -->
                                             <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True"
-                                                    Margin="0,-6,0,-6">
+                                                    VerticalAlignment="Stretch">
                                                 <TextBlock Text="Needed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
                                             </Border>
                                         </Grid>
@@ -926,6 +956,32 @@
                                  comment on that column for the full performance rationale). Have is
                                  shown here instead of Needed since selling has no "still need" concept. -->
                             <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
+                                <!-- Custom header ControlTemplate - see the matching comment on the buy grid's
+                                     Components+Needed column for the full history of what was tried and
+                                     abandoned first (Stretch alignment alone, then an ancestor-Height binding
+                                     that hung the UI thread, then a negative-margin bleed that stayed invisible
+                                     even at Margin="0,-50,0,-50"). The default DataGridColumnHeader template
+                                     never wires VerticalContentAlignment through to its ContentPresenter, so
+                                     this template hardcodes VerticalAlignment="Stretch" directly instead of
+                                     relying on that Style property. -->
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"
+                                           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="DataGridColumnHeader">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                                          VerticalAlignment="Stretch"
+                                                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
                                 <DataGridTemplateColumn.HeaderTemplate>
                                     <DataTemplate>
                                         <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
@@ -945,15 +1001,9 @@
                                             <!-- See the matching divider comment on the buy grid's Components+Needed
                                                  column - a hand-drawn Border, since the DataGrid's own vertical grid
                                                  lines only draw between separate DataGridColumns, not between these
-                                                 two TextBlocks sharing one merged DataGridTemplateColumn. Negative
-                                                 vertical margin (matching the header style's Padding="8,6") makes it
-                                                 bleed into the padding on both sides to reach full row height - see
-                                                 the matching comment on the buy grid's column for why a Stretch
-                                                 alignment and an ancestor-Height binding were both tried and
-                                                 abandoned first (the latter caused a real UI-thread-hanging
-                                                 measure/arrange circular dependency - do not reintroduce it). -->
+                                                 two TextBlocks sharing one merged DataGridTemplateColumn. -->
                                             <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True"
-                                                    Margin="0,-6,0,-6">
+                                                    VerticalAlignment="Stretch">
                                                 <TextBlock Text="Have" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
                                             </Border>
                                         </Grid>
