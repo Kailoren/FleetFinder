@@ -162,23 +162,45 @@ public sealed class RelayDb
         cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Upserts one commodity's current stock/demand at one carrier. Callers pass every item from
+    /// a fresh FCMaterials report, including ones now at 0 - this method decides what to do with
+    /// a 0: if the row already exists (this carrier was previously seen offering it), it's
+    /// updated to 0 rather than left stale at its last known positive value, which is what
+    /// previously caused the app to keep suggesting a carrier for a component it had actually sold
+    /// out of. If the row doesn't exist yet, a 0 is NOT inserted - that would just be database
+    /// bloat for "this carrier's bartender lists this material at all, currently with none",
+    /// which every carrier's price list technically enumerates for every catalog item regardless
+    /// of whether it's ever actually stocked.
+    /// </summary>
     public void UpsertMaterialListing(
         long marketId, string componentKey, string componentName, string direction,
         int amount, long price, DateTime updatedUtc)
     {
         using var conn = Open();
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = """
-            INSERT INTO MaterialListings
-                (MarketId, ComponentKey, ComponentName, Direction, Amount, Price, UpdatedUtc)
-            VALUES
-                ($marketId, $key, $name, $direction, $amount, $price, $updated)
-            ON CONFLICT(MarketId, ComponentKey, Direction) DO UPDATE SET
-                ComponentName = excluded.ComponentName,
-                Amount = excluded.Amount,
-                Price = excluded.Price,
-                UpdatedUtc = excluded.UpdatedUtc;
-            """;
+        if (amount > 0)
+        {
+            cmd.CommandText = """
+                INSERT INTO MaterialListings
+                    (MarketId, ComponentKey, ComponentName, Direction, Amount, Price, UpdatedUtc)
+                VALUES
+                    ($marketId, $key, $name, $direction, $amount, $price, $updated)
+                ON CONFLICT(MarketId, ComponentKey, Direction) DO UPDATE SET
+                    ComponentName = excluded.ComponentName,
+                    Amount = excluded.Amount,
+                    Price = excluded.Price,
+                    UpdatedUtc = excluded.UpdatedUtc;
+                """;
+        }
+        else
+        {
+            cmd.CommandText = """
+                UPDATE MaterialListings
+                SET ComponentName = $name, Amount = $amount, Price = $price, UpdatedUtc = $updated
+                WHERE MarketId = $marketId AND ComponentKey = $key AND Direction = $direction;
+                """;
+        }
         cmd.Parameters.AddWithValue("$marketId", marketId);
         cmd.Parameters.AddWithValue("$key", componentKey);
         cmd.Parameters.AddWithValue("$name", componentName);
@@ -221,6 +243,7 @@ public sealed class RelayDb
             JOIN Carriers c ON c.MarketId = m.MarketId
             WHERE m.ComponentKey IN ({string.Join(",", placeholders)})
               AND m.Direction = $direction
+              AND m.Amount > 0
               AND c.Callsign IS NOT NULL AND c.Callsign != ''
               AND c.StarSystem IS NOT NULL AND c.StarSystem != '';
             """;

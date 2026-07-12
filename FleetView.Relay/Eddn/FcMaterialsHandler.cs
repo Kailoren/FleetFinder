@@ -74,8 +74,11 @@ public static class FcMaterialsHandler
         int stock = item.GetInt32Any(sellNames) ?? 0;
         int demand = item.GetInt32Any(buyNames) ?? 0;
 
-        if (stock > 0) db.UpsertMaterialListing(marketId, key, displayName, "Selling", stock, price, updatedUtc);
-        if (demand > 0) db.UpsertMaterialListing(marketId, key, displayName, "Buying", demand, price, updatedUtc);
+        // Always upsert, even at 0 - see UpsertMaterialListing's doc comment for why a 0 still
+        // needs to reach the DB (to correct an existing stale positive value) despite never
+        // inserting a fresh all-zero row.
+        db.UpsertMaterialListing(marketId, key, displayName, "Selling", stock, price, updatedUtc);
+        db.UpsertMaterialListing(marketId, key, displayName, "Buying", demand, price, updatedUtc);
     }
 
     private static void UpsertOneDirection(
@@ -88,7 +91,7 @@ public static class FcMaterialsHandler
 
         long price = item.GetInt64Any(priceNames) ?? 0;
         int amount = item.GetInt32Any(amountNames) ?? 0;
-        if (amount > 0) db.UpsertMaterialListing(marketId, key, displayName, direction, amount, price, updatedUtc);
+        db.UpsertMaterialListing(marketId, key, displayName, direction, amount, price, updatedUtc);
     }
 
     /// <summary>
