@@ -10,19 +10,21 @@ The app has three tabs:
 
   <img width="1764" height="1106" alt="Screenshot 2026-07-11 193305" src="https://github.com/user-attachments/assets/54f708cf-3ca8-48cc-9ea6-492be3e8d967" />
 
-- **Modifications:** Every suit and weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching.
+- **Modifications:** Every suit and weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching. Once you have purchased the required amount, the app will automatically deselect those items so you can just hit search again when you're ready to find the next carrier!
 
   <img width="1712" height="1439" alt="Screenshot 2026-07-11 202206" src="https://github.com/user-attachments/assets/01f95ce0-eb1b-441f-99a3-ec1da008c905" />
 
-- **Import:** Upload a wishlist exported from **EDOMH** (Elite Dangerous Odyssey Materials Helper). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
+- **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">https://github.com/jixxed/ed-odyssey-materials-helper</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
   <img width="1711" height="1439" alt="Screenshot 2026-07-11 202347" src="https://github.com/user-attachments/assets/ccf7cc63-d875-4a0f-a6bf-cc7bf7ddc884" />
 
-Your inventory (the "Have" column) is read straight from the game and refreshes automatically while you play, so it stays up to date without you doing anything.
+And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
+
+<img width="449" height="211" alt="Screenshot 2026-07-12 124135" src="https://github.com/user-attachments/assets/1e9fd748-e944-44f8-9011-b0450a19cf38" />
 
 ## Where the market data comes from
 
-Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. There's nothing to set up. Coverage grows over time as more players play the game, so newly added or rarely traded components may show fewer results at first.
+Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. Coverage grows over time as more players play the game, so rarely traded components may show fewer results at first.
 
 ## Requirements
 
@@ -36,5 +38,6 @@ Download the latest release, then run `FleetFinder.exe`. Keep the `Data` folder 
 
 ## Known limitations
 
-- Whether you can dock at a carrier may show as "Unknown" if that hasn't been reported yet. This fills in over time as more players visit carriers, and like any shared community data it can occasionally be out of date by the time you arrive.
-- The component catalogue is curated for suit and weapon engineering, not every Odyssey material that exists. If an EDOMH import shows an item it doesn't recognize, that's flagged in the Import tab so you can see exactly what wasn't matched. If this happens, please let me know so it can be added.
+- Carrier docking access may show as "Unknown" if that hasn't been reported yet. This fills in over time as more players visit carriers, and like any shared community data it can occasionally be out of date by the time you arrive. Since this is a new release there will likely be more "unknown" than "yes" currently, but this will improve as people continue to dock at carriers and my server gets that info from EDDN.
+
+- The component catalogue is curated for suit and weapon engineering, upgrades, and engineer unlocks, not every Odyssey component that exists. If an EDOMH import shows an item it doesn't recognize, that's flagged in the Import tab as "false" so you can see exactly what wasn't matched. If this happens, please let me know so it can be added.
