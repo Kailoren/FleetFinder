@@ -24,7 +24,8 @@ And most importantly, if you have a lot of materials to search for and you don't
 
 ## Where the market data comes from
 
-Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. Coverage grows over time as more players play the game, so rarely traded components may show fewer results at first.
+Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. Coverage grows over time as more players play the game, so rarely traded components may show fewer results at first. Please use a journal reporting tool such as EDDiscovery, EDMC or similar.
+Components only get updated to EDDN **when a cmdr opens the bartender commodity list**. In order to keep this running as smoothly and as accurately as possible, I ask that once you have been to a carrier and bought what you need, **please close the bartender menu and then open it again**. This will update EDDN to reflect the changes in inventory stock after you have bought what you need and ensure stock levels are as current as possible.
 
 ## Requirements
 
