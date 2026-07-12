@@ -52,8 +52,8 @@ public sealed class MainViewModel : ObservableObject
 
     public RelayCommand RefreshInventoryCommand { get; }
     public RelayCommand SearchCommand { get; }
-    public RelayCommand ClearSelectionCommand { get; }
-    public RelayCommand SelectAllCommand { get; }
+    public RelayCommand ClearBuySelectionCommand { get; }
+    public RelayCommand ClearSellSelectionCommand { get; }
     public RelayCommand<string> CopySystemCommand { get; }
     public RelayCommand ApplyModTargetsCommand { get; }
     public RelayCommand ClearModSelectionCommand { get; }
@@ -103,8 +103,8 @@ public sealed class MainViewModel : ObservableObject
 
         RefreshInventoryCommand = new RelayCommand(RefreshInventory);
         SearchCommand = new RelayCommand(SearchSelectedAsync, () => SelectedCount > 0 || SellSelectedCount > 0);
-        ClearSelectionCommand = new RelayCommand(ClearSelection);
-        SelectAllCommand = new RelayCommand(SelectAll);
+        ClearBuySelectionCommand = new RelayCommand(ClearBuySelection);
+        ClearSellSelectionCommand = new RelayCommand(ClearSellSelection);
         CopySystemCommand = new RelayCommand<string>(CopySystem);
         ApplyModTargetsCommand = new RelayCommand(ApplyModTargets);
         ClearModSelectionCommand = new RelayCommand(ClearModSelection);
@@ -313,20 +313,16 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    private void ClearSelection()
+    private void ClearBuySelection()
     {
         foreach (var row in Components)
-        {
             row.IsSelected = false;
-            row.SellSelected = false;
-        }
     }
 
-    /// <summary>Ticks every component - for mass-testing the market source against every key at once.</summary>
-    private void SelectAll()
+    private void ClearSellSelection()
     {
         foreach (var row in Components)
-            row.IsSelected = true;
+            row.SellSelected = false;
     }
 
     /// <summary>Copies a system name to the clipboard for pasting into the in-game galaxy map.</summary>

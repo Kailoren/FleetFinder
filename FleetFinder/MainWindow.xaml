@@ -459,9 +459,9 @@
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Refresh inventory" Command="{Binding RefreshInventoryCommand}"
                                 Background="#5A3A15" Foreground="#EAE4DA"/>
-                        <Button Content="Select all" Command="{Binding SelectAllCommand}"
+                        <Button Content="Clear Buy" Command="{Binding ClearBuySelectionCommand}"
                                 Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
-                        <Button Content="Clear" Command="{Binding ClearSelectionCommand}"
+                        <Button Content="Clear Sell" Command="{Binding ClearSellSelectionCommand}"
                                 Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
                     </StackPanel>
 
