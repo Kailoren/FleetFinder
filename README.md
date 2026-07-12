@@ -14,7 +14,7 @@ The app has three tabs:
 
   <img width="1712" height="1439" alt="Screenshot 2026-07-11 202206" src="https://github.com/user-attachments/assets/01f95ce0-eb1b-441f-99a3-ec1da008c905" />
 
-- **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">https://github.com/jixxed/ed-odyssey-materials-helper</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
+- **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">[Elite Dangerous Odyssey Materials Helper](https://github.com/jixxed/ed-odyssey-materials-helper)</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
 <img width="1711" height="1439" alt="Screenshot 2026-07-12 133722" src="https://github.com/user-attachments/assets/7e1d67d8-b4a6-4fae-b5ff-aaed86ebea81" />
 
