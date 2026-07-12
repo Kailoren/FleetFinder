@@ -173,6 +173,17 @@ public sealed class MainViewModel : ObservableObject
                         if (neededByNorm.TryGetValue(ShipLockerReader.Normalize(item.Component), out var need))
                             item.Needed = need;
             }
+
+            // Same for "Where to sell" results' Have column - stays live as you sell things off
+            // instead of freezing at whatever you held when Search was last clicked.
+            if (SellListings.Count > 0)
+            {
+                var haveByNorm = BuildHaveByNorm();
+                foreach (var group in SellListings)
+                    foreach (var item in group.Items)
+                        if (haveByNorm.TryGetValue(ShipLockerReader.Normalize(item.Component), out var have))
+                            item.Have = have;
+            }
         }
 
         RebuildModifications(counts);
@@ -755,20 +766,25 @@ public sealed class MainViewModel : ObservableObject
         PendingSearchStore.Save(incomplete);
     }
 
-    /// <summary>Normalized component name -> current StillNeeded, for stamping onto listings
-    /// (both a fresh search and a live inventory refresh use this).</summary>
+    /// <summary>Normalized component name -> current StillNeeded, for stamping onto "where to buy"
+    /// listings (both a fresh search and a live inventory refresh use this).</summary>
     private Dictionary<string, int> BuildNeededByNorm() =>
         Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), c => c.StillNeeded);
 
+    /// <summary>Normalized component name -> current Have, for stamping onto "where to sell"
+    /// listings (both a fresh search and a live inventory refresh use this).</summary>
+    private Dictionary<string, int> BuildHaveByNorm() =>
+        Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), c => c.Have);
+
     /// <summary>
     /// Fetches listings for one market direction, resolves distances, optionally stamps the
-    /// "Needed" figure (buy side only — selling to a carrier has no such concept), and groups them
-    /// into one row per carrier/station. Shared by both halves of <see cref="SearchSelectedAsync"/>
-    /// so "where to buy" and "where to sell" run the exact same pipeline, just with a different
-    /// component set / direction / whether Needed applies.
+    /// "Needed" or "Have" figure (mutually exclusive — Needed only makes sense buy-side, Have only
+    /// sell-side), and groups them into one row per carrier/station. Shared by both halves of
+    /// <see cref="SearchSelectedAsync"/> so "where to buy" and "where to sell" run the exact same
+    /// pipeline, just with a different component set / direction / which figure applies.
     /// </summary>
     private async Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)> FetchGroupedListingsAsync(
-        List<Component> components, MarketDirection direction, bool stampNeeded)
+        List<Component> components, MarketDirection direction, bool stampNeeded, bool stampHave)
     {
         List<CarrierListing> collected = new();
         bool failed = false;
@@ -798,6 +814,14 @@ public sealed class MainViewModel : ObservableObject
             var neededByNorm = BuildNeededByNorm();
             foreach (var l in collected)
                 l.Needed = neededByNorm.GetValueOrDefault(ShipLockerReader.Normalize(l.Component));
+        }
+        if (stampHave)
+        {
+            // Stamp each listing with how many you currently hold, so "Where to sell" shows what
+            // you have available to sell without switching back to Find Carriers.
+            var haveByNorm = BuildHaveByNorm();
+            foreach (var l in collected)
+                l.Have = haveByNorm.GetValueOrDefault(ShipLockerReader.Normalize(l.Component));
         }
 
         // One row per carrier/station: a place trading several of the searched commodities lists
@@ -850,13 +874,13 @@ public sealed class MainViewModel : ObservableObject
         {
             IsBuyBusy = true;
             Listings.Clear();
-            buyTask = FetchGroupedListingsAsync(chosen, MarketDirection.Selling, stampNeeded: true);
+            buyTask = FetchGroupedListingsAsync(chosen, MarketDirection.Selling, stampNeeded: true, stampHave: false);
         }
         if (sellChosen.Count > 0)
         {
             IsSellBusy = true;
             SellListings.Clear();
-            sellTask = FetchGroupedListingsAsync(sellChosen, MarketDirection.Buying, stampNeeded: false);
+            sellTask = FetchGroupedListingsAsync(sellChosen, MarketDirection.Buying, stampNeeded: false, stampHave: true);
         }
 
         Status = chosen.Count > 0 && sellChosen.Count > 0

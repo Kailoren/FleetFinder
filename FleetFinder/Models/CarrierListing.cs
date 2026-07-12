@@ -34,7 +34,8 @@ public sealed class CarrierListing : INotifyPropertyChanged
     /// <summary>
     /// How many of this component you still need. Set at search time and kept live afterward
     /// (see MainViewModel.RefreshInventory), so this updates automatically as you buy things
-    /// from a carrier instead of only refreshing on the next search.
+    /// from a carrier instead of only refreshing on the next search. Only meaningful for "Where
+    /// to Buy" listings.
     /// </summary>
     public int Needed
     {
@@ -44,6 +45,23 @@ public sealed class CarrierListing : INotifyPropertyChanged
             if (_needed == value) return;
             _needed = value;
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Needed)));
+        }
+    }
+
+    private int _have;
+    /// <summary>
+    /// How many of this component you currently hold. Set at search time and kept live afterward
+    /// the same way <see cref="Needed"/> is, so it updates as you sell things to a carrier. Only
+    /// meaningful for "Where to Sell" listings (the buy pane shows Needed instead).
+    /// </summary>
+    public int Have
+    {
+        get => _have;
+        set
+        {
+            if (_have == value) return;
+            _have = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Have)));
         }
     }
 

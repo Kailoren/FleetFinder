@@ -629,6 +629,7 @@
                     <DataGrid ItemsSource="{Binding ListingsView}"
                               Grid.IsSharedSizeScope="True"
                               HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
                               CanUserSortColumns="True"
                               VirtualizingPanel.ScrollUnit="Item"
                               GridLinesVisibility="All"
@@ -691,11 +692,17 @@
                                     <DataTemplate>
                                         <Grid HorizontalAlignment="Stretch">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                                <!-- Width="Auto" is required for SharedSizeGroup to actually
+                                                     take part in shared auto-sizing (it's a no-op on Star-width
+                                                     columns, the implicit default) - without it, a short
+                                                     component name can size this column narrower than the
+                                                     "Components"/"Needed" header text, which then overflows
+                                                     into its neighbor since Grid doesn't clip by default. -->
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Needed"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center"/>
-                                            <TextBlock Grid.Column="1" Text="Needed" HorizontalAlignment="Center"/>
+                                            <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center" Margin="7,0"/>
+                                            <TextBlock Grid.Column="1" Text="Needed" HorizontalAlignment="Center" Margin="7,0"/>
                                         </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.HeaderTemplate>
@@ -706,8 +713,8 @@
                                                 <DataTemplate>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                            <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Needed"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
                                                         <TextBlock Grid.Column="1" Text="{Binding Needed}" Margin="7,3"
@@ -850,6 +857,7 @@
                     <DataGrid ItemsSource="{Binding SellListingsView}"
                               Grid.IsSharedSizeScope="True"
                               HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
                               CanUserSortColumns="True"
                               VirtualizingPanel.ScrollUnit="Item"
                               GridLinesVisibility="All"
@@ -873,19 +881,44 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <!-- Every matching commodity this carrier buys, one per line - no "Needed"
-                                 sub-column here (that concept only applies to buying, not selling), so
-                                 unlike the "Where to Buy" grid's merged Components+Needed column, this
-                                 is a single plain ItemsControl. -->
-                            <DataGridTemplateColumn Header="Components" Width="Auto"
-                                                    CanUserResize="False" CanUserSort="False"
-                                                    HeaderStyle="{StaticResource CenterHeader}">
+                            <!-- Every matching commodity this carrier buys, one per line, with how many
+                                 of each you currently Have alongside it (mirrors the "Where to Buy"
+                                 grid's merged Components+Needed column, same SharedSizeGroup trick to
+                                 keep the two header labels aligned with their value columns - see the
+                                 comment on that column for the full performance rationale). Have is
+                                 shown here instead of Needed since selling has no "still need" concept. -->
+                            <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
+                                <DataGridTemplateColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <Grid HorizontalAlignment="Stretch">
+                                            <Grid.ColumnDefinitions>
+                                                <!-- Width="Auto" required for SharedSizeGroup to actually
+                                                     auto-size (no-op on the implicit Star-width default) -
+                                                     see the matching comment on the buy grid's Components+
+                                                     Needed column for why this matters. -->
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Component"/>
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Have"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center" Margin="7,0"/>
+                                            <TextBlock Grid.Column="1" Text="Have" HorizontalAlignment="Center" Margin="7,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.HeaderTemplate>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ItemsControl ItemsSource="{Binding Items}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Component"/>
+                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Have"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Have}" Margin="7,3"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                    </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
