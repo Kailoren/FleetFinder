@@ -146,10 +146,12 @@ public sealed class MainViewModel : ObservableObject
         }
         else
         {
-            // Auto-deselect anything a ticked search no longer needs to buy: once the game's
-            // inventory catches up to the target (e.g. after buying it from a carrier), there's
-            // no reason to keep searching for it.
+            // Auto-deselect anything a ticked search no longer needs: once the game's inventory
+            // catches up to the buy target (e.g. after buying it from a carrier) there's no reason
+            // to keep searching to buy it, and once a sell-ticked component hits zero (sold the
+            // last one) there's nothing left to sell.
             int caughtUp = 0;
+            int soldOut = 0;
             foreach (var row in Components)
             {
                 row.Have = counts.GetValueOrDefault(ShipLockerReader.Normalize(row.Component.Name));
@@ -158,9 +160,18 @@ public sealed class MainViewModel : ObservableObject
                     row.IsSelected = false;
                     caughtUp++;
                 }
+                if (row.SellSelected && row.Have <= 0)
+                {
+                    row.SellSelected = false;
+                    soldOut++;
+                }
             }
-            if (caughtUp > 0)
+            if (caughtUp > 0 && soldOut > 0)
+                Status = $"Inventory updated — {caughtUp} component(s) fully stocked, {soldOut} sold out — both deselected.";
+            else if (caughtUp > 0)
                 Status = $"Inventory updated — {caughtUp} component(s) now fully stocked and deselected.";
+            else if (soldOut > 0)
+                Status = $"Inventory updated — {soldOut} component(s) sold out and deselected.";
 
             // Keep "Where to buy" results' Needed column live too, not just the picker's -
             // otherwise it stays frozen at whatever it was when Search was last clicked, instead
@@ -680,11 +691,13 @@ public sealed class MainViewModel : ObservableObject
     // ---- Pending search (resume-on-reopen) -------------------------------------------------
 
     private List<PendingSearchEntry>? _pendingSearch;
+    private List<PendingSellEntry>? _pendingSell;
 
     private bool _hasPendingSearchPrompt;
     /// <summary>
-    /// True when a targeted search (from Modifications or Import) was left with components still
-    /// short when the app last closed — shows the "continue or start new" overlay.
+    /// True when a targeted buy search (from Modifications or Import) still had components short,
+    /// or a Sell-column selection was still ticked, when the app last closed — shows the "continue
+    /// or start new" overlay.
     /// </summary>
     public bool HasPendingSearchPrompt
     {
@@ -695,33 +708,44 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>
     /// Checks for a cache left by <see cref="SavePendingSearch"/> on a previous close. Only
     /// prompts if at least one cached component still exists in the catalog and is still
-    /// genuinely short against current inventory — the game state may have moved on (e.g. the
-    /// user bought it outside the app, or manually in-session) since the file was written.
+    /// genuinely relevant against current inventory — the game state may have moved on (e.g. the
+    /// user bought or sold it outside the app, or manually in-session) since the file was written.
+    /// Buy entries stay relevant while still short (Target > Have); sell entries stay relevant
+    /// while there's still something to sell (Have > 0).
     /// </summary>
     private void LoadPendingSearchIfAny()
     {
-        var entries = PendingSearchStore.Load();
-        if (entries == null || entries.Count == 0) return;
+        var data = PendingSearchStore.Load();
+        if (data == null) return;
 
-        var stillShort = entries
+        var stillShort = data.Buy
             .Select(e => (Entry: e, Row: Components.FirstOrDefault(
                 c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(e.Name))))
             .Where(x => x.Row != null && x.Entry.Target > x.Row.Have)
             .Select(x => x.Entry)
             .ToList();
 
-        if (stillShort.Count == 0)
+        var stillSellable = data.Sell
+            .Select(e => (Entry: e, Row: Components.FirstOrDefault(
+                c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(e.Name))))
+            .Where(x => x.Row != null && x.Row.Have > 0)
+            .Select(x => x.Entry)
+            .ToList();
+
+        if (stillShort.Count == 0 && stillSellable.Count == 0)
         {
-            PendingSearchStore.Save(Array.Empty<PendingSearchEntry>()); // fully resolved — clear the stale cache
+            PendingSearchStore.Save(Array.Empty<PendingSearchEntry>(), Array.Empty<PendingSellEntry>()); // fully resolved — clear the stale cache
             return;
         }
 
         _pendingSearch = stillShort;
+        _pendingSell = stillSellable;
         HasPendingSearchPrompt = true;
     }
 
-    /// <summary>Restores the cached targets/selection — mirrors ApplyModTargets/ApplyImportTargets,
-    /// but deliberately does not run a search; "Where to buy" stays empty until the user does.</summary>
+    /// <summary>Restores the cached targets/selections — mirrors ApplyModTargets/ApplyImportTargets
+    /// for the buy side, and just re-ticks the Sell column for the sell side - but deliberately
+    /// does not run a search; both results panes stay empty until the user searches.</summary>
     private void ContinuePendingSearch()
     {
         if (_pendingSearch != null)
@@ -735,11 +759,25 @@ public sealed class MainViewModel : ObservableObject
                 row.IsSelected = row.IsShort;
             }
             TargetsActive = true;
-            ComponentsView.Refresh();
-            int ticked = Components.Count(c => c.IsSelected);
-            Status = $"Resumed previous search — {ticked} component(s) selected. Go to Find Carriers → Search.";
         }
+        if (_pendingSell != null)
+        {
+            foreach (var entry in _pendingSell)
+            {
+                var row = Components.FirstOrDefault(
+                    c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(entry.Name));
+                if (row == null) continue;
+                row.SellSelected = true;
+            }
+        }
+        ComponentsView.Refresh();
+        int buyTicked = Components.Count(c => c.IsSelected);
+        int sellTicked = Components.Count(c => c.SellSelected);
+        Status = sellTicked > 0
+            ? $"Resumed previous search — {buyTicked} to buy, {sellTicked} to sell. Go to Find Carriers → Search."
+            : $"Resumed previous search — {buyTicked} component(s) selected. Go to Find Carriers → Search.";
         _pendingSearch = null;
+        _pendingSell = null;
         HasPendingSearchPrompt = false;
     }
 
@@ -747,23 +785,28 @@ public sealed class MainViewModel : ObservableObject
     private void StartNewSearch()
     {
         _pendingSearch = null;
+        _pendingSell = null;
         HasPendingSearchPrompt = false;
-        PendingSearchStore.Save(Array.Empty<PendingSearchEntry>());
+        PendingSearchStore.Save(Array.Empty<PendingSearchEntry>(), Array.Empty<PendingSellEntry>());
     }
 
     /// <summary>
-    /// Called from MainWindow's Closing handler: caches any still-incomplete targeted search
-    /// (components with a target set that are still short) so it can be offered again next
-    /// launch. Overwrites/clears the cache either way, so a fully-completed session leaves no
-    /// stale prompt behind.
+    /// Called from MainWindow's Closing handler: caches any still-incomplete targeted buy search
+    /// (components with a target set that are still short) plus any still-ticked Sell-column
+    /// selections, so both can be offered again next launch. Overwrites/clears the cache either
+    /// way, so a fully-completed session leaves no stale prompt behind.
     /// </summary>
     public void SavePendingSearch()
     {
-        var incomplete = Components
+        var incompleteBuy = Components
             .Where(c => c.Target > 0 && c.IsShort)
             .Select(c => new PendingSearchEntry(c.Name, c.Target))
             .ToList();
-        PendingSearchStore.Save(incomplete);
+        var tickedSell = Components
+            .Where(c => c.SellSelected)
+            .Select(c => new PendingSellEntry(c.Name))
+            .ToList();
+        PendingSearchStore.Save(incompleteBuy, tickedSell);
     }
 
     /// <summary>Normalized component name -> current StillNeeded, for stamping onto "where to buy"
