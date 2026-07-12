@@ -595,22 +595,26 @@
             <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
                           Background="Transparent"/>
 
-            <!-- RIGHT: carrier results, split into "Where to Buy" (top) and "Where to Sell"
-                 (bottom) - two independent searches that run at the same time (see
-                 MainViewModel.SearchSelectedAsync) driven by the picker's checkbox column and its
-                 new Sell column respectively. Kept as two separate DataGrids/panels rather than
+            <!-- RIGHT: carrier results, physically split into two separate bordered panels -
+                 "Where to Buy" (top) and "Where to Sell" (bottom) - two independent searches that
+                 run at the same time (see MainViewModel.SearchSelectedAsync) driven by the
+                 picker's checkbox column and its new Sell column respectively. Each gets its own
+                 Border (matching the left/right picker-vs-results split's visual style) rather
+                 than sharing one outer Border, specifically so the seam between them reads as an
+                 obviously separate, independently-resizable panel rather than one box with an
+                 easy-to-miss internal splitter. Kept as two separate DataGrids/panels rather than
                  one grid with a Direction filter, since a carrier can appear in both at once with
                  different commodities and neither list should hide/reorder the other. -->
-            <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" MinHeight="120"/>
-                        <RowDefinition Height="6"/>
-                        <RowDefinition Height="*" MinHeight="120"/>
-                    </Grid.RowDefinitions>
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" MinHeight="120"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="*" MinHeight="120"/>
+                </Grid.RowDefinitions>
 
-                <DockPanel Grid.Row="0">
+                <Border Grid.Row="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                        BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14"
                                    VerticalAlignment="Center"/>
@@ -698,11 +702,18 @@
                                                      component name can size this column narrower than the
                                                      "Components"/"Needed" header text, which then overflows
                                                      into its neighbor since Grid doesn't clip by default. -->
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Needed"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center" Margin="7,0"/>
-                                            <TextBlock Grid.Column="1" Text="Needed" HorizontalAlignment="Center" Margin="7,0"/>
+                                            <!-- Border, not just the DataGrid's own VerticalGridLinesBrush, since
+                                                 that only draws between separate DataGridColumns - Components and
+                                                 Needed are two TextBlocks inside one merged DataGridTemplateColumn,
+                                                 so this divider has to be drawn by hand to match (repeated per row
+                                                 in the cell template below so it reads as one continuous line). -->
+                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                <TextBlock Text="Needed" HorizontalAlignment="Center" Margin="7,0"/>
+                                            </Border>
                                         </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.HeaderTemplate>
@@ -713,13 +724,15 @@
                                                 <DataTemplate>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Component"/>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Needed"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Needed}" Margin="7,3"
-                                                                   HorizontalAlignment="Center"
-                                                                   Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                            <TextBlock Text="{Binding Needed}" Margin="7,3"
+                                                                       HorizontalAlignment="Center"
+                                                                       Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                        </Border>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -834,12 +847,15 @@
                                Visibility="{Binding NoResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </Grid>
                 </DockPanel>
+                </Border>
 
                 <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
                               Background="Transparent"/>
 
-                <DockPanel Grid.Row="2">
-                    <Grid DockPanel.Dock="Top" Margin="0,8,0,8">
+                <Border Grid.Row="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                        BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14"
                                    VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
@@ -896,11 +912,17 @@
                                                      auto-size (no-op on the implicit Star-width default) -
                                                      see the matching comment on the buy grid's Components+
                                                      Needed column for why this matters. -->
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Component"/>
-                                                <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Have"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Component"/>
+                                                <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Have"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center" Margin="7,0"/>
-                                            <TextBlock Grid.Column="1" Text="Have" HorizontalAlignment="Center" Margin="7,0"/>
+                                            <!-- See the matching divider comment on the buy grid's Components+Needed
+                                                 column - a hand-drawn Border, since the DataGrid's own vertical grid
+                                                 lines only draw between separate DataGridColumns, not between these
+                                                 two TextBlocks sharing one merged DataGridTemplateColumn. -->
+                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                <TextBlock Text="Have" HorizontalAlignment="Center" Margin="7,0"/>
+                                            </Border>
                                         </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.HeaderTemplate>
@@ -911,13 +933,15 @@
                                                 <DataTemplate>
                                                     <Grid>
                                                         <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Component"/>
-                                                            <ColumnDefinition Width="Auto" SharedSizeGroup="ComponentsHave_Have"/>
+                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Component"/>
+                                                            <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Have"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <TextBlock Grid.Column="1" Text="{Binding Have}" Margin="7,3"
-                                                                   HorizontalAlignment="Center"
-                                                                   Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                            <TextBlock Text="{Binding Have}" Margin="7,3"
+                                                                       HorizontalAlignment="Center"
+                                                                       Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                        </Border>
                                                     </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
@@ -1028,8 +1052,8 @@
                                Visibility="{Binding NoSellResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </Grid>
                 </DockPanel>
-                </Grid>
-            </Border>
+                </Border>
+            </Grid>
         </Grid>
         </TabItem>
 
