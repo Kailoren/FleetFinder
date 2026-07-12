@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <ApplicationTitle>FleetFinder</ApplicationTitle>
+    <AssemblyName>FleetFinder</AssemblyName>
+    <RootNamespace>FleetView</RootNamespace>
+    <ApplicationIcon>Assets\FleetFinderIcon.ico</ApplicationIcon>
+    <Version>2.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Component reference data ships next to the exe and can be edited without a rebuild. -->
+    <None Update="Data\catalog.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Data\modifications.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Embedded so Window.Icon can reference it by relative pack URI. Also referenced via
+         ApplicationIcon above (for the exe's own file icon) — it needs to be both a Resource
+         item (for runtime use) and an ApplicationIcon (for the file itself). -->
+    <Resource Include="Assets\FleetFinderIcon.ico"/>
+  </ItemGroup>
+
+</Project>

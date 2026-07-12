@@ -1,0 +1,1045 @@
+<Window x:Class="FleetView.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FleetView"
+        mc:Ignorable="d"
+        Title="FleetFinder — Odyssey Engineering Material Finder"
+        Icon="Assets/FleetFinderIcon.ico"
+        Height="740" Width="1300" MinHeight="480" MinWidth="960"
+        Background="#0A0705" TextElement.Foreground="#EAE4DA"
+        FontFamily="Segoe UI" FontSize="13"
+        WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False">
+
+    <!-- Custom title bar (see the "Title bar" Border below): WindowChrome keeps the native
+         resize border / Aero-snap / drop shadow, but hands the top CaptionHeight strip to our
+         own content instead of drawing the system caption. Only the min/max/close buttons are
+         marked IsHitTestVisibleInChrome — everything else in that strip is drag-to-move and
+         double-click-to-maximize for free, same as a real title bar. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="36" ResizeBorderThickness="6"
+                      GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Panel" Color="#120E08"/>
+        <SolidColorBrush x:Key="Accent" Color="#FF7500"/>
+        <SolidColorBrush x:Key="Muted" Color="#9C7A55"/>
+
+        <!-- Carries the view model to DataGrid columns (not in the visual tree). -->
+        <local:BindingProxy x:Key="VmProxy" Data="{Binding}"/>
+
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="{StaticResource Panel}"/>
+            <Setter Property="RowBackground" Value="#120E08"/>
+            <Setter Property="AlternatingRowBackground" Value="#241809"/>
+            <Setter Property="Foreground" Value="#EAE4DA"/>
+            <Setter Property="BorderBrush" Value="#5A3A15"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#3A2410"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#3A2410"/>
+            <Setter Property="Foreground" Value="#B89470"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderBrush" Value="#5A3A15"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+        </Style>
+
+        <!-- No visual feedback for row selection anywhere: clicking a row (e.g. a modification)
+             still updates SelectedItem bindings, it just shouldn't look different afterward.
+             Overriding the SystemColors brushes (rather than DataGridRow/Cell styles directly)
+             avoids disturbing the default template's alternating-row-background wiring. -->
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#EAE4DA"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Transparent"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#EAE4DA"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Transparent"/>
+
+        <!-- Reusable centering for numeric/short columns (defined after the base header style).
+             Vertically centered too, so rows that grow tall (grouped carrier results) stay tidy. -->
+        <Style x:Key="CenterText" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="CenterHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Vertically centers a left-aligned column (e.g. carrier name) in a tall grouped row. -->
+        <Style x:Key="VCenterText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Horizontal breathing room from the column dividers, for the "Where to buy" results
+             grid. WPF's DataGridColumn Width="Auto" sizes to the content element's own
+             DesiredSize (which includes its Margin) — it does NOT include DataGridCell.Padding,
+             so that padding alone left text touching the dividers on narrow/fixed-width columns
+             (Dist, Updated, etc.) despite being set. Margin on the content itself is what
+             actually drives both the visual gap and the auto-width calculation correctly. -->
+        <Style x:Key="CenterTextPadded" TargetType="TextBlock" BasedOn="{StaticResource CenterText}">
+            <Setter Property="Margin" Value="7,0"/>
+        </Style>
+        <Style x:Key="VCenterTextPadded" TargetType="TextBlock" BasedOn="{StaticResource VCenterText}">
+            <Setter Property="Margin" Value="7,0"/>
+        </Style>
+
+        <!-- Themed, rounded scrollbar: track is transparent, thumb rounds and lights up orange on hover. -->
+        <Style x:Key="RoundedScrollBarThumb" TargetType="Thumb">
+            <Setter Property="Background" Value="#5A3A15"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="thumbBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="5" Margin="2"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="MinWidth" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Track Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.LineUpCommand" Opacity="0" Focusable="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.LineDownCommand" Opacity="0" Focusable="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource RoundedScrollBarThumb}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Height" Value="12"/>
+                    <Setter Property="MinHeight" Value="12"/>
+                    <Setter Property="Width" Value="Auto"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ScrollBar">
+                                <Grid Background="{TemplateBinding Background}">
+                                    <Track Name="PART_Track" IsDirectionReversed="False">
+                                        <Track.DecreaseRepeatButton>
+                                            <RepeatButton Command="ScrollBar.LineLeftCommand" Opacity="0" Focusable="False"/>
+                                        </Track.DecreaseRepeatButton>
+                                        <Track.IncreaseRepeatButton>
+                                            <RepeatButton Command="ScrollBar.LineRightCommand" Opacity="0" Focusable="False"/>
+                                        </Track.IncreaseRepeatButton>
+                                        <Track.Thumb>
+                                            <Thumb Style="{StaticResource RoundedScrollBarThumb}"/>
+                                        </Track.Thumb>
+                                    </Track>
+                                </Grid>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Custom checkbox: a small rounded box matching the app's panel/border palette, filled
+             with the accent color and a dark checkmark when ticked — replacing the native
+             Windows checkbox glyph, same spirit as the hand-built buttons/scrollbar/title bar. -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#EAE4DA"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal">
+                            <Border x:Name="box" Width="16" Height="16" CornerRadius="3"
+                                    BorderBrush="#5A3A15" BorderThickness="1.5" Background="#120E08"/>
+                            <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center"
+                                               RecognizesAccessKey="True"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="box" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#4A3316"/>
+                    <Setter Property="Foreground" Value="#9C7A55"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Custom title bar caption buttons (minimize/maximize/close) — flat, theme-colored,
+             replacing the native Windows caption glyphs entirely. Background flows through the
+             TemplateBinding below, so a hover trigger just needs to set Background/Foreground on
+             the Button itself; the Path/Canvas glyphs inside each button (see the title bar
+             below) bind their Stroke/Fill back to those same properties via AncestorType, so
+             hover color changes propagate without any template-part-name plumbing. -->
+        <Style x:Key="CaptionButton" TargetType="Button">
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Arrow"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#3A2410"/>
+                    <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- Close gets the conventional red hover instead of the accent color. -->
+        <Style x:Key="CloseCaptionButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E81123"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Text/link-style button used for the click-to-copy system name. -->
+        <Style x:Key="LinkButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#FFB066"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="txt" Text="{TemplateBinding Content}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="txt" Property="TextDecorations" Value="Underline"/>
+                                <Setter TargetName="txt" Property="Foreground" Value="#FFCE9E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small square +/- stepper button. -->
+        <Style x:Key="StepperButton" TargetType="Button">
+            <Setter Property="Background" Value="#5A3A15"/>
+            <Setter Property="Foreground" Value="#EAE4DA"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Width" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#6B4A1E"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Dark-theme tabs. -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#B89470"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <!-- BorderThickness starts at 0 (no border) so only the selected trigger's
+                             border shows; CornerRadius rounds just the top so the selected tab's
+                             flat bottom edge sits flush against the panel below with no border cut
+                             at the seam (the panel/content Grid below no longer has a top margin
+                             either, so there's no gap - see the tab content Grids). -->
+                        <Border x:Name="bd" Background="Transparent" Padding="16,9" Margin="0,0,4,0"
+                                CornerRadius="6,6,0,0" BorderThickness="0">
+                            <ContentPresenter ContentSource="Header" HorizontalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#120E08"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="bd" Property="BorderThickness" Value="1,1,1,0"/>
+                                <Setter Property="Foreground" Value="#FF7500"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <!-- Bound to "bd"'s own IsMouseOver (not the TabItem's ambient one):
+                                 the TabItem's IsMouseOver can read true while the pointer is over
+                                 the selected tab's page content — e.g. the empty gap between the
+                                 two panels on the Modifications/Import tabs — since that content is
+                                 hosted by TabControl's own default template, not nested inside this
+                                 TabItem's template. Scoping the trigger to "bd" itself (which only
+                                 covers the actual header chip) keeps the hover highlight limited to
+                                 hovering the tab label, regardless of that ambient bleed. -->
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=bd}" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#241809"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Title bar: fills WindowChrome's CaptionHeight strip. Everything in here except the
+             three buttons is drag-to-move / double-click-to-maximize for free, since only the
+             buttons are marked IsHitTestVisibleInChrome. -->
+        <Border DockPanel.Dock="Top" Height="36" Background="#0A0705">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Image Source="Assets/FleetFinderIcon.ico" Width="16" Height="16"/>
+                    <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12"
+                               Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}"
+                            Click="MinimizeButton_Click" ToolTip="Minimize"
+                            AutomationProperties.Name="Minimize"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Path Width="10" Height="10" Stretch="None" Data="M0,5.5 H10"
+                              Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                              StrokeThickness="1"/>
+                    </Button>
+                    <Button x:Name="MaximizeRestoreButton" Style="{StaticResource CaptionButton}"
+                            Click="MaximizeRestoreButton_Click" ToolTip="Maximize"
+                            AutomationProperties.Name="Maximize"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Grid Width="10" Height="10">
+                            <Path x:Name="MaximizeIcon" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z"
+                                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                  StrokeThickness="1"/>
+                            <Canvas x:Name="RestoreIcon" Visibility="Collapsed">
+                                <Rectangle Canvas.Left="2.5" Canvas.Top="0" Width="7.5" Height="7.5"
+                                           Fill="Transparent"
+                                           Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                           StrokeThickness="1"/>
+                                <Rectangle Canvas.Left="0" Canvas.Top="2.5" Width="7.5" Height="7.5"
+                                           Fill="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Background}"
+                                           Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                                           StrokeThickness="1"/>
+                            </Canvas>
+                        </Grid>
+                    </Button>
+                    <Button x:Name="CloseButton" Style="{StaticResource CloseCaptionButton}"
+                            Click="CloseButton_Click" ToolTip="Close"
+                            AutomationProperties.Name="Close"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Path Width="10" Height="10" Stretch="None" Data="M0,0 L10,10 M0,10 L10,0"
+                              Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"
+                              StrokeThickness="1.2"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="16,8">
+            <Grid>
+                <TextBlock Text="{Binding Status}" Foreground="#B89470" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding InventoryStatus}" Foreground="{StaticResource Muted}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Tabs, plus the "resume last search" overlay stacked on top of just this area (title
+             bar / status bar stay usable while it's up). -->
+        <Grid>
+        <TabControl Margin="12,8,12,12" Background="Transparent">
+        <TabItem Header="Find Carriers">
+        <!-- Main split -->
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="FindCarriersLeftColumn" Width="380" MinWidth="300"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: components / shopping list -->
+            <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <StackPanel>
+                            <TextBlock Text="Select components to price, or choose a modification in the Modifications tab"
+                                       FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Content="Refresh inventory" Command="{Binding RefreshInventoryCommand}"
+                                Background="#5A3A15" Foreground="#EAE4DA"/>
+                        <Button Content="Select all" Command="{Binding SelectAllCommand}"
+                                Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
+                        <Button Content="Clear" Command="{Binding ClearSelectionCommand}"
+                                Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
+                    </StackPanel>
+
+                    <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                        <Button Content="{Binding SearchButtonLabel}"
+                                Command="{Binding SearchCommand}" FontSize="14" Padding="12,9"/>
+                    </StackPanel>
+
+                    <DataGrid ItemsSource="{Binding ComponentsView}">
+                        <DataGrid.GroupStyle>
+                            <!-- Top level: Goods / Assets / Data. -->
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"
+                                                   Foreground="{StaticResource Accent}"
+                                                   Margin="4,8,0,4"/>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                            <!-- Second level: Chemicals/Circuits/Tech, shown only under Assets —
+                                 Data/Goods items have an empty SubCategory, so that (redundant)
+                                 sub-header collapses to nothing instead of repeating the group name. -->
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12"
+                                                   Foreground="{StaticResource Accent}"
+                                                   Margin="16,4,0,2">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Name}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
+                        <DataGrid.Columns>
+                            <!-- Checkbox column: header border on its right removed so its (empty)
+                                 header cell reads as one continuous header with "Component". -->
+                            <DataGridTemplateColumn Width="34" CanUserResize="False">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader"
+                                           BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- Fills remaining width so no empty "phantom column" filler appears
+                                 after Amount. CanUserResize=False since there's nothing to its
+                                 right to resize against (Amount is fixed-width) — without it, the
+                                 column border shows a resize cursor that doesn't do anything. -->
+                            <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*"
+                                                CanUserResize="False"/>
+                            <!-- Every column after Component (the Width="*" one) needs this same
+                                 scrollbar-offset compensation, not just whichever happens to be
+                                 last: Component's calculated width differs slightly between the
+                                 header row and the scrollable body (the body's available width is
+                                 narrowed by this grid's custom scrollbar, the header's isn't),
+                                 which shifts everything downstream of it by the same amount in
+                                 the body relative to the header. See the DataGrid scrollbar
+                                 gotcha noted elsewhere in this project. -->
+                            <DataGridTextColumn Header="Amount" Binding="{Binding Have}"
+                                                Width="Auto" CanUserResize="False"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CenterText}">
+                                        <Setter Property="Margin" Value="0,0,20,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <!-- How many more you still need (Target minus current Have, floored
+                                 at 0) — set by Apply selected on the Modifications tab or by
+                                 importing an EDOMH wishlist. Highlighted orange while > 0 so it's
+                                 obvious what's still outstanding; once inventory catches up
+                                 (ShipLocker.json refresh sees Have >= Target) the row's own
+                                 IsSelected is cleared automatically in MainViewModel, so a repeat
+                                 search only looks for what's still actually needed. -->
+                            <DataGridTextColumn Header="Needed" Binding="{Binding StillNeeded}"
+                                                Width="Auto" CanUserResize="False"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CenterText}">
+                                        <Setter Property="Margin" Value="0,0,20,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsShort}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+                          Background="Transparent"/>
+
+            <!-- RIGHT: carrier results -->
+            <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Where to buy" FontWeight="SemiBold" FontSize="14"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <ProgressBar IsIndeterminate="{Binding IsBusy}" Width="140" Height="6"
+                                     Margin="16,0,0,0" Background="#3A2410" Foreground="{StaticResource Accent}"
+                                     BorderThickness="0"
+                                     Visibility="{Binding IsBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
+                    </StackPanel>
+
+                    <Grid>
+                    <DataGrid ItemsSource="{Binding ListingsView}"
+                              HorizontalScrollBarVisibility="Auto"
+                              CanUserSortColumns="True"
+                              VirtualizingPanel.ScrollUnit="Item"
+                              GridLinesVisibility="All"
+                              VerticalGridLinesBrush="#3A2410">
+                        <!-- Vertical row breathing room only — horizontal spacing from the column
+                             dividers is handled per-column via content Margin instead of Padding
+                             here (see CenterTextPadded/VCenterTextPadded above for why). -->
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                <Setter Property="Padding" Value="0,4"/>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <!-- Outlines the row for the fleet carrier currently docked at (per the
+                             journal), so it's obvious which result you've actually arrived at. -->
+                        <DataGrid.RowStyle>
+                            <!-- Deliberately no BasedOn: {StaticResource {x:Type DataGridRow}} resolves to
+                                 the framework's own default (light-theme) DataGridRow style, which sets its
+                                 own Foreground and overrides the dark-theme color that otherwise inherits
+                                 down from the DataGrid's own style - that's what washed the row text out
+                                 to a pale grey when this Style was first added. A bare Style with just the
+                                 trigger below doesn't touch Foreground/Background at all, so inheritance
+                                 (and everything else DataGrid-level, like AlternatingRowBackground) keeps
+                                 working exactly as it did with no RowStyle set.
+
+                                 Outlines whichever carrier row you click, so you can browse results and
+                                 mark the one you're heading to - stays outlined (native DataGridRow.IsSelected,
+                                 SelectionMode=Single from the base DataGrid style) until you click a different
+                                 row. The global SystemColors overrides elsewhere in this file suppress the
+                                 default blue selection highlight everywhere, so this Setter is the only
+                                 visible selection feedback. -->
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderThickness" Value="2"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <!-- Every matching commodity this carrier sells, one per line; Needed/Qty/Price
+                                 below line up with each commodity. Row height grows to fit them all. -->
+                            <DataGridTemplateColumn Header="Components" Width="Auto" CanUserResize="False"
+                                                    CanUserSort="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- How many of each you still need, mirroring the picker's Needed column,
+                                 so the buy quantity is visible without scrolling back to Find Carriers. -->
+                            <DataGridTemplateColumn Header="Needed" Width="Auto" CanUserResize="False"
+                                                    CanUserSort="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Needed}" Margin="7,3"
+                                                               HorizontalAlignment="Center"
+                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- Carrier names are player-chosen and can run long, so cap the width
+                                 (unlike the other columns, which are bounded by our known name lists). -->
+                            <DataGridTextColumn Header="Carrier Name" Binding="{Binding StationName}"
+                                                Width="Auto" MaxWidth="240" CanUserResize="False"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding StationName}"/>
+                                        <Setter Property="Margin" Value="7,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Callsign" Binding="{Binding Callsign}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <!-- Docking access: Yes (open) / No (restricted) / Unknown. -->
+                            <DataGridTextColumn Header="Access" Binding="{Binding DockingAccess}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="0,4"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="Yes">
+                                                <Setter Property="Foreground" Value="#6EE7A0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="No">
+                                                <Setter Property="Foreground" Value="#F87171"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="Unknown">
+                                                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                            <!-- System name: click to copy for pasting into the in-game galaxy map. -->
+                            <DataGridTemplateColumn Header="System" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="System"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding System}"
+                                                Style="{StaticResource LinkButton}"
+                                                ToolTip="Click to copy system name"
+                                                Margin="7,0"
+                                                Command="{Binding DataContext.CopySystemCommand,
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding System}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Qty" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="TotalAmount"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}" HorizontalAlignment="Center">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Amount}" Margin="7,3" TextAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Price" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="MinPrice"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}" HorizontalAlignment="Center">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Price, StringFormat={}{0:N0} Cr}"
+                                                               Margin="7,3" TextAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Dist"
+                                                Binding="{Binding DistanceLy, StringFormat={}{0:N0} Ly}"
+                                                SortMemberPath="DistanceLy" Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <!-- One value per carrier (freshest of its matching commodities) — the update
+                                 time reflects the carrier's data snapshot, not any single commodity. -->
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
+                                                SortMemberPath="MinAge" Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource VCenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="No fleet carriers are selling these components."
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{StaticResource Muted}" FontSize="14" IsHitTestVisible="False"
+                               Visibility="{Binding NoResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
+                    </Grid>
+                </DockPanel>
+            </Border>
+        </Grid>
+        </TabItem>
+
+        <TabItem Header="Modifications">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <!-- Sized generously by default so full modification names show untruncated,
+                         but resizable (drag the splitter) same as the Find Carriers tab. -->
+                    <ColumnDefinition x:Name="ModificationsLeftColumn" Width="520" MinWidth="300"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: modification picker -->
+                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBlock Text="Suit &amp; weapon modifications" FontWeight="SemiBold" FontSize="14"/>
+                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0"
+                                       Text="Tick the mods you want."/>
+                            <TextBlock Text="{Binding ModSelectionSummary}" Foreground="{StaticResource Accent}"
+                                       Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="Clear selection" Command="{Binding ClearModSelectionCommand}"
+                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4"/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <Button Content="Apply selected"
+                                    Command="{Binding ApplyModTargetsCommand}" FontSize="14" Padding="12,9"/>
+                        </StackPanel>
+
+                        <DataGrid ItemsSource="{Binding ModificationsView}"
+                                  SelectedItem="{Binding SelectedModification}">
+                            <DataGrid.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" FontWeight="Bold"
+                                                       Foreground="{StaticResource Accent}" Margin="4,8,0,4"/>
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </DataGrid.GroupStyle>
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="34" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <!-- Panel is fixed-width and sized generously, so full names show untruncated. -->
+                                <DataGridTextColumn Header="Modification" Binding="{Binding Name}"
+                                                    Width="Auto" CanUserResize="False">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Margin" Value="0,0,7,0"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <!-- Quantity with -/+ steppers: how many of this mod you want. Right margin
+                                     compensates for this grid's custom (narrower-than-system) scrollbar, which
+                                     otherwise desyncs body-column centering from the header — see the DataGrid
+                                     scrollbar gotcha noted elsewhere in this project. -->
+                                <DataGridTemplateColumn Header="Qty" Width="96" CanUserResize="False"
+                                                        HeaderStyle="{StaticResource CenterHeader}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                                        Margin="0,0,10,0">
+                                                <Button Content="−" Style="{StaticResource StepperButton}"
+                                                        Command="{Binding DecQuantityCommand}"/>
+                                                <TextBlock Text="{Binding Quantity}" MinWidth="26" TextAlignment="Center"
+                                                           VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                <Button Content="+" Style="{StaticResource StepperButton}"
+                                                        Command="{Binding IncQuantityCommand}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+                              Background="Transparent"/>
+
+                <!-- RIGHT: clicked mod (top, fixed to 5 rows — the max a mod ever needs) + pinned totals (bottom) -->
+                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*" MinHeight="120"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- TOP: the modification you clicked (Required scales with its Qty) -->
+                        <DockPanel Grid.Row="0">
+                            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14"
+                                       Text="{Binding SelectedRequirementsHeader}"/>
+                            <!-- Fixed to 5 rows: the maximum commodities any single modification needs. -->
+                            <DataGrid ItemsSource="{Binding SelectedRequirements}" Height="148">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity}" Width="*"/>
+                                    <DataGridTextColumn Header="Required" Binding="{Binding Required}" Width="75"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}"/>
+                                    <DataGridTextColumn Header="Have" Binding="{Binding Have}" Width="60"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}"/>
+                                    <DataGridTextColumn Header="Need" Binding="{Binding Short}" Width="60"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Owned}" Value="False">
+                                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+
+                        <!-- Static divider (no longer a draggable splitter — both panes are fixed/auto sized). -->
+                        <Border Grid.Row="1" Height="1" Background="#5A3A15" Margin="0,10"/>
+
+                        <!-- BOTTOM: total of every commodity needed across all checked modifications. -->
+                        <DockPanel Grid.Row="2">
+                            <TextBlock DockPanel.Dock="Top" Margin="0,0,0,6" FontWeight="SemiBold" FontSize="14"
+                                       Text="Total"/>
+                            <DataGrid ItemsSource="{Binding PinnedRequirementsView}"
+                                      VirtualizingPanel.ScrollUnit="Item">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity}" Width="*"/>
+                                    <DataGridTextColumn Header="Required" Binding="{Binding Required}" Width="75"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}"/>
+                                    <DataGridTextColumn Header="Have" Binding="{Binding Have}" Width="60"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}"/>
+                                    <DataGridTextColumn Header="Need" Binding="{Binding Short}" Width="60"
+                                                        ElementStyle="{StaticResource CenterText}"
+                                                        HeaderStyle="{StaticResource CenterHeader}">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Owned}" Value="False">
+                                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="Import">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="ImportLeftColumn" Width="520" MinWidth="300"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: paste or load an EDOMH wishlist export -->
+                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBlock Text="Import EDOMH wishlist" FontWeight="SemiBold" FontSize="14"/>
+                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                                       Text="Export a wishlist from Elite Dangerous Odyssey Materials Helper, then paste it below or load the .txt file."/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Button Content="Load .txt file…" Command="{Binding BrowseImportFileCommand}"
+                                    Margin="0,0,8,0"/>
+                            <Button Content="Clear" Command="{Binding ClearImportCommand}"
+                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4"/>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                            <Button Content="Import wishlist"
+                                    Command="{Binding ImportWishlistCommand}" FontSize="14" Padding="12,9"/>
+                        </StackPanel>
+
+                        <TextBox Text="{Binding ImportText, UpdateSourceTrigger=PropertyChanged}"
+                                 FontFamily="Consolas" FontSize="12"
+                                 Background="#0A0705" Foreground="#EAE4DA" BorderBrush="#5A3A15"
+                                 BorderThickness="1" Padding="6"
+                                 AcceptsReturn="True" TextWrapping="NoWrap"
+                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
+                    </DockPanel>
+                </Border>
+
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+                              Background="Transparent"/>
+
+                <!-- RIGHT: what got parsed, so an unmatched/mistyped material name is easy to spot -->
+                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14"
+                                   Text="Parsed items"/>
+                        <DataGrid ItemsSource="{Binding ImportPreview}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Material" Binding="{Binding Material}" Width="*"/>
+                                <DataGridTextColumn Header="Required" Binding="{Binding Required}" Width="75"
+                                                    ElementStyle="{StaticResource CenterText}"
+                                                    HeaderStyle="{StaticResource CenterHeader}"/>
+                                <DataGridTextColumn Header="Need" Binding="{Binding Need}" Width="60"
+                                                    ElementStyle="{StaticResource CenterText}"
+                                                    HeaderStyle="{StaticResource CenterHeader}"/>
+                                <DataGridTextColumn Header="Matched" Binding="{Binding Matched}" Width="75"
+                                                    ElementStyle="{StaticResource CenterText}"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                    <DataGridTextColumn.CellStyle>
+                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Matched}" Value="False">
+                                                    <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.CellStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </TabItem>
+        </TabControl>
+
+        <!-- "Resume last search" overlay: shown when a targeted search (Modifications/Import)
+             was left with components still short at the app's last close. Background is a real
+             (semi-transparent) brush, not Transparent, so it also blocks clicks to the tabs
+             underneath while up. -->
+        <Border Background="#CC000000"
+                Visibility="{Binding HasPendingSearchPrompt, Converter={x:Static local:BoolToVis.Instance}}">
+            <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+                    BorderThickness="1" CornerRadius="8" Padding="24" MaxWidth="420"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="Unfinished search" FontWeight="SemiBold" FontSize="16"
+                               Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
+                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,16"
+                               Text="You didn't complete your last search. Would you like to continue or start a new search?"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button Content="Continue" Command="{Binding ContinuePendingSearchCommand}"
+                                Padding="16,8" Margin="0,0,8,0"/>
+                        <Button Content="Start New" Command="{Binding StartNewSearchCommand}"
+                                Background="#5A3A15" Foreground="#EAE4DA" Padding="16,8"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
+        </Grid>
+    </DockPanel>
+</Window>

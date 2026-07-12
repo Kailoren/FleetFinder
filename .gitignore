@@ -1,0 +1,24 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+publish/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# Runtime files written into Data/ at run time (see App.xaml.cs, Services/EdsmCoordinateSource.cs,
+# Services/WindowStateStore.cs, Services/PendingSearchStore.cs)
+system-coords-cache.json
+fleetview-crash.log
+window-state.json
+pending-search.json
+
+# FleetView.Relay's SQLite database (default path when RelayDbPath isn't overridden)
+FleetView.Relay/relay.db*
+
+# OS cruft
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,812 @@
+﻿[
+    {
+        "key":  "compressionliquefiedgas",
+        "name":  "Compression-Liquefied Gas",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10308,
+        "targetQty":  0
+    },
+    {
+        "key":  "geneticrepairmeds",
+        "name":  "Genetic Repair Meds",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10349,
+        "targetQty":  0
+    },
+    {
+        "key":  "gmeds",
+        "name":  "G-Meds",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10280,
+        "targetQty":  10
+    },
+    {
+        "key":  "healthmonitor",
+        "name":  "Health Monitor",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10292,
+        "targetQty":  0
+    },
+    {
+        "key":  "insightentertainmentsuite",
+        "name":  "InSight Entertainment Suite",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10294,
+        "targetQty":  0
+    },
+    {
+        "key":  "ionisedgas",
+        "name":  "Ionised Gas",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10291,
+        "targetQty":  0
+    },
+    {
+        "key":  "powerregulator",
+        "name":  "Power Regulator",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10271,
+        "targetQty":  0
+    },
+    {
+        "key":  "push",
+        "name":  "Push",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10396,
+        "targetQty":  0
+    },
+    {
+        "key":  "suitschematic",
+        "name":  "Suit Schematic",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10306,
+        "targetQty":  0
+    },
+    {
+        "key":  "surveillanceequipment",
+        "name":  "Surveillance Equipment",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10335,
+        "targetQty":  10
+    },
+    {
+        "key":  "weaponschematic",
+        "name":  "Weapon Schematic",
+        "category":  "Goods",
+        "subCategory":  "",
+        "inaraTypeId":  6,
+        "inaraItemId":  10309,
+        "targetQty":  0
+    },
+    {
+        "key":  "aerogel",
+        "name":  "Aerogel",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  179,
+        "targetQty":  0
+    },
+    {
+        "key":  "chemicalcatalyst",
+        "name":  "Chemical Catalyst",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  180,
+        "targetQty":  15
+    },
+    {
+        "key":  "chemicalsuperbase",
+        "name":  "Chemical Superbase",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  181,
+        "targetQty":  0
+    },
+    {
+        "key":  "epinephrine",
+        "name":  "Epinephrine",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  186,
+        "targetQty":  20
+    },
+    {
+        "key":  "epoxyadhesive",
+        "name":  "Epoxy Adhesive",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  182,
+        "targetQty":  25
+    },
+    {
+        "key":  "graphene",
+        "name":  "Graphene",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  178,
+        "targetQty":  0
+    },
+    {
+        "key":  "oxygenicbacteria",
+        "name":  "Oxygenic Bacteria",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  185,
+        "targetQty":  20
+    },
+    {
+        "key":  "phneutraliser",
+        "name":  "pH Neutraliser",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  187,
+        "targetQty":  30
+    },
+    {
+        "key":  "rdx",
+        "name":  "RDX",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  184,
+        "targetQty":  0
+    },
+    {
+        "key":  "viscoelasticpolymer",
+        "name":  "Viscoelastic Polymer",
+        "category":  "Assets",
+        "subCategory":  "Chemicals",
+        "inaraTypeId":  13,
+        "inaraItemId":  183,
+        "targetQty":  15
+    },
+    {
+        "key":  "circuitboard",
+        "name":  "Circuit Board",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  188,
+        "targetQty":  5
+    },
+    {
+        "key":  "circuitswitch",
+        "name":  "Circuit Switch",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  189,
+        "targetQty":  10
+    },
+    {
+        "key":  "electricalfuse",
+        "name":  "Electrical Fuse",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  190,
+        "targetQty":  5
+    },
+    {
+        "key":  "electricalwiring",
+        "name":  "Electrical Wiring",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  191,
+        "targetQty":  40
+    },
+    {
+        "key":  "electromagnet",
+        "name":  "Electromagnet",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  197,
+        "targetQty":  0
+    },
+    {
+        "key":  "ionbattery",
+        "name":  "Ion Battery",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  199,
+        "targetQty":  10
+    },
+    {
+        "key":  "metalcoil",
+        "name":  "Metal Coil",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  192,
+        "targetQty":  0
+    },
+    {
+        "key":  "microsupercapacitor",
+        "name":  "Micro Supercapacitor",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  193,
+        "targetQty":  10
+    },
+    {
+        "key":  "microtransformer",
+        "name":  "Micro Transformer",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  194,
+        "targetQty":  25
+    },
+    {
+        "key":  "microelectrode",
+        "name":  "Microelectrode",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  198,
+        "targetQty":  0
+    },
+    {
+        "key":  "motor",
+        "name":  "Motor",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  195,
+        "targetQty":  10
+    },
+    {
+        "key":  "opticalfibre",
+        "name":  "Optical Fibre",
+        "category":  "Assets",
+        "subCategory":  "Circuits",
+        "inaraTypeId":  14,
+        "inaraItemId":  196,
+        "targetQty":  0
+    },
+    {
+        "key":  "carbonfibreplating",
+        "name":  "Carbon Fibre Plating",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  200,
+        "targetQty":  5
+    },
+    {
+        "key":  "encryptedmemorychip",
+        "name":  "Encrypted Memory Chip",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  211,
+        "targetQty":  0
+    },
+    {
+        "key":  "memorychip",
+        "name":  "Memory Chip",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  202,
+        "targetQty":  5
+    },
+    {
+        "key":  "microhydraulics",
+        "name":  "Micro Hydraulics",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  203,
+        "targetQty":  5
+    },
+    {
+        "key":  "microthrusters",
+        "name":  "Micro Thrusters",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  204,
+        "targetQty":  20
+    },
+    {
+        "key":  "opticallens",
+        "name":  "Optical Lens",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  205,
+        "targetQty":  0
+    },
+    {
+        "key":  "scrambler",
+        "name":  "Scrambler",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  206,
+        "targetQty":  0
+    },
+    {
+        "key":  "titaniumplating",
+        "name":  "Titanium Plating",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  207,
+        "targetQty":  5
+    },
+    {
+        "key":  "transmitter",
+        "name":  "Transmitter",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  208,
+        "targetQty":  5
+    },
+    {
+        "key":  "tungstencarbide",
+        "name":  "Tungsten Carbide",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  209,
+        "targetQty":  0
+    },
+    {
+        "key":  "weaponcomponent",
+        "name":  "Weapon Component",
+        "category":  "Assets",
+        "subCategory":  "Tech",
+        "inaraTypeId":  15,
+        "inaraItemId":  210,
+        "targetQty":  5
+    },
+    {
+        "key":  "airqualityreports",
+        "name":  "Air Quality Reports",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10298,
+        "targetQty":  15
+    },
+    {
+        "key":  "atmosphericdata",
+        "name":  "Atmospheric Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10372,
+        "targetQty":  0
+    },
+    {
+        "key":  "audiologs",
+        "name":  "Audio Logs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10304,
+        "targetQty":  0
+    },
+    {
+        "key":  "ballisticsdata",
+        "name":  "Ballistics Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10327,
+        "targetQty":  10
+    },
+    {
+        "key":  "biometricdata",
+        "name":  "Biometric Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10400,
+        "targetQty":  0
+    },
+    {
+        "key":  "bloodtestresults",
+        "name":  "Blood Test Results",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10299,
+        "targetQty":  0
+    },
+    {
+        "key":  "catmedia",
+        "name":  "Cat Media",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10300,
+        "targetQty":  0
+    },
+    {
+        "key":  "chemicalexperimentdata",
+        "name":  "Chemical Experiment Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10340,
+        "targetQty":  0
+    },
+    {
+        "key":  "chemicalinventory",
+        "name":  "Chemical Inventory",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10322,
+        "targetQty":  10
+    },
+    {
+        "key":  "classicentertainment",
+        "name":  "Classic Entertainment",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10290,
+        "targetQty":  0
+    },
+    {
+        "key":  "clinicaltrialrecords",
+        "name":  "Clinical Trial Records",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10417,
+        "targetQty":  5
+    },
+    {
+        "key":  "combattrainingmaterial",
+        "name":  "Combat Training Material",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10274,
+        "targetQty":  10
+    },
+    {
+        "key":  "combatantperformance",
+        "name":  "Combatant Performance",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10380,
+        "targetQty":  10
+    },
+    {
+        "key":  "digitaldesigns",
+        "name":  "Digital Designs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10407,
+        "targetQty":  10
+    },
+    {
+        "key":  "evacuationprotocols",
+        "name":  "Evacuation Protocols",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10279,
+        "targetQty":  10
+    },
+    {
+        "key":  "extractionyielddata",
+        "name":  "Extraction Yield Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10411,
+        "targetQty":  0
+    },
+    {
+        "key":  "genesequencingdata",
+        "name":  "Gene Sequencing Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10356,
+        "targetQty":  5
+    },
+    {
+        "key":  "geneticresearch",
+        "name":  "Genetic Research",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10286,
+        "targetQty":  5
+    },
+    {
+        "key":  "maintenancelogs",
+        "name":  "Maintenance Logs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10314,
+        "targetQty":  15
+    },
+    {
+        "key":  "manufacturinginstructions",
+        "name":  "Manufacturing Instructions",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10337,
+        "targetQty":  0
+    },
+    {
+        "key":  "medicalrecords",
+        "name":  "Medical Records",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10351,
+        "targetQty":  0
+    },
+    {
+        "key":  "mininganalytics",
+        "name":  "Mining Analytics",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10418,
+        "targetQty":  0
+    },
+    {
+        "key":  "multimediaentertainment",
+        "name":  "Multimedia Entertainment",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10368,
+        "targetQty":  0
+    },
+    {
+        "key":  "nocdata",
+        "name":  "NOC Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10382,
+        "targetQty":  5
+    },
+    {
+        "key":  "operationalmanual",
+        "name":  "Operational Manual",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10288,
+        "targetQty":  0
+    },
+    {
+        "key":  "opinionpoll",
+        "name":  "Opinion Poll",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10420,
+        "targetQty":  0
+    },
+    {
+        "key":  "patrolroutes",
+        "name":  "Patrol Routes",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10364,
+        "targetQty":  10
+    },
+    {
+        "key":  "pharmaceuticalpatents",
+        "name":  "Pharmaceutical Patents",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10376,
+        "targetQty":  5
+    },
+    {
+        "key":  "productionreports",
+        "name":  "Production Reports",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10312,
+        "targetQty":  10
+    },
+    {
+        "key":  "productionschedule",
+        "name":  "Production Schedule",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10316,
+        "targetQty":  0
+    },
+    {
+        "key":  "radioactivitydata",
+        "name":  "Radioactivity Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10341,
+        "targetQty":  5
+    },
+    {
+        "key":  "reactoroutputreview",
+        "name":  "Reactor Output Review",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10313,
+        "targetQty":  30
+    },
+    {
+        "key":  "recyclinglogs",
+        "name":  "Recycling Logs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10301,
+        "targetQty":  15
+    },
+    {
+        "key":  "riskassessments",
+        "name":  "Risk Assessments",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10427,
+        "targetQty":  0
+    },
+    {
+        "key":  "securityexpenses",
+        "name":  "Security Expenses",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10305,
+        "targetQty":  0
+    },
+    {
+        "key":  "settlementassaultplans",
+        "name":  "Settlement Assault Plans",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10428,
+        "targetQty":  5
+    },
+    {
+        "key":  "settlementdefenceplans",
+        "name":  "Settlement Defence Plans",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10365,
+        "targetQty":  0
+    },
+    {
+        "key":  "smearcampaignplans",
+        "name":  "Smear Campaign Plans",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10430,
+        "targetQty":  0
+    },
+    {
+        "key":  "spectralanalysisdata",
+        "name":  "Spectral Analysis Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10431,
+        "targetQty":  10
+    },
+    {
+        "key":  "stellaractivitylogs",
+        "name":  "Stellar Activity Logs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10358,
+        "targetQty":  10
+    },
+    {
+        "key":  "surveillancelogs",
+        "name":  "Surveillance Logs",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10321,
+        "targetQty":  5
+    },
+    {
+        "key":  "tacticalplans",
+        "name":  "Tactical Plans",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10350,
+        "targetQty":  10
+    },
+    {
+        "key":  "topographicalsurveys",
+        "name":  "Topographical Surveys",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10373,
+        "targetQty":  20
+    },
+    {
+        "key":  "troopdeploymentrecords",
+        "name":  "Troop Deployment Records",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10343,
+        "targetQty":  5
+    },
+    {
+        "key":  "weaponinventory",
+        "name":  "Weapon Inventory",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10338,
+        "targetQty":  20
+    },
+    {
+        "key":  "weapontestdata",
+        "name":  "Weapon Test Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "inaraTypeId":  7,
+        "inaraItemId":  10353,
+        "targetQty":  10
+    }
+]
