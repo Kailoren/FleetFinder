@@ -11,10 +11,14 @@ namespace FleetView.Relay.Eddn;
 /// faster. Confirmed via live capture: real messages carry StationName (=Callsign), StarSystem,
 /// MarketID and StationType in PascalCase.
 ///
-/// Also feeds a soft docking-access fallback: a successful dock proves *someone* could get in,
-/// so it's used as a "Yes" guess only while commodity-v3's actual access policy is still unknown
-/// (see RelayDb.UpsertCarrierDockingAccessFallback) - this schema has no real access-policy field
-/// of its own, only commodity-v3 does, so this never overrides a real answer.
+/// Does NOT feed a docking-access fallback (removed 2026-07-12, confirmed via real-world testing
+/// against a live restricted carrier) - a successful dock only proves *that specific visitor*
+/// could get in, and for a friends/squadron-restricted carrier that visitor is disproportionately
+/// likely to be a friend, squadron member, or the owner, not a representative random commander.
+/// Treating that as a general "Yes" produced real false positives (confirmed: a carrier that
+/// showed "Yes" from this signal turned out to require friends/squadron membership, denying the
+/// reporting user). commodity-v3's actual policy field is the only "Yes" source now; see
+/// DockingDeniedHandler for the "No" side, which doesn't have this same bias.
 /// </summary>
 public static class JournalHandler
 {
@@ -38,6 +42,5 @@ public static class JournalHandler
             : DateTime.UtcNow;
 
         db.UpsertCarrierLocation(marketId.Value, callsign, starSystem, seenUtc);
-        db.UpsertCarrierDockingAccessFallback(marketId.Value, "Yes", seenUtc);
     }
 }
