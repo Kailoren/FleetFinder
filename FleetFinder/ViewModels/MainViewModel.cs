@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
 using FleetView.Models;
@@ -589,6 +590,10 @@ public sealed class MainViewModel : ObservableObject
     }
 
     // ---- Update check -----------------------------------------------------------------------
+
+    /// <summary>Displayed permanently next to the title-bar app name, e.g. "v2.0.1".</summary>
+    public string CurrentVersionText { get; } =
+        "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0");
 
     private string? _updateUrl;
 

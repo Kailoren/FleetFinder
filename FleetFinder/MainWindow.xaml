@@ -361,6 +361,8 @@
                     <Image Source="Assets/FleetFinderIcon.ico" Width="16" Height="16"/>
                     <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12"
                                Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CurrentVersionText}" Margin="6,0,0,0" FontSize="10"
+                               Foreground="#5A3A15" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}"
