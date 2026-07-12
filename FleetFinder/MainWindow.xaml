@@ -579,6 +579,7 @@
 
                     <Grid>
                     <DataGrid ItemsSource="{Binding ListingsView}"
+                              Grid.IsSharedSizeScope="True"
                               HorizontalScrollBarVisibility="Auto"
                               CanUserSortColumns="True"
                               VirtualizingPanel.ScrollUnit="Item"
@@ -620,36 +621,51 @@
                             </Style>
                         </DataGrid.RowStyle>
                         <DataGrid.Columns>
-                            <!-- Every matching commodity this carrier sells, one per line; Needed/Qty/Price
-                                 below line up with each commodity. Row height grows to fit them all. -->
-                            <DataGridTemplateColumn Header="Components" Width="Auto" CanUserResize="False"
-                                                    CanUserSort="False"
-                                                    HeaderStyle="{StaticResource CenterHeader}">
-                                <DataGridTemplateColumn.CellTemplate>
+                            <!-- Every matching commodity this carrier sells, one per line, with how many of
+                                 each you still need alongside it. Qty/Price below line up with each commodity
+                                 too. Row height grows to fit them all.
+                                 Components+Needed are combined into one column (a single ItemsControl per row
+                                 instead of two) purely as a performance fix — with a broad multi-component
+                                 search returning 100+ carriers, having 4 separate per-item ItemsControls
+                                 (Components/Needed/Qty/Price all independently iterating the same Items list)
+                                 made sorting visibly take several seconds, since WPF has to tear down and
+                                 rebuild every newly-visible row's cells on every resort, and this row's height
+                                 auto-grows to fit every item (see CarrierGroupRow), so there's no virtualization
+                                 within a row to fall back on. Neither Components nor Needed is independently
+                                 sortable (CanUserSort was already False on both), so merging them costs nothing
+                                 — unlike Qty/Price below, which keep their own independent SortMemberPath and
+                                 are deliberately left as separate columns/ItemsControls. The two TextBlocks
+                                 share Grid.IsSharedSizeScope-backed SharedSizeGroups with the header below so
+                                 the header labels stay aligned with each column of values beneath them, the
+                                 same way the DataGrid would auto-size two real columns. -->
+                            <DataGridTemplateColumn Width="Auto" CanUserResize="False" CanUserSort="False">
+                                <DataGridTemplateColumn.HeaderTemplate>
                                     <DataTemplate>
-                                        <ItemsControl ItemsSource="{Binding Items}">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
+                                        <Grid HorizontalAlignment="Stretch">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Components" HorizontalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="Needed" HorizontalAlignment="Center"/>
+                                        </Grid>
                                     </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <!-- How many of each you still need, mirroring the picker's Needed column,
-                                 so the buy quantity is visible without scrolling back to Find Carriers. -->
-                            <DataGridTemplateColumn Header="Needed" Width="Auto" CanUserResize="False"
-                                                    CanUserSort="False"
-                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                </DataGridTemplateColumn.HeaderTemplate>
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <ItemsControl ItemsSource="{Binding Items}">
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <TextBlock Text="{Binding Needed}" Margin="7,3"
-                                                               HorizontalAlignment="Center"
-                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Component"/>
+                                                            <ColumnDefinition SharedSizeGroup="ComponentsNeeded_Needed"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Needed}" Margin="7,3"
+                                                                   HorizontalAlignment="Center"
+                                                                   Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                    </Grid>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
