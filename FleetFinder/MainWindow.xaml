@@ -730,7 +730,7 @@
                                                  Needed are two TextBlocks inside one merged DataGridTemplateColumn,
                                                  so this divider has to be drawn by hand to match (repeated per row
                                                  in the cell template below so it reads as one continuous line). -->
-                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0" VerticalAlignment="Stretch">
+                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True" VerticalAlignment="Stretch">
                                                 <TextBlock Text="Needed" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
                                             </Border>
                                         </Grid>
@@ -747,7 +747,7 @@
                                                             <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsNeeded_Needed"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
                                                             <TextBlock Text="{Binding Needed}" Margin="7,3"
                                                                        HorizontalAlignment="Center"
                                                                        Foreground="{StaticResource Accent}" FontWeight="Bold"/>
@@ -952,7 +952,7 @@
                                                  column - a hand-drawn Border, since the DataGrid's own vertical grid
                                                  lines only draw between separate DataGridColumns, not between these
                                                  two TextBlocks sharing one merged DataGridTemplateColumn. -->
-                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0" VerticalAlignment="Stretch">
+                                            <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True" VerticalAlignment="Stretch">
                                                 <TextBlock Text="Have" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="7,0"/>
                                             </Border>
                                         </Grid>
@@ -969,7 +969,7 @@
                                                             <ColumnDefinition Width="Auto" MinWidth="56" SharedSizeGroup="ComponentsHave_Have"/>
                                                         </Grid.ColumnDefinitions>
                                                         <TextBlock Grid.Column="0" Text="{Binding Component}" Margin="7,3"/>
-                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="1,0,0,0">
+                                                        <Border Grid.Column="1" BorderBrush="#3A2410" BorderThickness="2,0,0,0" SnapsToDevicePixels="True">
                                                             <TextBlock Text="{Binding Have}" Margin="7,3"
                                                                        HorizontalAlignment="Center"
                                                                        Foreground="{StaticResource Accent}" FontWeight="Bold"/>
