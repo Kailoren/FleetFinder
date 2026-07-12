@@ -54,6 +54,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand ClearImportCommand { get; }
     public RelayCommand ContinuePendingSearchCommand { get; }
     public RelayCommand StartNewSearchCommand { get; }
+    public RelayCommand OpenUpdateCommand { get; }
+    public RelayCommand DismissUpdateCommand { get; }
 
     public MainViewModel(
         IReadOnlyList<Component> catalog, IReadOnlyList<Modification> modifications,
@@ -99,10 +101,13 @@ public sealed class MainViewModel : ObservableObject
         ClearImportCommand = new RelayCommand(ClearImport);
         ContinuePendingSearchCommand = new RelayCommand(ContinuePendingSearch);
         StartNewSearchCommand = new RelayCommand(StartNewSearch);
+        OpenUpdateCommand = new RelayCommand(OpenUpdate);
+        DismissUpdateCommand = new RelayCommand(() => HasUpdateAvailable = false);
 
         RefreshInventory();
         LoadPendingSearchIfAny();
         SetupWatcher();
+        _ = CheckForUpdateAsync();
     }
 
     // ---- Inventory ------------------------------------------------------------------------
@@ -581,6 +586,52 @@ public sealed class MainViewModel : ObservableObject
             ? $"Imported {entries.Count} item(s) — {ticked} component(s) selected. Go to Find Carriers → Search."
             : $"Imported {entries.Count} item(s), {entries.Count - matched} unmatched — "
               + $"{ticked} component(s) selected. Go to Find Carriers → Search.";
+    }
+
+    // ---- Update check -----------------------------------------------------------------------
+
+    private string? _updateUrl;
+
+    private bool _hasUpdateAvailable;
+    /// <summary>True when GitHub has a newer release than the one currently running — shows the
+    /// dismissible update banner. Replaces manually commenting on the forum/Reddit threads.</summary>
+    public bool HasUpdateAvailable
+    {
+        get => _hasUpdateAvailable;
+        private set => SetProperty(ref _hasUpdateAvailable, value);
+    }
+
+    private string _updateVersionText = "";
+    public string UpdateVersionText
+    {
+        get => _updateVersionText;
+        private set => SetProperty(ref _updateVersionText, value);
+    }
+
+    private async Task CheckForUpdateAsync()
+    {
+        var info = await UpdateChecker.CheckAsync().ConfigureAwait(false);
+        if (info == null) return;
+
+        // The HTTP continuation resumes off the UI thread (ConfigureAwait(false) above) —
+        // property changes must be marshalled back for the banner's bindings to update.
+        Application.Current?.Dispatcher.Invoke(() =>
+        {
+            _updateUrl = info.HtmlUrl;
+            UpdateVersionText = info.DisplayVersion;
+            HasUpdateAvailable = true;
+        });
+    }
+
+    private void OpenUpdate()
+    {
+        if (_updateUrl == null) return;
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo(_updateUrl) { UseShellExecute = true });
+        }
+        catch { /* best effort — never let a failed browser launch throw into the UI */ }
     }
 
     // ---- Pending search (resume-on-reopen) -------------------------------------------------

@@ -403,6 +403,24 @@
             </Grid>
         </Border>
 
+        <!-- Update banner: dismissible, non-blocking (unlike the resume-search overlay below,
+             this never covers the tabs) — shown when UpdateChecker finds a newer GitHub release
+             than the one currently running. -->
+        <Border DockPanel.Dock="Top" Background="{StaticResource Accent}" Padding="12,6"
+                Visibility="{Binding HasUpdateAvailable, Converter={x:Static local:BoolToVis.Instance}}">
+            <Grid>
+                <TextBlock VerticalAlignment="Center" Foreground="#0A0705" FontWeight="SemiBold">
+                    <Run Text="A new version ("/><Run Text="{Binding UpdateVersionText, Mode=OneWay}"/><Run Text=") is available."/>
+                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Download" Command="{Binding OpenUpdateCommand}"
+                            Background="#0A0705" Foreground="#EAE4DA" Padding="12,4" Margin="0,0,8,0"/>
+                    <Button Content="Dismiss" Command="{Binding DismissUpdateCommand}"
+                            Background="Transparent" Foreground="#0A0705" BorderThickness="0" Padding="8,4"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Status bar -->
         <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="16,8">
             <Grid>
