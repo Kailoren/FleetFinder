@@ -39,9 +39,16 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<RequirementDisplayRow> PinnedRequirements { get; } = new();
     public ICollectionView PinnedRequirementsView { get; }
 
-    /// <summary>Search results, one row per carrier/station (each listing its matching commodities).</summary>
+    /// <summary>"Where to buy" results, one row per carrier/station (each listing its matching
+    /// commodities it sells to you).</summary>
     public ObservableCollection<CarrierGroupRow> Listings { get; } = new();
     public ICollectionView ListingsView { get; }
+
+    /// <summary>"Where to sell" results, one row per carrier/station buying commodities from you -
+    /// driven by <see cref="ComponentRow.SellSelected"/>, searched alongside Listings but kept in
+    /// a separate collection/panel since it's a different market direction entirely.</summary>
+    public ObservableCollection<CarrierGroupRow> SellListings { get; } = new();
+    public ICollectionView SellListingsView { get; }
 
     public RelayCommand RefreshInventoryCommand { get; }
     public RelayCommand SearchCommand { get; }
@@ -90,8 +97,12 @@ public sealed class MainViewModel : ObservableObject
         ListingsView.SortDescriptions.Add(
             new SortDescription(nameof(CarrierGroupRow.MinAge), ListSortDirection.Ascending));
 
+        SellListingsView = CollectionViewSource.GetDefaultView(SellListings);
+        SellListingsView.SortDescriptions.Add(
+            new SortDescription(nameof(CarrierGroupRow.MinAge), ListSortDirection.Ascending));
+
         RefreshInventoryCommand = new RelayCommand(RefreshInventory);
-        SearchCommand = new RelayCommand(SearchSelectedAsync, () => SelectedCount > 0);
+        SearchCommand = new RelayCommand(SearchSelectedAsync, () => SelectedCount > 0 || SellSelectedCount > 0);
         ClearSelectionCommand = new RelayCommand(ClearSelection);
         SelectAllCommand = new RelayCommand(SelectAll);
         CopySystemCommand = new RelayCommand<string>(CopySystem);
@@ -250,18 +261,31 @@ public sealed class MainViewModel : ObservableObject
 
     // ---- Search ---------------------------------------------------------------------------
 
-    /// <summary>How many components are currently ticked for searching.</summary>
+    /// <summary>How many components are currently ticked for the "where to buy" search.</summary>
     public int SelectedCount => Components.Count(c => c.IsSelected);
 
-    /// <summary>Label for the search button, e.g. "Search prices (3)".</summary>
-    public string SearchButtonLabel =>
-        SelectedCount > 0 ? $"Search prices ({SelectedCount})" : "Search prices";
+    /// <summary>How many components are currently ticked (Sell column) for the "where to sell" search.</summary>
+    public int SellSelectedCount => Components.Count(c => c.SellSelected);
+
+    /// <summary>Label for the search button, e.g. "Search prices (3 buy, 2 sell)".</summary>
+    public string SearchButtonLabel
+    {
+        get
+        {
+            if (SelectedCount > 0 && SellSelectedCount > 0)
+                return $"Search prices ({SelectedCount} buy, {SellSelectedCount} sell)";
+            if (SellSelectedCount > 0)
+                return $"Search prices ({SellSelectedCount} sell)";
+            return SelectedCount > 0 ? $"Search prices ({SelectedCount})" : "Search prices";
+        }
+    }
 
     private void OnRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(ComponentRow.IsSelected))
+        if (e.PropertyName == nameof(ComponentRow.IsSelected) || e.PropertyName == nameof(ComponentRow.SellSelected))
         {
             OnPropertyChanged(nameof(SelectedCount));
+            OnPropertyChanged(nameof(SellSelectedCount));
             OnPropertyChanged(nameof(SearchButtonLabel));
             SearchCommand.RaiseCanExecuteChanged();
         }
@@ -270,7 +294,10 @@ public sealed class MainViewModel : ObservableObject
     private void ClearSelection()
     {
         foreach (var row in Components)
+        {
             row.IsSelected = false;
+            row.SellSelected = false;
+        }
     }
 
     /// <summary>Ticks every component - for mass-testing the market source against every key at once.</summary>
@@ -733,89 +760,152 @@ public sealed class MainViewModel : ObservableObject
     private Dictionary<string, int> BuildNeededByNorm() =>
         Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), c => c.StillNeeded);
 
-    private async Task SearchSelectedAsync()
+    /// <summary>
+    /// Fetches listings for one market direction, resolves distances, optionally stamps the
+    /// "Needed" figure (buy side only — selling to a carrier has no such concept), and groups them
+    /// into one row per carrier/station. Shared by both halves of <see cref="SearchSelectedAsync"/>
+    /// so "where to buy" and "where to sell" run the exact same pipeline, just with a different
+    /// component set / direction / whether Needed applies.
+    /// </summary>
+    private async Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)> FetchGroupedListingsAsync(
+        List<Component> components, MarketDirection direction, bool stampNeeded)
     {
-        var chosen = Components.Where(c => c.IsSelected).Select(c => c.Component).ToList();
-        if (chosen.Count == 0)
-        {
-            Status = "Tick one or more components, then Search.";
-            return;
-        }
-
-        IsBusy = true;
-        NoResultsFound = false;
-        Listings.Clear();
         List<CarrierListing> collected = new();
         bool failed = false;
         bool rateLimited = false;
         try
         {
-            Status = chosen.Count == 1
-                ? $"Searching for {chosen[0].Name}…"
-                : $"Searching for {chosen.Count} components…";
-            try
-            {
-                // One combined request for every ticked component (see RelayMarketSource) —
-                // this is also why a failure here can't distinguish partial success per
-                // component the way a per-component loop could; it's all-or-nothing now.
-                collected.AddRange(await _market.GetListingsAsync(chosen, MarketDirection.Selling));
-            }
-            catch (Exception ex)
-            {
-                failed = true;
-                if (ex.Message.Contains("503") || ex.Message.Contains("429")
-                    || ex.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase))
-                    rateLimited = true;
-            }
+            // One combined request for every ticked component (see RelayMarketSource) — this is
+            // also why a failure here can't distinguish partial success per component the way a
+            // per-component loop could; it's all-or-nothing now.
+            collected.AddRange(await _market.GetListingsAsync(components, direction));
+        }
+        catch (Exception ex)
+        {
+            failed = true;
+            if (ex.Message.Contains("503") || ex.Message.Contains("429")
+                || ex.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase))
+                rateLimited = true;
+        }
 
-            // Recompute the Distance column relative to the commander's current system.
-            await ApplyDistancesFromCurrentLocationAsync(collected);
+        // Recompute the Distance column relative to the commander's current system.
+        await ApplyDistancesFromCurrentLocationAsync(collected);
 
+        if (stampNeeded)
+        {
             // Stamp each listing with how many you still need, so "Where to buy" can show the
             // buy quantity without switching back to Find Carriers.
             var neededByNorm = BuildNeededByNorm();
             foreach (var l in collected)
                 l.Needed = neededByNorm.GetValueOrDefault(ShipLockerReader.Normalize(l.Component));
-
-            // One row per carrier/station: a place selling several of the searched commodities
-            // lists them together (see CarrierGroupRow) instead of repeating the row per item.
-            // Insertion order here just needs to be A consistent order — actual display order is
-            // governed by ListingsView's default SortDescription (freshest first, see
-            // constructor), which the user can override by clicking any column header.
-            var groups = collected
-                .GroupBy(l => (l.StationName, l.Callsign, l.System))
-                .Select(g => new CarrierGroupRow
-                {
-                    StationName = g.Key.StationName,
-                    Callsign = g.Key.Callsign,
-                    System = g.Key.System,
-                    DockingAccess = g.First().DockingAccess,
-                    DistanceLy = g.First().DistanceLy,
-                    Items = g.OrderBy(l => l.Component).ToList()
-                })
-                .OrderBy(g => g.MinAge);
-            foreach (var g in groups)
-                Listings.Add(g);
-
-            int carriers = Listings.Count(g => g.IsFleetCarrier);
-            if (failed)
-            {
-                Status = rateLimited
-                    ? "Couldn't reach the relay server — it may be temporarily down. Wait a minute and try again."
-                    : "Couldn't fetch prices. Check your connection and try again.";
-            }
-            else
-            {
-                Status = $"{Listings.Count} places to buy ({carriers} fleet carriers) across "
-                       + $"{chosen.Count} component(s).";
-                NoResultsFound = Listings.Count == 0;
-            }
         }
-        finally
+
+        // One row per carrier/station: a place trading several of the searched commodities lists
+        // them together (see CarrierGroupRow) instead of repeating the row per item. Insertion
+        // order here just needs to be a consistent order — actual display order is governed by
+        // the view's default SortDescription (freshest first, see constructor), which the user
+        // can override by clicking any column header.
+        var groups = collected
+            .GroupBy(l => (l.StationName, l.Callsign, l.System))
+            .Select(g => new CarrierGroupRow
+            {
+                StationName = g.Key.StationName,
+                Callsign = g.Key.Callsign,
+                System = g.Key.System,
+                DockingAccess = g.First().DockingAccess,
+                DistanceLy = g.First().DistanceLy,
+                Items = g.OrderBy(l => l.Component).ToList()
+            })
+            .OrderBy(g => g.MinAge)
+            .ToList();
+
+        return (groups, failed, rateLimited);
+    }
+
+    /// <summary>
+    /// Runs "where to buy" (ticked via the picker's checkbox column, <see cref="ComponentRow.IsSelected"/>)
+    /// and "where to sell" (ticked via the Sell column, <see cref="ComponentRow.SellSelected"/>) at
+    /// the same time, as two independent requests against different market directions — either one
+    /// can be empty, in which case only the other runs.
+    /// </summary>
+    private async Task SearchSelectedAsync()
+    {
+        var chosen = Components.Where(c => c.IsSelected).Select(c => c.Component).ToList();
+        var sellChosen = Components.Where(c => c.SellSelected).Select(c => c.Component).ToList();
+        if (chosen.Count == 0 && sellChosen.Count == 0)
         {
-            IsBusy = false;
-            ListingsView.Refresh();
+            Status = "Tick one or more components (or the Sell column), then Search.";
+            return;
         }
+
+        NoResultsFound = false;
+        NoSellResultsFound = false;
+
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)>? buyTask = null;
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)>? sellTask = null;
+
+        // Both fetches are started here (before either is awaited below), so they run concurrently
+        // against the relay rather than one waiting on the other.
+        if (chosen.Count > 0)
+        {
+            IsBuyBusy = true;
+            Listings.Clear();
+            buyTask = FetchGroupedListingsAsync(chosen, MarketDirection.Selling, stampNeeded: true);
+        }
+        if (sellChosen.Count > 0)
+        {
+            IsSellBusy = true;
+            SellListings.Clear();
+            sellTask = FetchGroupedListingsAsync(sellChosen, MarketDirection.Buying, stampNeeded: false);
+        }
+
+        Status = chosen.Count > 0 && sellChosen.Count > 0
+            ? $"Searching {chosen.Count} to buy and {sellChosen.Count} to sell…"
+            : chosen.Count > 0
+                ? (chosen.Count == 1 ? $"Searching for {chosen[0].Name}…" : $"Searching for {chosen.Count} components…")
+                : (sellChosen.Count == 1 ? $"Searching buyers for {sellChosen[0].Name}…" : $"Searching buyers for {sellChosen.Count} components…");
+
+        string? buyStatus = null;
+        if (buyTask != null)
+        {
+            try
+            {
+                var (groups, failed, rateLimited) = await buyTask;
+                foreach (var g in groups) Listings.Add(g);
+                int carriers = Listings.Count(g => g.IsFleetCarrier);
+                buyStatus = failed
+                    ? (rateLimited ? "Buy: relay unreachable, try again shortly." : "Buy: couldn't fetch prices.")
+                    : $"{Listings.Count} place(s) to buy ({carriers} fleet carriers) across {chosen.Count} component(s).";
+                NoResultsFound = !failed && Listings.Count == 0;
+            }
+            finally
+            {
+                IsBuyBusy = false;
+                ListingsView.Refresh();
+            }
+        }
+
+        string? sellStatus = null;
+        if (sellTask != null)
+        {
+            try
+            {
+                var (groups, failed, rateLimited) = await sellTask;
+                foreach (var g in groups) SellListings.Add(g);
+                int carriers = SellListings.Count(g => g.IsFleetCarrier);
+                sellStatus = failed
+                    ? (rateLimited ? "Sell: relay unreachable, try again shortly." : "Sell: couldn't fetch prices.")
+                    : $"{SellListings.Count} place(s) to sell ({carriers} fleet carriers) across {sellChosen.Count} component(s).";
+                NoSellResultsFound = !failed && SellListings.Count == 0;
+            }
+            finally
+            {
+                IsSellBusy = false;
+                SellListingsView.Refresh();
+            }
+        }
+
+        Status = string.Join("   ", new[] { buyStatus, sellStatus }.Where(s => s != null));
     }
 
     // ---- Filters & status -----------------------------------------------------------------
@@ -828,20 +918,38 @@ public sealed class MainViewModel : ObservableObject
         private set => SetProperty(ref _targetsActive, value);
     }
 
-    private bool _isBusy;
-    public bool IsBusy
+    private bool _isBuyBusy;
+    /// <summary>Drives the "Where to Buy" progress bar; independent of <see cref="IsSellBusy"/>
+    /// since the two searches run concurrently and can finish at different times.</summary>
+    public bool IsBuyBusy
     {
-        get => _isBusy;
-        set => SetProperty(ref _isBusy, value);
+        get => _isBuyBusy;
+        set => SetProperty(ref _isBuyBusy, value);
+    }
+
+    private bool _isSellBusy;
+    /// <summary>Drives the "Where to Sell" progress bar.</summary>
+    public bool IsSellBusy
+    {
+        get => _isSellBusy;
+        set => SetProperty(ref _isSellBusy, value);
     }
 
     private bool _noResultsFound;
-    /// <summary>True once a search has completed successfully with zero listings, so the
-    /// results panel can say so explicitly instead of just sitting empty.</summary>
+    /// <summary>True once a buy search has completed successfully with zero listings, so the
+    /// "Where to Buy" panel can say so explicitly instead of just sitting empty.</summary>
     public bool NoResultsFound
     {
         get => _noResultsFound;
         private set => SetProperty(ref _noResultsFound, value);
+    }
+
+    private bool _noSellResultsFound;
+    /// <summary>Same as <see cref="NoResultsFound"/> but for the "Where to Sell" panel.</summary>
+    public bool NoSellResultsFound
+    {
+        get => _noSellResultsFound;
+        private set => SetProperty(ref _noSellResultsFound, value);
     }
 
     private string _status = "Ready.";

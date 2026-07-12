@@ -39,11 +39,20 @@ public sealed class ComponentRow : ObservableObject
     }
 
     private bool _isSelected;
-    /// <summary>Whether this component is ticked for the next price search.</summary>
+    /// <summary>Whether this component is ticked for the next "where to buy" search.</summary>
     public bool IsSelected
     {
         get => _isSelected;
         set => SetProperty(ref _isSelected, value);
+    }
+
+    private bool _sellSelected;
+    /// <summary>Whether this component is ticked for the next "where to sell" search (carriers
+    /// buying it from you) - independent of <see cref="IsSelected"/>, searched at the same time.</summary>
+    public bool SellSelected
+    {
+        get => _sellSelected;
+        set => SetProperty(ref _sellSelected, value);
     }
 
     private int _have;

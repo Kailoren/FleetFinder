@@ -571,6 +571,22 @@
                                     </Style>
                                 </DataGridTextColumn.CellStyle>
                             </DataGridTextColumn>
+                            <!-- Independent of the leading checkbox column (which ticks for
+                                 "Where to Buy") - ticking this one searches "Where to Sell"
+                                 instead, for carriers currently buying this component from you.
+                                 Comes after the Width="*" Component column so it needs the same
+                                 scrollbar-offset margin compensation as Amount/Needed above (see
+                                 the WPF gotcha noted there - it's not just whichever column is
+                                 last). -->
+                            <DataGridTemplateColumn Header="Sell" Width="Auto" CanUserResize="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding SellSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" Margin="0,0,20,0"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
                 </DockPanel>
@@ -579,22 +595,34 @@
             <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
                           Background="Transparent"/>
 
-            <!-- RIGHT: carrier results -->
+            <!-- RIGHT: carrier results, split into "Where to Buy" (top) and "Where to Sell"
+                 (bottom) - two independent searches that run at the same time (see
+                 MainViewModel.SearchSelectedAsync) driven by the picker's checkbox column and its
+                 new Sell column respectively. Kept as two separate DataGrids/panels rather than
+                 one grid with a Direction filter, since a carrier can appear in both at once with
+                 different commodities and neither list should hide/reorder the other. -->
             <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
                     BorderBrush="{StaticResource Accent}" BorderThickness="1">
-                <DockPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="120"/>
+                        <RowDefinition Height="6"/>
+                        <RowDefinition Height="*" MinHeight="120"/>
+                    </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0">
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <TextBlock Text="Where to buy" FontWeight="SemiBold" FontSize="14"
+                        <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14"
                                    VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
                                    HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
 
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                        <ProgressBar IsIndeterminate="{Binding IsBusy}" Width="140" Height="6"
+                        <ProgressBar IsIndeterminate="{Binding IsBuyBusy}" Width="140" Height="6"
                                      Margin="16,0,0,0" Background="#3A2410" Foreground="{StaticResource Accent}"
                                      BorderThickness="0"
-                                     Visibility="{Binding IsBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
+                                     Visibility="{Binding IsBuyBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </StackPanel>
 
                     <Grid>
@@ -799,6 +827,175 @@
                                Visibility="{Binding NoResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </Grid>
                 </DockPanel>
+
+                <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
+                              Background="Transparent"/>
+
+                <DockPanel Grid.Row="2">
+                    <Grid DockPanel.Dock="Top" Margin="0,8,0,8">
+                        <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                        <ProgressBar IsIndeterminate="{Binding IsSellBusy}" Width="140" Height="6"
+                                     Margin="16,0,0,0" Background="#3A2410" Foreground="{StaticResource Accent}"
+                                     BorderThickness="0"
+                                     Visibility="{Binding IsSellBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
+                    </StackPanel>
+
+                    <Grid>
+                    <DataGrid ItemsSource="{Binding SellListingsView}"
+                              Grid.IsSharedSizeScope="True"
+                              HorizontalScrollBarVisibility="Auto"
+                              CanUserSortColumns="True"
+                              VirtualizingPanel.ScrollUnit="Item"
+                              GridLinesVisibility="All"
+                              VerticalGridLinesBrush="#3A2410">
+                        <DataGrid.CellStyle>
+                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                <Setter Property="Padding" Value="0,4"/>
+                            </Style>
+                        </DataGrid.CellStyle>
+                        <DataGrid.RowStyle>
+                            <!-- Same rationale as the "Where to Buy" grid's RowStyle above: no
+                                 BasedOn, so it doesn't pull in the framework's light-theme default
+                                 and wash out the row text. -->
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderThickness" Value="2"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <!-- Every matching commodity this carrier buys, one per line - no "Needed"
+                                 sub-column here (that concept only applies to buying, not selling), so
+                                 unlike the "Where to Buy" grid's merged Components+Needed column, this
+                                 is a single plain ItemsControl. -->
+                            <DataGridTemplateColumn Header="Components" Width="Auto"
+                                                    CanUserResize="False" CanUserSort="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Component}" Margin="7,3"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Carrier Name" Binding="{Binding StationName}"
+                                                Width="Auto" MaxWidth="240" CanUserResize="False"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        <Setter Property="ToolTip" Value="{Binding StationName}"/>
+                                        <Setter Property="Margin" Value="7,0"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Callsign" Binding="{Binding Callsign}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <DataGridTextColumn Header="Access" Binding="{Binding DockingAccess}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                        <Setter Property="Padding" Value="0,4"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="Yes">
+                                                <Setter Property="Foreground" Value="#6EE7A0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="No">
+                                                <Setter Property="Foreground" Value="#F87171"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding DockingAccess}" Value="Unknown">
+                                                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="System" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="System"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="{Binding System}"
+                                                Style="{StaticResource LinkButton}"
+                                                ToolTip="Click to copy system name"
+                                                Margin="7,0"
+                                                Command="{Binding DataContext.CopySystemCommand,
+                                                          RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding System}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- Demand: how many units this carrier wants to buy from you. -->
+                            <DataGridTemplateColumn Header="Demand" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="TotalAmount"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}" HorizontalAlignment="Center">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Amount}" Margin="7,3" TextAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <!-- Price this carrier pays per unit. -->
+                            <DataGridTemplateColumn Header="Price" Width="Auto" CanUserResize="False"
+                                                    SortMemberPath="MinPrice"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ItemsControl ItemsSource="{Binding Items}" HorizontalAlignment="Center">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding Price, StringFormat={}{0:N0} Cr}"
+                                                               Margin="7,3" TextAlignment="Center"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Dist"
+                                                Binding="{Binding DistanceLy, StringFormat={}{0:N0} Ly}"
+                                                SortMemberPath="DistanceLy" Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
+                                                SortMemberPath="MinAge" Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource VCenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="No fleet carriers are buying these components."
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="{StaticResource Muted}" FontSize="14" IsHitTestVisible="False"
+                               Visibility="{Binding NoSellResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
+                    </Grid>
+                </DockPanel>
+                </Grid>
             </Border>
         </Grid>
         </TabItem>
