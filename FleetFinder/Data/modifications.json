@@ -4,24 +4,24 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Epoxy Adhesive",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Memory Chip",
+                                 "commodity":  "Weapon Inventory",
                                  "amount":  5
                              },
                              {
-                                 "commodity":  "Weapon Inventory",
-                                 "amount":  10
-                             },
-                             {
                                  "commodity":  "Chemical Inventory",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Digital Designs",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Epoxy Adhesive",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Memory Chip",
+                                 "amount":  3
                              }
                          ]
     },
@@ -30,20 +30,20 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Electrical Fuse",
+                                 "commodity":  "Reactor Output Review",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Electrical Fuse",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Micro Transformer",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Electrical Wiring",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Reactor Output Review",
-                                 "amount":  10
+                                 "amount":  8
                              }
                          ]
     },
@@ -52,24 +52,24 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Transmitter",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Circuit Board",
-                                 "amount":  5
-                             },
-                             {
                                  "commodity":  "Topographical Surveys",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Stellar Activity Logs",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Spectral Analysis Data",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Transmitter",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Circuit Board",
+                                 "amount":  3
                              }
                          ]
     },
@@ -79,19 +79,19 @@
         "requirements":  [
                              {
                                  "commodity":  "G-Meds",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Micro Thrusters",
                                  "amount":  5
                              },
                              {
-                                 "commodity":  "Motor",
-                                 "amount":  10
+                                 "commodity":  "Topographical Surveys",
+                                 "amount":  5
                              },
                              {
-                                 "commodity":  "Topographical Surveys",
-                                 "amount":  10
+                                 "commodity":  "Micro Thrusters",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Motor",
+                                 "amount":  5
                              }
                          ]
     },
@@ -100,20 +100,20 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Oxygenic Bacteria",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "PH Neutraliser",
-                                 "amount":  15
-                             },
-                             {
                                  "commodity":  "Pharmaceutical Patents",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Air Quality Reports",
-                                 "amount":  15
+                                 "amount":  8
+                             },
+                             {
+                                 "commodity":  "Oxygenic Bacteria",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "pH Neutraliser",
+                                 "amount":  8
                              }
                          ]
     },
@@ -122,24 +122,24 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Oxygenic Bacteria",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Chemical Catalyst",
-                                 "amount":  15
-                             },
-                             {
                                  "commodity":  "Troop Deployment Records",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Gene Sequencing Data",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Clinical Trial Records",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Oxygenic Bacteria",
                                  "amount":  5
+                             },
+                             {
+                                 "commodity":  "Chemical Catalyst",
+                                 "amount":  8
                              }
                          ]
     },
@@ -148,20 +148,20 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Epinephrine",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Micro Thrusters",
-                                 "amount":  15
-                             },
-                             {
                                  "commodity":  "Combat Training Material",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Combatant Performance",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Epinephrine",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Micro Thrusters",
+                                 "amount":  8
                              }
                          ]
     },
@@ -170,24 +170,24 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Titanium Plating",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Carbon Fibre Plating",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Epoxy Adhesive",
-                                 "amount":  15
-                             },
-                             {
                                  "commodity":  "Weapon Inventory",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Ballistics Data",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Titanium Plating",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Carbon Fibre Plating",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Epoxy Adhesive",
+                                 "amount":  8
                              }
                          ]
     },
@@ -196,20 +196,20 @@
         "kind":  "Suit",
         "requirements":  [
                              {
-                                 "commodity":  "Weapon Component",
-                                 "amount":  5
-                             },
-                             {
                                  "commodity":  "Recycling Logs",
-                                 "amount":  15
+                                 "amount":  8
                              },
                              {
                                  "commodity":  "Weapon Test Data",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Production Reports",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Weapon Component",
+                                 "amount":  3
                              }
                          ]
     },
@@ -219,19 +219,19 @@
         "requirements":  [
                              {
                                  "commodity":  "Reactor Output Review",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Ion Battery",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Ion Battery",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Micro Transformer",
-                                 "amount":  15
+                                 "amount":  8
                              },
                              {
                                  "commodity":  "Electrical Wiring",
-                                 "amount":  15
+                                 "amount":  8
                              }
                          ]
     },
@@ -241,19 +241,19 @@
         "requirements":  [
                              {
                                  "commodity":  "Evacuation Protocols",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Genetic Research",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Genetic Research",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Epinephrine",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "pH Neutraliser",
-                                 "amount":  15
+                                 "amount":  8
                              }
                          ]
     },
@@ -263,23 +263,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Surveillance Equipment",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Surveillance Logs",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Radioactivity Data",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "NOC Data",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Circuit Switch",
-                                 "amount":  10
+                                 "amount":  5
                              }
                          ]
     },
@@ -289,23 +289,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Settlement Assault Plans",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Tactical Plans",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Patrol Routes",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Micro Hydraulics",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Patrol Routes",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Micro Hydraulics",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Viscoelastic Polymer",
-                                 "amount":  15
+                                 "amount":  8
                              }
                          ]
     },
@@ -315,23 +315,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Reactor Output Review",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Maintenance Logs",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Ion Battery",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Maintenance Logs",
+                                 "amount":  8
+                             },
+                             {
+                                 "commodity":  "Ion Battery",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Micro Supercapacitor",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Electrical Wiring",
-                                 "amount":  10
+                                 "amount":  5
                              }
                          ]
     },
@@ -339,6 +339,14 @@
         "name":  "Greater Range",
         "kind":  "Weapon",
         "requirements":  [
+                             {
+                                 "commodity":  "Ballistics Data",
+                                 "amount":  10
+                             },
+                             {
+                                 "commodity":  "Topographical Surveys",
+                                 "amount":  10
+                             },
                              {
                                  "commodity":  "Metal Coil",
                                  "amount":  10
@@ -350,14 +358,6 @@
                              {
                                  "commodity":  "Weapon Component",
                                  "amount":  5
-                             },
-                             {
-                                 "commodity":  "Ballistics Data",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Topographical Surveys",
-                                 "amount":  10
                              }
                          ]
     },
@@ -366,20 +366,20 @@
         "kind":  "Weapon",
         "requirements":  [
                              {
-                                 "commodity":  "Viscoelastic Polymer",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Micro Hydraulics",
-                                 "amount":  10
-                             },
-                             {
                                  "commodity":  "Mining Analytics",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Risk Assessments",
-                                 "amount":  15
+                                 "amount":  8
+                             },
+                             {
+                                 "commodity":  "Viscoelastic Polymer",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Micro Hydraulics",
+                                 "amount":  5
                              }
                          ]
     },
@@ -388,20 +388,20 @@
         "kind":  "Weapon",
         "requirements":  [
                              {
-                                 "commodity":  "Viscoelastic Polymer",
-                                 "amount":  5
-                             },
-                             {
                                  "commodity":  "Operational Manual",
                                  "amount":  5
                              },
                              {
                                  "commodity":  "Combatant Performance",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Combat Training Material",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Viscoelastic Polymer",
+                                 "amount":  3
                              }
                          ]
     },
@@ -410,20 +410,20 @@
         "kind":  "Weapon",
         "requirements":  [
                              {
-                                 "commodity":  "Viscoelastic Polymer",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Weapon Component",
+                                 "commodity":  "Atmospheric Data",
                                  "amount":  5
                              },
                              {
-                                 "commodity":  "Atmospheric Data",
-                                 "amount":  10
+                                 "commodity":  "Mining Analytics",
+                                 "amount":  5
                              },
                              {
-                                 "commodity":  "Mining Analytics",
-                                 "amount":  10
+                                 "commodity":  "Viscoelastic Polymer",
+                                 "amount":  8
+                             },
+                             {
+                                 "commodity":  "Weapon Component",
+                                 "amount":  3
                              }
                          ]
     },
@@ -432,23 +432,23 @@
         "kind":  "Weapon",
         "requirements":  [
                              {
-                                 "commodity":  "Weapon Component",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Tungsten Carbide",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Metal Coil",
-                                 "amount":  10
-                             },
-                             {
                                  "commodity":  "Weapon Test Data",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Security Expenses",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Weapon Component",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Tungsten Carbide",
+                                 "amount":  3
+                             },
+                             {
+                                 "commodity":  "Metal Coil",
                                  "amount":  5
                              }
                          ]
@@ -458,24 +458,24 @@
         "kind":  "Weapon",
         "requirements":  [
                              {
-                                 "commodity":  "Micro Hydraulics",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Electromagnet",
-                                 "amount":  10
-                             },
-                             {
                                  "commodity":  "Operational Manual",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Production Reports",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Combat Training Material",
-                                 "amount":  10
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Micro Hydraulics",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Electromagnet",
+                                 "amount":  5
                              }
                          ]
     },
@@ -485,23 +485,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Digital Designs",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Operational Manual",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Production Schedule",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Circuit Board",
                                  "amount":  5
                              },
                              {
+                                 "commodity":  "Operational Manual",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Production Schedule",
+                                 "amount":  5
+                             },
+                             {
+                                 "commodity":  "Circuit Board",
+                                 "amount":  3
+                             },
+                             {
                                  "commodity":  "Encrypted Memory Chip",
-                                 "amount":  15
+                                 "amount":  8
                              }
                          ]
     },
@@ -511,19 +511,19 @@
         "requirements":  [
                              {
                                  "commodity":  "Spectral Analysis Data",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Biometric Data",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Optical Lens",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Optical Fibre",
-                                 "amount":  5
+                                 "amount":  3
                              }
                          ]
     },
@@ -533,23 +533,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Audio Logs",
-                                 "amount":  5
+                                 "amount":  3
                              },
                              {
                                  "commodity":  "Patrol Routes",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Scrambler",
-                                 "amount":  10
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Transmitter",
-                                 "amount":  15
+                                 "amount":  8
                              },
                              {
                                  "commodity":  "Circuit Board",
-                                 "amount":  5
+                                 "amount":  3
                              }
                          ]
     },
