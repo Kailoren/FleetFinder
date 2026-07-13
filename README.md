@@ -6,11 +6,11 @@ A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carrier
 
 The app has three tabs:
 
-- **Find Carriers:** Pick the individual items yourse and see how many you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for pasting in the in-game galaxy map.
+- **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map.
 
   <img width="1764" height="1106" alt="Screenshot 2026-07-11 193305" src="https://github.com/user-attachments/assets/54f708cf-3ca8-48cc-9ea6-492be3e8d967" />
 
-- **Modifications:** Every suit and weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching. Once you have purchased the required amount, the app will automatically deselect those items so you can just hit search again when you're ready to find the next carrier!
+- **Modifications:** Every suit/weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching. Once you have purchased the required amount, the app will automatically deselect those items so you can just hit search again when you're ready to find the next carrier!
 
   <img width="1712" height="1439" alt="Screenshot 2026-07-11 202206" src="https://github.com/user-attachments/assets/01f95ce0-eb1b-441f-99a3-ec1da008c905" />
 
@@ -24,7 +24,7 @@ And most importantly, if you have a lot of materials to search for and you don't
 
 ## Where the market data comes from
 
-Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. Coverage grows over time as more players play the game, so rarely traded components may show fewer results at first. Please use a journal reporting tool such as <a href="URL">[EDDiscovery](https://github.com/EDDiscovery/EDDiscovery)</a>, <a href="URL">[EDMarketConnector](https://github.com/EDCD/EDMarketConnector)</a> or similar.
+Carrier listings come from the wider Elite Dangerous community's shared data network (EDDN), the same public feed that many other Elite Dangerous tools rely on. Coverage grows over time as more players play the game, so rarely traded components may show fewer results at first. Please use a journal reporting tool such as <a href="URL">[EDDiscovery](https://github.com/EDDiscovery/EDDiscovery)</a>, <a href="URL">[EDMarketConnector](https://github.com/EDCD/EDMarketConnector)</a> or similar to help gather and share the data we need.
 Components only get updated to EDDN **when a cmdr opens the bartender commodity list**. In order to keep this running as smoothly and as accurately as possible, I ask that once you have been to a carrier and bought what you need, **please close the bartender menu and then open it again**. This will update EDDN to reflect the changes in inventory stock after you have bought what you need and ensure stock levels are as current as possible.
 
 ## Requirements
