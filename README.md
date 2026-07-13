@@ -10,6 +10,10 @@ The app has three tabs:
 
   <img width="1764" height="1106" alt="Screenshot 2026-07-11 193305" src="https://github.com/user-attachments/assets/54f708cf-3ca8-48cc-9ea6-492be3e8d967" />
 
+  - If you are looking to offload your components instead of buying more, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
+
+  <img width="1728" height="1439" alt="Where to Buy and Where to Sell panels" src="docs/screenshots/where-to-sell.png" />
+
 - **Modifications:** Every suit/weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching. Once you have purchased the required amount, the app will automatically deselect those items so you can just hit search again when you're ready to find the next carrier!
 
   <img width="1712" height="1439" alt="Screenshot 2026-07-11 202206" src="https://github.com/user-attachments/assets/01f95ce0-eb1b-441f-99a3-ec1da008c905" />
@@ -17,10 +21,6 @@ The app has three tabs:
 - **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">[Elite Dangerous Odyssey Materials Helper](https://github.com/jixxed/ed-odyssey-materials-helper)</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
 <img width="1711" height="1439" alt="Screenshot 2026-07-12 133722" src="https://github.com/user-attachments/assets/7e1d67d8-b4a6-4fae-b5ff-aaed86ebea81" />
-
-- **Where to Sell:** Search results are no longer just about buying. Alongside the existing "Where to Buy" panel, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently.
-
-  <img width="1728" height="1439" alt="Where to Buy and Where to Sell panels" src="docs/screenshots/where-to-sell.png" />
 
 And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
 
