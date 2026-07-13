@@ -209,6 +209,53 @@ public sealed class RelayDb
     }
 
     /// <summary>
+    /// Zeroes out any existing listing for this carrier/direction whose component key wasn't
+    /// present in the fresh FCMaterials report just processed. A report enumerates every item
+    /// currently on that side of the bartender - so a component that used to have a positive
+    /// listing but is missing from the new report (not even at 0) means the market emptied out
+    /// entirely, which the game apparently reports by omitting items rather than listing them at
+    /// 0. Without this, a carrier that sells out completely keeps showing its last known stock
+    /// forever, since <see cref="UpsertMaterialListing"/> only ever writes what's actually in a
+    /// report. Only touches rows currently positive; never inserts, matching
+    /// UpsertMaterialListing's own no-insert-at-zero rule.
+    /// </summary>
+    public void ClearUnreportedListings(
+        long marketId, string direction, IReadOnlyCollection<string> reportedKeys, DateTime updatedUtc)
+    {
+        using var conn = Open();
+        using var cmd = conn.CreateCommand();
+
+        if (reportedKeys.Count == 0)
+        {
+            cmd.CommandText = """
+                UPDATE MaterialListings SET Amount = 0, UpdatedUtc = $updated
+                WHERE MarketId = $marketId AND Direction = $direction AND Amount > 0;
+                """;
+        }
+        else
+        {
+            var placeholders = new string[reportedKeys.Count];
+            int i = 0;
+            foreach (var key in reportedKeys)
+            {
+                string p = $"$k{i}";
+                placeholders[i] = p;
+                cmd.Parameters.AddWithValue(p, key);
+                i++;
+            }
+            cmd.CommandText = $"""
+                UPDATE MaterialListings SET Amount = 0, UpdatedUtc = $updated
+                WHERE MarketId = $marketId AND Direction = $direction AND Amount > 0
+                  AND ComponentKey NOT IN ({string.Join(",", placeholders)});
+                """;
+        }
+        cmd.Parameters.AddWithValue("$marketId", marketId);
+        cmd.Parameters.AddWithValue("$direction", direction);
+        cmd.Parameters.AddWithValue("$updated", updatedUtc.ToString("o"));
+        cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>
     /// Listings for any of the given normalized component keys, joined with carrier info. Only
     /// returns rows for carriers whose Callsign and StarSystem are both already known (i.e. a
     /// commodity-v3 message has been observed for that MarketID) - a result with no location

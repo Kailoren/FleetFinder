@@ -35,39 +35,59 @@ public static class FcMaterialsHandler
 
         if (itemsEl.ValueKind == JsonValueKind.Array)
         {
-            // fcmaterials_journal shape: flat array of { id, Name, Price, Stock, Demand }.
+            // fcmaterials_journal shape: flat array of { id, Name, Price, Stock, Demand }, each
+            // entry covering both directions at once.
+            var seenKeys = new HashSet<string>();
             foreach (var item in itemsEl.EnumerateArray())
-                UpsertBothDirections(db, catalog, marketId.Value, item, updatedUtc,
+            {
+                string key = UpsertBothDirections(db, catalog, marketId.Value, item, updatedUtc,
                     nameNames: new[] { "Name_Localised", "Name", "name" },
                     priceNames: new[] { "Price", "price" },
                     sellNames: new[] { "Stock", "stock" },
                     buyNames: new[] { "Demand", "demand" });
+                if (key.Length > 0) seenKeys.Add(key);
+            }
+            // Anything previously listed but missing from this fresh report is no longer offered
+            // (see ClearUnreportedListings) - the game omits items entirely rather than listing
+            // them at 0 once the whole bartender empties out.
+            db.ClearUnreportedListings(marketId.Value, "Selling", seenKeys, updatedUtc);
+            db.ClearUnreportedListings(marketId.Value, "Buying", seenKeys, updatedUtc);
         }
         else if (itemsEl.ValueKind == JsonValueKind.Object)
         {
             // fcmaterials_capi shape: { sales: [] | {"0": {...}, ...}, purchases: [{...}, ...] }.
+            var sellKeys = new HashSet<string>();
             if (itemsEl.TryGetAny(out var salesEl, "sales", "Sales"))
                 foreach (var item in EnumerateArrayOrObjectValues(salesEl))
-                    UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Selling",
+                {
+                    string key = UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Selling",
                         nameNames: new[] { "name", "Name", "Name_Localised" },
                         priceNames: new[] { "price", "Price" },
                         amountNames: new[] { "stock", "Stock" });
+                    if (key.Length > 0) sellKeys.Add(key);
+                }
+            db.ClearUnreportedListings(marketId.Value, "Selling", sellKeys, updatedUtc);
 
+            var buyKeys = new HashSet<string>();
             if (itemsEl.TryGetAny(out var purchasesEl, "purchases", "Purchases"))
                 foreach (var item in EnumerateArrayOrObjectValues(purchasesEl))
-                    UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Buying",
+                {
+                    string key = UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Buying",
                         nameNames: new[] { "name", "Name", "Name_Localised" },
                         priceNames: new[] { "price", "Price" },
                         amountNames: new[] { "outstanding", "Outstanding" });
+                    if (key.Length > 0) buyKeys.Add(key);
+                }
+            db.ClearUnreportedListings(marketId.Value, "Buying", buyKeys, updatedUtc);
         }
     }
 
-    private static void UpsertBothDirections(
+    private static string UpsertBothDirections(
         RelayDb db, ComponentCatalog catalog, long marketId, JsonElement item, DateTime updatedUtc,
         string[] nameNames, string[] priceNames, string[] sellNames, string[] buyNames)
     {
         string key = ExtractKey(item.GetStringAny(nameNames));
-        if (key.Length == 0) return;
+        if (key.Length == 0) return "";
         string displayName = catalog.DisplayName(key);
 
         long price = item.GetInt64Any(priceNames) ?? 0;
@@ -79,19 +99,21 @@ public static class FcMaterialsHandler
         // inserting a fresh all-zero row.
         db.UpsertMaterialListing(marketId, key, displayName, "Selling", stock, price, updatedUtc);
         db.UpsertMaterialListing(marketId, key, displayName, "Buying", demand, price, updatedUtc);
+        return key;
     }
 
-    private static void UpsertOneDirection(
+    private static string UpsertOneDirection(
         RelayDb db, ComponentCatalog catalog, long marketId, JsonElement item, DateTime updatedUtc, string direction,
         string[] nameNames, string[] priceNames, string[] amountNames)
     {
         string key = ExtractKey(item.GetStringAny(nameNames));
-        if (key.Length == 0) return;
+        if (key.Length == 0) return "";
         string displayName = catalog.DisplayName(key);
 
         long price = item.GetInt64Any(priceNames) ?? 0;
         int amount = item.GetInt32Any(amountNames) ?? 0;
         db.UpsertMaterialListing(marketId, key, displayName, direction, amount, price, updatedUtc);
+        return key;
     }
 
     /// <summary>
