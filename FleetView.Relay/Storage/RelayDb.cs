@@ -116,13 +116,13 @@ public sealed class RelayDb
     }
 
     /// <summary>
-    /// Sets a carrier's DockingAccess only if it isn't already known from any source - a
-    /// lower-confidence fallback from a successful Docked/CarrierJump event (proves *someone*
-    /// could dock, not that access is open to everyone - a friends/squadron-only carrier can
-    /// still show successful dock events from actual friends/squadron members) used only while
-    /// commodity-v3's authoritative access *policy* hasn't been observed yet for this carrier.
-    /// Never overwrites an existing value, from any source, including a previous call to this
-    /// same method - once something (soft or authoritative) is known, this is a no-op.
+    /// Sets a carrier's DockingAccess to a soft "No" from a real docking denial
+    /// (<see cref="Eddn.DockingDeniedHandler"/>, its only caller now that the old Docked-based
+    /// soft "Yes" fallback has been removed). Unlike that removed fallback, this one always
+    /// overwrites - including over an existing authoritative "Yes" - because a denial is direct,
+    /// unambiguous proof this exact player couldn't get in, which outweighs any prior belief
+    /// (whether it's stale because the owner changed policy since, or a leftover stale "Yes" from
+    /// the old removed fallback that was deliberately never retroactively cleared).
     /// </summary>
     public void UpsertCarrierDockingAccessFallback(long marketId, string dockingAccess, DateTime lastSeenUtc)
     {
@@ -132,10 +132,7 @@ public sealed class RelayDb
             INSERT INTO Carriers (MarketId, DockingAccess, LastSeenUtc)
             VALUES ($marketId, $dockingAccess, $lastSeen)
             ON CONFLICT(MarketId) DO UPDATE SET
-                DockingAccess = CASE
-                    WHEN DockingAccess IS NULL OR DockingAccess = '' THEN excluded.DockingAccess
-                    ELSE DockingAccess
-                END,
+                DockingAccess = excluded.DockingAccess,
                 LastSeenUtc = excluded.LastSeenUtc;
             """;
         cmd.Parameters.AddWithValue("$marketId", marketId);
@@ -218,6 +215,12 @@ public sealed class RelayDb
     /// isn't actionable, so it's excluded here rather than shown with blank fields. Once a
     /// carrier's location becomes known, its already-stored material listings start being
     /// returned automatically on the next query, no re-ingestion needed.
+    ///
+    /// Also requires DockingAccess = 'Yes' and a resolved CarrierName (not just its callsign
+    /// standing in for the name) - both are lower-coverage fields than location, so this trades
+    /// result volume for confidence: every returned row is a carrier you're actually known to be
+    /// able to dock at, with its real name shown rather than a callsign duplicated into both
+    /// columns.
     /// </summary>
     public IReadOnlyList<ListingRow> QueryListings(IReadOnlyList<string> componentKeys, string direction)
     {
@@ -236,16 +239,18 @@ public sealed class RelayDb
         cmd.Parameters.AddWithValue("$direction", direction);
 
         cmd.CommandText = $"""
-            SELECT m.ComponentName, COALESCE(c.CarrierName, c.Callsign, ''), COALESCE(c.Callsign, ''),
+            SELECT m.ComponentName, c.CarrierName, COALESCE(c.Callsign, ''),
                    COALESCE(c.StarSystem, ''), m.Direction, m.Amount, m.Price, m.UpdatedUtc,
-                   COALESCE(c.DockingAccess, 'Unknown')
+                   c.DockingAccess
             FROM MaterialListings m
             JOIN Carriers c ON c.MarketId = m.MarketId
             WHERE m.ComponentKey IN ({string.Join(",", placeholders)})
               AND m.Direction = $direction
               AND m.Amount > 0
               AND c.Callsign IS NOT NULL AND c.Callsign != ''
-              AND c.StarSystem IS NOT NULL AND c.StarSystem != '';
+              AND c.StarSystem IS NOT NULL AND c.StarSystem != ''
+              AND c.DockingAccess = 'Yes'
+              AND c.CarrierName IS NOT NULL AND c.CarrierName != '';
             """;
 
         using var reader = cmd.ExecuteReader();
