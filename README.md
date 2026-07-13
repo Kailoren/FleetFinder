@@ -6,11 +6,7 @@ A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carrier
 
 The app has three tabs:
 
-- **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map.
-
-  <img width="1764" height="1106" alt="Screenshot 2026-07-11 193305" src="https://github.com/user-attachments/assets/54f708cf-3ca8-48cc-9ea6-492be3e8d967" />
-
-  - If you are looking to offload your components instead of buying more, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
+- **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map. If you are looking to offload your components instead of buying more, however, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
 
   <img width="1728" height="1439" alt="Where to Buy and Where to Sell panels" src="docs/screenshots/where-to-sell.png" />
 
