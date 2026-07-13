@@ -32,6 +32,17 @@ public static class CommodityV3Handler
         {
             string raw = dockingEl.GetString() ?? "";
             dockingAccess = raw.Equals("none", StringComparison.OrdinalIgnoreCase) ? "No" : "Yes";
+
+            // TEMPORARY diagnostic (2026-07-13): capturing the raw carrierDockingAccess string for
+            // AURORA/HFP-46K (MarketID 3707664640, Kutkha) - confirmed friends-only in-game, but the
+            // stored "No" so far came from a dockingdenied fallback, not a real commodity-v3 report,
+            // so the raw value here has never actually been seen. Checking whether EDDN's raw field
+            // distinguishes "friends only" from "none" (fully closed) or collapses both the same way.
+            // Remove this block once that's answered.
+            if (marketId == 3707664640)
+            {
+                Console.WriteLine($"[DIAG] AURORA/HFP-46K raw carrierDockingAccess = \"{raw}\"");
+            }
         }
 
         DateTime seenUtc = message.TryGetAny(out var tsEl, "timestamp", "Timestamp")
