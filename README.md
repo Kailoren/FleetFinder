@@ -18,6 +18,10 @@ The app has three tabs:
 
 <img width="1711" height="1439" alt="Screenshot 2026-07-12 133722" src="https://github.com/user-attachments/assets/7e1d67d8-b4a6-4fae-b5ff-aaed86ebea81" />
 
+- **Where to Sell:** Search results are no longer just about buying. Alongside the existing "Where to Buy" panel, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently.
+
+  <img width="1728" height="1439" alt="Where to Buy and Where to Sell panels" src="docs/screenshots/where-to-sell.png" />
+
 And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
 
 <img width="449" height="211" alt="Screenshot 2026-07-12 124135" src="https://github.com/user-attachments/assets/1e9fd748-e944-44f8-9011-b0450a19cf38" />
@@ -36,6 +40,8 @@ Components only get updated to EDDN **when a cmdr opens the bartender commodity 
 ## Installing
 
 Download the latest release, then run `FleetFinder.exe`. Keep the `Data` folder that comes with it in the same place as the exe. No installer and nothing else to set up, it's a single self-contained program.
+
+FleetFinder checks this repo's releases on launch and lets you know in the title bar when a newer version is available.
 
 ## Known limitations
 
