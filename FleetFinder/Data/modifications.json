@@ -618,20 +618,16 @@
                                  "amount":  1
                              },
                              {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  1
-                             },
-                             {
                                  "commodity":  "Manufacturing Instructions",
                                  "amount":  1
                              },
                              {
                                  "commodity":  "Titanium Plating",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  5
+                                 "amount":  2
                              }
                          ]
     },
@@ -641,27 +637,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  8
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Titanium Plating",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  15
+                                 "amount":  5
                              }
                          ]
     },
@@ -671,27 +663,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Titanium Plating",
-                                 "amount":  25
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  25
+                                 "amount":  9
                              }
                          ]
     },
@@ -701,27 +689,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Titanium Plating",
-                                 "amount":  35
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  34
+                                 "amount":  12
                              }
                          ]
     },
@@ -738,20 +722,16 @@
                                  "amount":  1
                              },
                              {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  1
-                             },
-                             {
                                  "commodity":  "Manufacturing Instructions",
                                  "amount":  1
                              },
                              {
                                  "commodity":  "Carbon Fibre Plating",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  5
+                                 "amount":  2
                              }
                          ]
     },
@@ -761,27 +741,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Carbon Fibre Plating",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  15
+                                 "amount":  5
                              }
                          ]
     },
@@ -791,27 +767,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Carbon Fibre Plating",
-                                 "amount":  25
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  25
+                                 "amount":  9
                              }
                          ]
     },
@@ -821,27 +793,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Carbon Fibre Plating",
-                                 "amount":  35
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  35
+                                 "amount":  12
                              }
                          ]
     },
@@ -858,20 +826,16 @@
                                  "amount":  1
                              },
                              {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  1
-                             },
-                             {
                                  "commodity":  "Manufacturing Instructions",
                                  "amount":  1
                              },
                              {
                                  "commodity":  "Aerogel",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  5
+                                 "amount":  2
                              }
                          ]
     },
@@ -881,27 +845,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  5
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  5
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Aerogel",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  15
+                                 "amount":  5
                              }
                          ]
     },
@@ -911,27 +871,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  10
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  10
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Aerogel",
-                                 "amount":  25
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  25
+                                 "amount":  9
                              }
                          ]
     },
@@ -941,27 +897,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Suit Schematic",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Health Monitor",
-                                 "amount":  15
-                             },
-                             {
-                                 "commodity":  "Power Regulator",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  15
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Aerogel",
-                                 "amount":  35
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Graphene",
-                                 "amount":  35
+                                 "amount":  12
                              }
                          ]
     },
@@ -971,23 +923,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  3
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  3
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  3
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  15
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Optical Fibre",
-                                 "amount":  15
+                                 "amount":  2
                              }
                          ]
     },
@@ -997,23 +949,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  15
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  15
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  15
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  45
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Optical Fibre",
-                                 "amount":  45
+                                 "amount":  5
                              }
                          ]
     },
@@ -1023,23 +975,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  30
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  30
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  30
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  75
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Optical Fibre",
-                                 "amount":  75
+                                 "amount":  9
                              }
                          ]
     },
@@ -1049,23 +1001,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  45
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  45
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  45
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  105
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Optical Fibre",
-                                 "amount":  105
+                                 "amount":  12
                              }
                          ]
     },
@@ -1075,23 +1027,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Chemical Superbase",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  20
+                                 "amount":  2
                              }
                          ]
     },
@@ -1101,23 +1053,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Chemical Superbase",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  60
+                                 "amount":  5
                              }
                          ]
     },
@@ -1127,23 +1079,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Chemical Superbase",
-                                 "amount":  100
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  100
+                                 "amount":  9
                              }
                          ]
     },
@@ -1153,23 +1105,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Ionised Gas",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Chemical Superbase",
-                                 "amount":  140
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Microelectrode",
-                                 "amount":  140
+                                 "amount":  12
                              }
                          ]
     },
@@ -1179,23 +1131,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Compression-Liquefied Gas",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  4
+                                 "amount":  1
                              },
                              {
                                  "commodity":  "Tungsten Carbide",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Weapon Component",
-                                 "amount":  20
+                                 "amount":  2
                              }
                          ]
     },
@@ -1205,23 +1157,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Compression-Liquefied Gas",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  20
+                                 "amount":  2
                              },
                              {
                                  "commodity":  "Tungsten Carbide",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Weapon Component",
-                                 "amount":  60
+                                 "amount":  5
                              }
                          ]
     },
@@ -1231,23 +1183,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Compression-Liquefied Gas",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  40
+                                 "amount":  4
                              },
                              {
                                  "commodity":  "Tungsten Carbide",
-                                 "amount":  100
+                                 "amount":  9
                              },
                              {
                                  "commodity":  "Weapon Component",
-                                 "amount":  100
+                                 "amount":  9
                              }
                          ]
     },
@@ -1257,23 +1209,23 @@
         "requirements":  [
                              {
                                  "commodity":  "Weapon Schematic",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Compression-Liquefied Gas",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Manufacturing Instructions",
-                                 "amount":  60
+                                 "amount":  5
                              },
                              {
                                  "commodity":  "Tungsten Carbide",
-                                 "amount":  140
+                                 "amount":  12
                              },
                              {
                                  "commodity":  "Weapon Component",
-                                 "amount":  140
+                                 "amount":  12
                              }
                          ]
     }
