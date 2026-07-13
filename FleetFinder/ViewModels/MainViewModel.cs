@@ -155,7 +155,7 @@ public sealed class MainViewModel : ObservableObject
             foreach (var row in Components)
             {
                 row.Have = counts.GetValueOrDefault(ShipLockerReader.Normalize(row.Component.Name));
-                if (row.IsSelected && !row.IsShort)
+                if (row.IsSelected && row.Target > 0 && !row.IsShort)
                 {
                     row.IsSelected = false;
                     caughtUp++;
@@ -717,7 +717,10 @@ public sealed class MainViewModel : ObservableObject
         var stillShort = data.Buy
             .Select(e => (Entry: e, Row: Components.FirstOrDefault(
                 c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(e.Name))))
-            .Where(x => x.Row != null && x.Entry.Target > x.Row.Have)
+            // Target 0 means a plain manual pick with no target math - always still relevant as
+            // long as the component still exists in the catalog. Target > 0 keeps the original
+            // "still short" relevance check.
+            .Where(x => x.Row != null && (x.Entry.Target == 0 || x.Entry.Target > x.Row.Have))
             .Select(x => x.Entry)
             .ToList();
 
@@ -746,15 +749,25 @@ public sealed class MainViewModel : ObservableObject
     {
         if (_pendingSearch != null)
         {
+            bool anyTargeted = false;
             foreach (var entry in _pendingSearch)
             {
                 var row = Components.FirstOrDefault(
                     c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(entry.Name));
                 if (row == null) continue;
-                row.Target = entry.Target;
-                row.IsSelected = row.IsShort;
+                if (entry.Target > 0)
+                {
+                    row.Target = entry.Target;
+                    row.IsSelected = row.IsShort;
+                    anyTargeted = true;
+                }
+                else
+                {
+                    // Plain manual pick - just restore the tick, no target involved.
+                    row.IsSelected = true;
+                }
             }
-            TargetsActive = true;
+            if (anyTargeted) TargetsActive = true;
         }
         if (_pendingSell != null)
         {
@@ -798,6 +811,14 @@ public sealed class MainViewModel : ObservableObject
             .Where(c => c.Target > 0 && c.IsShort)
             .Select(c => new PendingSearchEntry(c.Name, c.Target))
             .ToList();
+        // Plain manually-ticked components (no mod/import target driving them) weren't captured by
+        // the check above - Target stays 0 so IsShort is never true for them. Save these too, with
+        // Target 0 marking "just restore the tick, no target math involved".
+        var manualPicks = Components
+            .Where(c => c.IsSelected && !(c.Target > 0 && c.IsShort))
+            .Select(c => new PendingSearchEntry(c.Name, 0))
+            .ToList();
+        incompleteBuy.AddRange(manualPicks);
         var tickedSell = Components
             .Where(c => c.SellSelected)
             .Select(c => new PendingSellEntry(c.Name))
