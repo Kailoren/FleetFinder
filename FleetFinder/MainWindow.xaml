@@ -1370,11 +1370,11 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Value" Binding="{Binding BarterValue}"
+                            <DataGridTextColumn Header="Have" Binding="{Binding Row.Have}"
                                                 Width="Auto" CanUserResize="False"
                                                 ElementStyle="{StaticResource CenterTextPadded}"
                                                 HeaderStyle="{StaticResource CenterHeader}"/>
-                            <DataGridTextColumn Header="Have" Binding="{Binding Row.Have}"
+                            <DataGridTextColumn Header="Value" Binding="{Binding BarterValue}"
                                                 Width="Auto" CanUserResize="False"
                                                 ElementStyle="{StaticResource CenterTextPadded}"
                                                 HeaderStyle="{StaticResource CenterHeader}"/>
