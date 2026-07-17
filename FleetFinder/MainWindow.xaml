@@ -1279,57 +1279,14 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- LEFT: subcategory picker + running totals -->
+                <!-- LEFT: running totals -->
                 <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
                     BorderBrush="{StaticResource Accent}" BorderThickness="1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                             <TextBlock Text="Bartender calculator" FontWeight="SemiBold" FontSize="14"/>
                             <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
-                                       Text="Only Chemicals, Circuits and Tech can be bartered - trading only happens within one of these three groups at a time. Click an item on the right to set it as what you want, then set how many of the others to trade in."/>
-                        </StackPanel>
-
-                        <!-- Subcategory picker: three buttons, the active one lit with the accent color. -->
-                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
-                            <Button Content="Chemicals" Command="{Binding SelectBarterSubCategoryCommand}"
-                                    CommandParameter="Chemicals" Margin="0,0,6,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#5A3A15"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Chemicals">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="Circuits" Command="{Binding SelectBarterSubCategoryCommand}"
-                                    CommandParameter="Circuits" Margin="0,0,6,0">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#5A3A15"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Circuits">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
-                            <Button Content="Tech" Command="{Binding SelectBarterSubCategoryCommand}"
-                                    CommandParameter="Tech">
-                                <Button.Style>
-                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#5A3A15"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Tech">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Button.Style>
-                            </Button>
+                                       Text="Only Chemicals, Circuits and Tech can be bartered - trading only happens within one of these three groups at a time. Click an item on the right to set it as what you want, then set how many of the others to trade in. Picking a want item from a different group clears any amounts set in the previous one, since those points couldn't actually be spent on it."/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
@@ -1368,15 +1325,28 @@
                 <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
                               Background="Transparent"/>
 
-                <!-- RIGHT: every item in the selected subcategory - click a row to set it as what
-                     you want (reuses the same click-to-select-and-outline pattern as the results
-                     grids), and use the +/- stepper on any row (including the one you want) to
-                     set how many to trade in. -->
+                <!-- RIGHT: every barterable item, grouped by subcategory - click a row to set it
+                     as what you want (reuses the same click-to-select-and-outline pattern as the
+                     results grids), and use the +/- stepper on any row to set how many to trade
+                     in. -->
                 <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
                     BorderBrush="{StaticResource Accent}" BorderThickness="1">
-                    <DataGrid ItemsSource="{Binding BarterGiveRows}"
+                    <DataGrid ItemsSource="{Binding BarterGiveRowsView}"
                               SelectedItem="{Binding SelectedBarterWant}"
                               VirtualizingPanel.ScrollUnit="Item">
+                        <DataGrid.GroupStyle>
+                            <!-- Same styling as the Find Carriers picker's Chemicals/Circuits/Tech
+                                 sub-group headers. -->
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold"
+                                                   Foreground="{StaticResource Accent}"
+                                                   Margin="4,8,0,4"/>
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </DataGrid.GroupStyle>
                         <DataGrid.RowStyle>
                             <!-- Deliberately no BasedOn - see the matching comment on the Where to
                                  Buy grid's RowStyle for why. Outlines whichever row is currently

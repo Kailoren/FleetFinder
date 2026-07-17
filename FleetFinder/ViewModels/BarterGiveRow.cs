@@ -14,6 +14,10 @@ public sealed class BarterGiveRow : ObservableObject
     /// <summary>Bartender point value of this item - what each unit given contributes.</summary>
     public int BarterValue { get; }
 
+    /// <summary>Chemicals/Circuits/Tech - drives the grouped display and which other rows are
+    /// zeroed out when this one is picked as the "want" item.</summary>
+    public string SubCategory => Row.SubCategory;
+
     public BarterGiveRow(ComponentRow row, int barterValue)
     {
         Row = row;

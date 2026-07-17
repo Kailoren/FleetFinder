@@ -65,7 +65,6 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand OpenUpdateCommand { get; }
     public RelayCommand DismissUpdateCommand { get; }
     public RelayCommand ClearBarterCommand { get; }
-    public RelayCommand<string> SelectBarterSubCategoryCommand { get; }
 
     public MainViewModel(
         IReadOnlyList<Component> catalog, IReadOnlyList<Modification> modifications,
@@ -103,6 +102,11 @@ public sealed class MainViewModel : ObservableObject
         SellListingsView.SortDescriptions.Add(
             new SortDescription(nameof(CarrierGroupRow.MinAge), ListSortDirection.Ascending));
 
+        // Groups Chemicals/Circuits/Tech together in display order (catalog.json already lists
+        // them in that order, so no explicit sort is needed on top of the grouping).
+        BarterGiveRowsView = CollectionViewSource.GetDefaultView(BarterGiveRows);
+        BarterGiveRowsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(BarterGiveRow.SubCategory)));
+
         RefreshInventoryCommand = new RelayCommand(RefreshInventory);
         SearchCommand = new RelayCommand(SearchSelectedAsync, () => SelectedCount > 0 || SellSelectedCount > 0);
         ClearBuySelectionCommand = new RelayCommand(ClearBuySelection);
@@ -118,13 +122,12 @@ public sealed class MainViewModel : ObservableObject
         OpenUpdateCommand = new RelayCommand(OpenUpdate);
         DismissUpdateCommand = new RelayCommand(() => HasUpdateAvailable = false);
         ClearBarterCommand = new RelayCommand(ClearBarterGiveAmounts);
-        SelectBarterSubCategoryCommand = new RelayCommand<string>(sc => SelectedBarterSubCategory = sc ?? SelectedBarterSubCategory);
 
         RefreshInventory();
         LoadPendingSearchIfAny();
         SetupWatcher();
         _ = CheckForUpdateAsync();
-        RebuildBarterRows();
+        InitializeBarterRows();
     }
 
     // ---- Inventory ------------------------------------------------------------------------
@@ -1070,30 +1073,27 @@ public sealed class MainViewModel : ObservableObject
     // the Frontier forums: 5 items worth 5 each = 25 points buys 1 unit of a 20-point item, the
     // other 5 points are lost, not banked for a future trade).
     //
+    // All three subcategories show together in one grouped list (BarterGiveRowsView) rather than
+    // behind a picker - picking a "want" item commits you to its subcategory, and any GiveAmount
+    // sitting in a different subcategory is zeroed out at that point (see SelectedBarterWant's
+    // setter), so BarterTotalPoints can just sum every row unconditionally - the "wrong group"
+    // case is prevented structurally rather than filtered out at read time.
+    //
     // This is a planning tool only - it never touches ComponentRow.Have, since that's a read-only
     // reflection of the real ShipLocker.json and would just be overwritten by the next inventory
     // refresh regardless. The actual trade still has to be made at the in-game Bartender.
 
-    public string[] BarterSubCategories { get; } = { "Chemicals", "Circuits", "Tech" };
-
-    /// <summary>Every item in the selected subcategory - doubles as both the give-list (each row
-    /// has its own editable GiveAmount) and the want options (click a row to select it, same
-    /// click-to-select-and-outline pattern the results grids already use elsewhere).</summary>
+    /// <summary>Every barterable item across all three subcategories - doubles as both the
+    /// give-list (each row has its own editable GiveAmount) and the want options (click a row to
+    /// select it, same click-to-select-and-outline pattern the results grids already use
+    /// elsewhere). Grouped by subcategory for display via <see cref="BarterGiveRowsView"/>.</summary>
     public ObservableCollection<BarterGiveRow> BarterGiveRows { get; } = new();
-
-    private string _selectedBarterSubCategory = "Chemicals";
-    public string SelectedBarterSubCategory
-    {
-        get => _selectedBarterSubCategory;
-        set
-        {
-            if (SetProperty(ref _selectedBarterSubCategory, value))
-                RebuildBarterRows();
-        }
-    }
+    public ICollectionView BarterGiveRowsView { get; }
 
     private BarterGiveRow? _selectedBarterWant;
-    /// <summary>The item you want to acquire - one of the rows in <see cref="BarterGiveRows"/>.</summary>
+    /// <summary>The item you want to acquire - one of the rows in <see cref="BarterGiveRows"/>.
+    /// Selecting one zeroes any GiveAmount sitting in a different subcategory, since those points
+    /// could never actually be spent on it in-game.</summary>
     public BarterGiveRow? SelectedBarterWant
     {
         get => _selectedBarterWant;
@@ -1101,7 +1101,14 @@ public sealed class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedBarterWant, value))
             {
+                if (value != null)
+                {
+                    foreach (var row in BarterGiveRows)
+                        if (row.SubCategory != value.SubCategory)
+                            row.GiveAmount = 0;
+                }
                 OnPropertyChanged(nameof(BarterWantValue));
+                OnPropertyChanged(nameof(BarterTotalPoints));
                 OnPropertyChanged(nameof(BarterAcquirableUnits));
                 OnPropertyChanged(nameof(BarterLeftoverPoints));
             }
@@ -1111,7 +1118,8 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Barter point cost of the currently wanted item, or 0 if nothing's selected.</summary>
     public int BarterWantValue => SelectedBarterWant?.BarterValue ?? 0;
 
-    /// <summary>Sum of every give row's contributed points.</summary>
+    /// <summary>Sum of every give row's contributed points - safe to sum unconditionally since
+    /// only the wanted item's own subcategory can ever hold a nonzero GiveAmount at a time.</summary>
     public int BarterTotalPoints => BarterGiveRows.Sum(r => r.PointsContributed);
 
     /// <summary>How many units of the wanted item the accumulated points can buy (floor division -
@@ -1121,17 +1129,12 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Points that would be wasted (not banked) if the trade were made right now.</summary>
     public int BarterLeftoverPoints => BarterWantValue > 0 ? BarterTotalPoints % BarterWantValue : 0;
 
-    /// <summary>Rebuilds the give/want list for the newly selected subcategory - existing
-    /// GiveAmount entries don't carry over across a subcategory switch, since it's a different
-    /// closed pool of items in-game.</summary>
-    private void RebuildBarterRows()
+    /// <summary>Builds the give/want list once at startup, across all three barterable
+    /// subcategories.</summary>
+    private void InitializeBarterRows()
     {
-        BarterGiveRows.Clear();
-
         foreach (var row in Components.Where(c =>
-                     c.Category == "Assets" &&
-                     c.SubCategory == SelectedBarterSubCategory &&
-                     c.Component.BarterValue.HasValue))
+                     c.Category == "Assets" && c.Component.BarterValue.HasValue))
         {
             var give = new BarterGiveRow(row, row.Component.BarterValue!.Value);
             give.PropertyChanged += OnBarterGiveRowPropertyChanged;
@@ -1139,9 +1142,6 @@ public sealed class MainViewModel : ObservableObject
         }
 
         SelectedBarterWant = BarterGiveRows.FirstOrDefault();
-        OnPropertyChanged(nameof(BarterTotalPoints));
-        OnPropertyChanged(nameof(BarterAcquirableUnits));
-        OnPropertyChanged(nameof(BarterLeftoverPoints));
     }
 
     private void OnBarterGiveRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
