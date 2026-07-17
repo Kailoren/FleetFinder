@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "key":  "compressionliquefiedgas",
         "name":  "Compression-Liquefied Gas",
@@ -105,7 +105,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  179,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  9
     },
     {
         "key":  "chemicalcatalyst",
@@ -114,7 +115,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  180,
-        "targetQty":  15
+        "targetQty":  15,
+        "barterValue":  7
     },
     {
         "key":  "chemicalsuperbase",
@@ -123,7 +125,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  181,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  9
     },
     {
         "key":  "epinephrine",
@@ -132,7 +135,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  186,
-        "targetQty":  20
+        "targetQty":  20,
+        "barterValue":  5
     },
     {
         "key":  "epoxyadhesive",
@@ -141,7 +145,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  182,
-        "targetQty":  25
+        "targetQty":  25,
+        "barterValue":  5
     },
     {
         "key":  "graphene",
@@ -150,7 +155,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  178,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  23
     },
     {
         "key":  "oxygenicbacteria",
@@ -159,7 +165,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  185,
-        "targetQty":  20
+        "targetQty":  20,
+        "barterValue":  5
     },
     {
         "key":  "phneutraliser",
@@ -168,7 +175,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  187,
-        "targetQty":  30
+        "targetQty":  30,
+        "barterValue":  5
     },
     {
         "key":  "rdx",
@@ -177,7 +185,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  184,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  7
     },
     {
         "key":  "viscoelasticpolymer",
@@ -186,7 +195,8 @@
         "subCategory":  "Chemicals",
         "inaraTypeId":  13,
         "inaraItemId":  183,
-        "targetQty":  15
+        "targetQty":  15,
+        "barterValue":  11
     },
     {
         "key":  "circuitboard",
@@ -195,7 +205,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  188,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  9
     },
     {
         "key":  "circuitswitch",
@@ -204,7 +215,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  189,
-        "targetQty":  10
+        "targetQty":  10,
+        "barterValue":  4
     },
     {
         "key":  "electricalfuse",
@@ -213,7 +225,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  190,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  5
     },
     {
         "key":  "electricalwiring",
@@ -222,7 +235,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  191,
-        "targetQty":  40
+        "targetQty":  40,
+        "barterValue":  9
     },
     {
         "key":  "electromagnet",
@@ -231,7 +245,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  197,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  9
     },
     {
         "key":  "ionbattery",
@@ -240,7 +255,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  199,
-        "targetQty":  10
+        "targetQty":  10,
+        "barterValue":  9
     },
     {
         "key":  "metalcoil",
@@ -249,7 +265,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  192,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  9
     },
     {
         "key":  "microsupercapacitor",
@@ -258,7 +275,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  193,
-        "targetQty":  10
+        "targetQty":  10,
+        "barterValue":  5
     },
     {
         "key":  "microtransformer",
@@ -267,7 +285,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  194,
-        "targetQty":  25
+        "targetQty":  25,
+        "barterValue":  7
     },
     {
         "key":  "microelectrode",
@@ -276,7 +295,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  198,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  16
     },
     {
         "key":  "motor",
@@ -285,7 +305,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  195,
-        "targetQty":  10
+        "targetQty":  10,
+        "barterValue":  5
     },
     {
         "key":  "opticalfibre",
@@ -294,7 +315,8 @@
         "subCategory":  "Circuits",
         "inaraTypeId":  14,
         "inaraItemId":  196,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  11
     },
     {
         "key":  "carbonfibreplating",
@@ -303,7 +325,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  200,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  11
     },
     {
         "key":  "encryptedmemorychip",
@@ -312,7 +335,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  211,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  4
     },
     {
         "key":  "memorychip",
@@ -321,7 +345,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  202,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  4
     },
     {
         "key":  "microhydraulics",
@@ -330,7 +355,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  203,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  7
     },
     {
         "key":  "microthrusters",
@@ -339,7 +365,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  204,
-        "targetQty":  20
+        "targetQty":  20,
+        "barterValue":  5
     },
     {
         "key":  "opticallens",
@@ -348,7 +375,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  205,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  9
     },
     {
         "key":  "scrambler",
@@ -357,7 +385,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  206,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  5
     },
     {
         "key":  "titaniumplating",
@@ -366,7 +395,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  207,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  11
     },
     {
         "key":  "transmitter",
@@ -375,7 +405,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  208,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  5
     },
     {
         "key":  "tungstencarbide",
@@ -384,7 +415,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  209,
-        "targetQty":  0
+        "targetQty":  0,
+        "barterValue":  11
     },
     {
         "key":  "weaponcomponent",
@@ -393,7 +425,8 @@
         "subCategory":  "Tech",
         "inaraTypeId":  15,
         "inaraItemId":  210,
-        "targetQty":  5
+        "targetQty":  5,
+        "barterValue":  18
     },
     {
         "key":  "airqualityreports",

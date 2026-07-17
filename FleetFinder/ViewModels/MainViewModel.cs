@@ -64,6 +64,8 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand StartNewSearchCommand { get; }
     public RelayCommand OpenUpdateCommand { get; }
     public RelayCommand DismissUpdateCommand { get; }
+    public RelayCommand ClearBarterCommand { get; }
+    public RelayCommand<string> SelectBarterSubCategoryCommand { get; }
 
     public MainViewModel(
         IReadOnlyList<Component> catalog, IReadOnlyList<Modification> modifications,
@@ -115,11 +117,14 @@ public sealed class MainViewModel : ObservableObject
         StartNewSearchCommand = new RelayCommand(StartNewSearch);
         OpenUpdateCommand = new RelayCommand(OpenUpdate);
         DismissUpdateCommand = new RelayCommand(() => HasUpdateAvailable = false);
+        ClearBarterCommand = new RelayCommand(ClearBarterGiveAmounts);
+        SelectBarterSubCategoryCommand = new RelayCommand<string>(sc => SelectedBarterSubCategory = sc ?? SelectedBarterSubCategory);
 
         RefreshInventory();
         LoadPendingSearchIfAny();
         SetupWatcher();
         _ = CheckForUpdateAsync();
+        RebuildBarterRows();
     }
 
     // ---- Inventory ------------------------------------------------------------------------
@@ -1052,4 +1057,105 @@ public sealed class MainViewModel : ObservableObject
 
     private static string FormatLocal(DateTime? utc)
         => utc.HasValue ? utc.Value.ToLocalTime().ToString("g") : "never";
+
+    // ---- Barter calculator -----------------------------------------------------------------
+    //
+    // Models the in-game Bartender's point-barter system exactly: only Assets (Chemicals/
+    // Circuits/Tech) can be bartered this way (Goods/Data can only be sold to the bartender for
+    // a flat credit price, a different mechanic this tab doesn't cover), and trading only ever
+    // happens within one subcategory at a time - you can't trade a Chemical for a Circuit. Each
+    // item has a fixed point value (Component.BarterValue, sourced from Inara); giving up items
+    // accumulates points, which buy whole units of the wanted item at floor(points / its value) -
+    // any remainder is wasted, matching the real trade-in math (confirmed via a worked example on
+    // the Frontier forums: 5 items worth 5 each = 25 points buys 1 unit of a 20-point item, the
+    // other 5 points are lost, not banked for a future trade).
+    //
+    // This is a planning tool only - it never touches ComponentRow.Have, since that's a read-only
+    // reflection of the real ShipLocker.json and would just be overwritten by the next inventory
+    // refresh regardless. The actual trade still has to be made at the in-game Bartender.
+
+    public string[] BarterSubCategories { get; } = { "Chemicals", "Circuits", "Tech" };
+
+    /// <summary>Every item in the selected subcategory - doubles as both the give-list (each row
+    /// has its own editable GiveAmount) and the want options (click a row to select it, same
+    /// click-to-select-and-outline pattern the results grids already use elsewhere).</summary>
+    public ObservableCollection<BarterGiveRow> BarterGiveRows { get; } = new();
+
+    private string _selectedBarterSubCategory = "Chemicals";
+    public string SelectedBarterSubCategory
+    {
+        get => _selectedBarterSubCategory;
+        set
+        {
+            if (SetProperty(ref _selectedBarterSubCategory, value))
+                RebuildBarterRows();
+        }
+    }
+
+    private BarterGiveRow? _selectedBarterWant;
+    /// <summary>The item you want to acquire - one of the rows in <see cref="BarterGiveRows"/>.</summary>
+    public BarterGiveRow? SelectedBarterWant
+    {
+        get => _selectedBarterWant;
+        set
+        {
+            if (SetProperty(ref _selectedBarterWant, value))
+            {
+                OnPropertyChanged(nameof(BarterWantValue));
+                OnPropertyChanged(nameof(BarterAcquirableUnits));
+                OnPropertyChanged(nameof(BarterLeftoverPoints));
+            }
+        }
+    }
+
+    /// <summary>Barter point cost of the currently wanted item, or 0 if nothing's selected.</summary>
+    public int BarterWantValue => SelectedBarterWant?.BarterValue ?? 0;
+
+    /// <summary>Sum of every give row's contributed points.</summary>
+    public int BarterTotalPoints => BarterGiveRows.Sum(r => r.PointsContributed);
+
+    /// <summary>How many units of the wanted item the accumulated points can buy (floor division -
+    /// mirrors the in-game "You could acquire: N unit(s)" readout).</summary>
+    public int BarterAcquirableUnits => BarterWantValue > 0 ? BarterTotalPoints / BarterWantValue : 0;
+
+    /// <summary>Points that would be wasted (not banked) if the trade were made right now.</summary>
+    public int BarterLeftoverPoints => BarterWantValue > 0 ? BarterTotalPoints % BarterWantValue : 0;
+
+    /// <summary>Rebuilds the give/want list for the newly selected subcategory - existing
+    /// GiveAmount entries don't carry over across a subcategory switch, since it's a different
+    /// closed pool of items in-game.</summary>
+    private void RebuildBarterRows()
+    {
+        BarterGiveRows.Clear();
+
+        foreach (var row in Components.Where(c =>
+                     c.Category == "Assets" &&
+                     c.SubCategory == SelectedBarterSubCategory &&
+                     c.Component.BarterValue.HasValue))
+        {
+            var give = new BarterGiveRow(row, row.Component.BarterValue!.Value);
+            give.PropertyChanged += OnBarterGiveRowPropertyChanged;
+            BarterGiveRows.Add(give);
+        }
+
+        SelectedBarterWant = BarterGiveRows.FirstOrDefault();
+        OnPropertyChanged(nameof(BarterTotalPoints));
+        OnPropertyChanged(nameof(BarterAcquirableUnits));
+        OnPropertyChanged(nameof(BarterLeftoverPoints));
+    }
+
+    private void OnBarterGiveRowPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(BarterGiveRow.PointsContributed))
+        {
+            OnPropertyChanged(nameof(BarterTotalPoints));
+            OnPropertyChanged(nameof(BarterAcquirableUnits));
+            OnPropertyChanged(nameof(BarterLeftoverPoints));
+        }
+    }
+
+    private void ClearBarterGiveAmounts()
+    {
+        foreach (var row in BarterGiveRows) row.GiveAmount = 0;
+    }
 }

@@ -36,4 +36,12 @@ public sealed class Component
     /// <summary>Quantity needed to max every blueprint that uses this component.</summary>
     [JsonPropertyName("targetQty")]
     public int TargetQty { get; set; }
+
+    /// <summary>
+    /// Bartender point cost/value for this component, only present for Assets (Chemicals/
+    /// Circuits/Tech) - null for Goods and Data, which aren't part of the in-game point-barter
+    /// system (they can only be sold to the bartender for a flat credit price instead).
+    /// </summary>
+    [JsonPropertyName("barterValue")]
+    public int? BarterValue { get; set; }
 }

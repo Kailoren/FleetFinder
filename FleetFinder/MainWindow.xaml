@@ -1270,6 +1270,177 @@
                 </Border>
             </Grid>
         </TabItem>
+
+        <TabItem Header="Barter">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="BarterLeftColumn" Width="340" MinWidth="300"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT: subcategory picker + running totals -->
+                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBlock Text="Bartender calculator" FontWeight="SemiBold" FontSize="14"/>
+                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                                       Text="Only Chemicals, Circuits and Tech can be bartered - trading only happens within one of these three groups at a time. Click an item on the right to set it as what you want, then set how many of the others to trade in."/>
+                        </StackPanel>
+
+                        <!-- Subcategory picker: three buttons, the active one lit with the accent color. -->
+                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Content="Chemicals" Command="{Binding SelectBarterSubCategoryCommand}"
+                                    CommandParameter="Chemicals" Margin="0,0,6,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="#5A3A15"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Chemicals">
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Circuits" Command="{Binding SelectBarterSubCategoryCommand}"
+                                    CommandParameter="Circuits" Margin="0,0,6,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="#5A3A15"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Circuits">
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <Button Content="Tech" Command="{Binding SelectBarterSubCategoryCommand}"
+                                    CommandParameter="Tech">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="#5A3A15"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SelectedBarterSubCategory}" Value="Tech">
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+
+                        <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                            <Button Content="Clear amounts" Command="{Binding ClearBarterCommand}"
+                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4"/>
+                        </StackPanel>
+
+                        <!-- Running totals for whatever's currently ticked in the grid on the right. -->
+                        <Border Background="#0A0705" BorderBrush="#5A3A15" BorderThickness="1"
+                                CornerRadius="6" Padding="14">
+                            <StackPanel>
+                                <TextBlock Foreground="{StaticResource Muted}" FontSize="11" Text="YOU WANT"/>
+                                <TextBlock Margin="0,2,0,14" FontSize="14" FontWeight="SemiBold">
+                                    <Run Text="{Binding SelectedBarterWant.Row.Name, Mode=OneWay, FallbackValue='(click an item)'}"/>
+                                    <Run Text=" (value "/><Run Text="{Binding BarterWantValue, Mode=OneWay}"/><Run Text=")"/>
+                                </TextBlock>
+
+                                <TextBlock Foreground="{StaticResource Muted}" FontSize="11" Text="TOTAL POINTS OFFERED"/>
+                                <TextBlock Margin="0,2,0,14" FontSize="14" FontWeight="SemiBold"
+                                           Text="{Binding BarterTotalPoints, Mode=OneWay}"/>
+
+                                <TextBlock Foreground="{StaticResource Muted}" FontSize="11" Text="YOU COULD ACQUIRE"/>
+                                <TextBlock Margin="0,2,0,14" FontSize="22" FontWeight="Bold"
+                                           Foreground="{StaticResource Accent}">
+                                    <Run Text="{Binding BarterAcquirableUnits, Mode=OneWay}"/><Run Text=" unit(s)"/>
+                                </TextBlock>
+
+                                <TextBlock Foreground="{StaticResource Muted}" FontSize="11" Text="POINTS WASTED IF YOU TRADE NOW"/>
+                                <TextBlock Margin="0,2,0,0" FontSize="14"
+                                           Text="{Binding BarterLeftoverPoints, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Border>
+                    </DockPanel>
+                </Border>
+
+                <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
+                              Background="Transparent"/>
+
+                <!-- RIGHT: every item in the selected subcategory - click a row to set it as what
+                     you want (reuses the same click-to-select-and-outline pattern as the results
+                     grids), and use the +/- stepper on any row (including the one you want) to
+                     set how many to trade in. -->
+                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
+                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                    <DataGrid ItemsSource="{Binding BarterGiveRows}"
+                              SelectedItem="{Binding SelectedBarterWant}"
+                              VirtualizingPanel.ScrollUnit="Item">
+                        <DataGrid.RowStyle>
+                            <!-- Deliberately no BasedOn - see the matching comment on the Where to
+                                 Buy grid's RowStyle for why. Outlines whichever row is currently
+                                 the "want" item. -->
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderThickness" Value="2"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Component" Binding="{Binding Row.Name}"
+                                                Width="*" CanUserResize="False">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin" Value="7,0"/>
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Value" Binding="{Binding BarterValue}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <DataGridTextColumn Header="Have" Binding="{Binding Row.Have}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <!-- How many of this item to trade in, 0 to however many you hold. -->
+                            <DataGridTemplateColumn Header="Give" Width="110" CanUserResize="False"
+                                                    HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                                    Margin="0,0,10,0">
+                                            <Button Content="−" Style="{StaticResource StepperButton}"
+                                                    Command="{Binding DecGiveCommand}"/>
+                                            <TextBlock Text="{Binding GiveAmount}" MinWidth="26" TextAlignment="Center"
+                                                       VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <Button Content="+" Style="{StaticResource StepperButton}"
+                                                    Command="{Binding IncGiveCommand}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Points" Binding="{Binding PointsContributed}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </Grid>
+        </TabItem>
         </TabControl>
 
         <!-- "Resume last search" overlay: shown when a targeted search (Modifications/Import)
