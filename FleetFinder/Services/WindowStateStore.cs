@@ -4,17 +4,13 @@ using System.Text.Json;
 namespace FleetView.Services;
 
 /// <summary>
-/// Saved window position/size plus each tab's left/right splitter position and the tabs' own
-/// left-to-right order, read back on the next launch. All of these are nullable so older save
-/// files (from before they existed) still deserialize fine - null just means "use the XAML
-/// default". TabOrder holds each TabItem's Header text in display order; any tab it doesn't
-/// mention (a save from before that tab existed, or one renamed since) is appended at the end
-/// in its original XAML position rather than dropped.
+/// Saved window position/size plus each tab's left/right splitter position, read back on the
+/// next launch. The three splitter fields are nullable so older save files (from before they
+/// existed) still deserialize fine - null just means "use the XAML default width".
 /// </summary>
 public sealed record WindowBounds(
     double Left, double Top, double Width, double Height, bool Maximized,
-    double? FindCarriersSplit = null, double? ModificationsSplit = null, double? ImportSplit = null,
-    string[]? TabOrder = null);
+    double? FindCarriersSplit = null, double? ModificationsSplit = null, double? ImportSplit = null);
 
 /// <summary>Persists the main window's bounds across launches, alongside the app's other Data/ files.</summary>
 public static class WindowStateStore

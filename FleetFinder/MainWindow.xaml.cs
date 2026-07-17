@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -62,35 +61,12 @@ public partial class MainWindow : Window
         RestoreSplit(FindCarriersLeftColumn, saved.FindCarriersSplit);
         RestoreSplit(ModificationsLeftColumn, saved.ModificationsSplit);
         RestoreSplit(ImportLeftColumn, saved.ImportSplit);
-        RestoreTabOrder(saved.TabOrder);
 
         static void RestoreSplit(ColumnDefinition column, double? width)
         {
             if (width is double w && w >= column.MinWidth)
                 column.Width = new GridLength(w);
         }
-    }
-
-    /// <summary>Reorders MainTabs.Items to match a saved Header-text sequence. Any tab the saved
-    /// order doesn't mention (new since that save, or renamed) keeps its original relative
-    /// position at the end rather than being dropped.</summary>
-    private void RestoreTabOrder(string[]? order)
-    {
-        if (order == null || order.Length == 0) return;
-
-        var remaining = MainTabs.Items.Cast<TabItem>().ToList();
-        var reordered = new List<TabItem>();
-        foreach (var header in order)
-        {
-            var match = remaining.FirstOrDefault(t => (string)t.Header == header);
-            if (match == null) continue;
-            reordered.Add(match);
-            remaining.Remove(match);
-        }
-        reordered.AddRange(remaining);
-
-        MainTabs.Items.Clear();
-        foreach (var tab in reordered) MainTabs.Items.Add(tab);
     }
 
     /// <summary>
@@ -117,65 +93,7 @@ public partial class MainWindow : Window
             maximized,
             FindCarriersLeftColumn.Width.Value,
             ModificationsLeftColumn.Width.Value,
-            ImportLeftColumn.Width.Value,
-            MainTabs.Items.Cast<TabItem>().Select(t => (string)t.Header).ToArray()));
-    }
-
-    // ---- Tab drag-reordering ---------------------------------------------------------------
-    //
-    // TabControl has no built-in support for this. The approach: on a left-button-down over a
-    // tab header, remember which TabItem it was (via VisualTreeHelper ancestry from whatever
-    // element was actually hit); if the mouse then moves past the system drag threshold while
-    // still down, kick off a real WPF drag/drop carrying that TabItem as the payload; on Drop,
-    // find whichever TabItem is under the drop point the same way and move the dragged one to
-    // that position in MainTabs.Items directly (these are XAML-declared children, not bound via
-    // ItemsSource, so direct Items manipulation is safe here). Using "Preview" (tunneling) events
-    // rather than the bubbling ones means this never has to fight the TabItem's own built-in
-    // click-to-select handling - both just run independently off the same physical click.
-
-    private Point _tabDragStartPoint;
-    private TabItem? _tabDragCandidate;
-
-    private void MainTabs_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        _tabDragStartPoint = e.GetPosition(null);
-        _tabDragCandidate = FindAncestorTabItem(e.OriginalSource as DependencyObject);
-    }
-
-    private void MainTabs_PreviewMouseMove(object sender, MouseEventArgs e)
-    {
-        if (e.LeftButton != MouseButtonState.Pressed || _tabDragCandidate == null) return;
-
-        var pos = e.GetPosition(null);
-        if (Math.Abs(pos.X - _tabDragStartPoint.X) < SystemParameters.MinimumHorizontalDragDistance &&
-            Math.Abs(pos.Y - _tabDragStartPoint.Y) < SystemParameters.MinimumVerticalDragDistance)
-            return;
-
-        var dragged = _tabDragCandidate;
-        _tabDragCandidate = null; // one DoDragDrop per press - avoid re-entering while it's active
-        DragDrop.DoDragDrop(dragged, dragged, DragDropEffects.Move);
-    }
-
-    private void MainTabs_Drop(object sender, DragEventArgs e)
-    {
-        if (e.Data.GetData(typeof(TabItem)) is not TabItem dragged) return;
-        var target = FindAncestorTabItem(e.OriginalSource as DependencyObject);
-        if (target == null || ReferenceEquals(target, dragged)) return;
-
-        int targetIndex = MainTabs.Items.IndexOf(target);
-        if (targetIndex < 0) return;
-
-        MainTabs.Items.Remove(dragged);
-        MainTabs.Items.Insert(targetIndex, dragged);
-        dragged.IsSelected = true;
-        SaveWindowBounds();
-    }
-
-    private static TabItem? FindAncestorTabItem(DependencyObject? source)
-    {
-        while (source != null && source is not TabItem)
-            source = VisualTreeHelper.GetParent(source);
-        return source as TabItem;
+            ImportLeftColumn.Width.Value));
     }
 
     /// <summary>Swaps the maximize/restore button's glyph and tooltip to match WindowState —

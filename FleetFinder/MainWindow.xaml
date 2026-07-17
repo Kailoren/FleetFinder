@@ -435,10 +435,7 @@
         <!-- Tabs, plus the "resume last search" overlay stacked on top of just this area (title
              bar / status bar stay usable while it's up). -->
         <Grid>
-        <TabControl x:Name="MainTabs" Margin="12,8,12,12" Background="Transparent" AllowDrop="True"
-                    PreviewMouseLeftButtonDown="MainTabs_PreviewMouseLeftButtonDown"
-                    PreviewMouseMove="MainTabs_PreviewMouseMove"
-                    Drop="MainTabs_Drop">
+        <TabControl Margin="12,8,12,12" Background="Transparent">
         <TabItem Header="Find Carriers">
         <!-- Main split -->
         <Grid>
