@@ -7,20 +7,25 @@ public sealed record WishlistEntry(string Material, int Required, int Need);
 
 /// <summary>
 /// Parses a wishlist exported from Elite Dangerous Odyssey Materials Helper (EDOMH) — a
-/// whitespace-aligned table of "Material / Available BP+S / Available FC / Available Total /
-/// Required / Need" columns. Only the trailing five whitespace-separated integers on a line are
-/// significant; everything before them (trimmed) is the material name, so exact column widths
-/// don't matter and the header row (no trailing digits) is skipped automatically.
+/// whitespace-aligned table ending in "... Required / Need" columns, preceded by some number of
+/// "Available X" columns (originally BP+S/FC/Total; EDOMH added a middle "Available SC" column
+/// at some point without warning, breaking an earlier version of this parser that assumed exactly
+/// five trailing numeric columns in a fixed order). Only the *last two* whitespace-separated
+/// integers on a line are significant (Required, then Need) - everything else numeric before them
+/// is an "Available ..." column this app doesn't use and is matched but discarded, so this parser
+/// doesn't care how many of those columns EDOMH exports or what order they're in, only that
+/// Required/Need remain the trailing pair. Everything before the first number (trimmed) is the
+/// material name; the header row (no trailing digits) is skipped automatically.
 /// </summary>
 public static class EdomhWishlistParser
 {
     private static readonly Regex RowPattern = new(
-        @"^(?<name>.+?)\s+(?<bps>\d+)\s+(?<fc>\d+)\s+(?<total>\d+)\s+(?<required>\d+)\s+(?<need>\d+)\s*$",
+        @"^(?<name>.+?)\s+(?:\d+\s+)*(?<required>\d+)\s+(?<need>\d+)\s*$",
         RegexOptions.Compiled, TimeSpan.FromSeconds(1));
 
-    // A real wishlist line (material name + five numeric columns) is well under 200 characters.
-    // Capping it bounds this regex's worst case (lazy .+? backtracking against a pathologically
-    // long single line) to a fixed small cost regardless of how much text gets pasted/loaded.
+    // A real wishlist line (material name plus its numeric columns) is well under 200 characters.
+    // Capping it bounds this regex's worst case (backtracking against a pathologically long single
+    // line) to a fixed small cost regardless of how much text gets pasted/loaded.
     private const int MaxLineLength = 500;
 
     public static List<WishlistEntry> Parse(string text)
