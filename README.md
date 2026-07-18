@@ -4,7 +4,7 @@ A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carrier
 
 ## What it does
 
-The app has three tabs:
+The app has four tabs:
 
 - **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map. If you are looking to offload your components instead of buying more, however, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
 
@@ -13,6 +13,10 @@ The app has three tabs:
 - **Modifications:** Every suit/weapon modification and suit upgrade with the components it needs. Tick the ones you want (or use the stepper to pick multiples of that mod) and hit **Apply selected**, this sets a target on the Find Carriers tab for everything those mods require and auto-selects whatever you're still short on, so you can go straight to searching. Once you have purchased the required amount, the app will automatically deselect those items so you can just hit search again when you're ready to find the next carrier!
 
   <img width="1712" height="1439" alt="Screenshot 2026-07-11 202206" src="https://github.com/user-attachments/assets/01f95ce0-eb1b-441f-99a3-ec1da008c905" />
+
+- **Barter:** Calculate bartender trades at station concourse bars. Use the tickers to select the amount of materials you want to trade within a category, and click an item name to see how many you can trade for. Calculates excess points and works offline so you can check even without the game open.
+
+<img width="1717" height="1439" alt="Screenshot 2026-07-18 234101" src="https://github.com/user-attachments/assets/e713c85e-41b0-4666-9029-76eeb624a9b8" />
 
 - **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">[Elite Dangerous Odyssey Materials Helper](https://github.com/jixxed/ed-odyssey-materials-helper)</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
