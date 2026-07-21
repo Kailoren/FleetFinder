@@ -6,7 +6,7 @@ namespace FleetView.Services;
 public sealed record WishlistEntry(string Material, int Required, int Need);
 
 /// <summary>
-/// Parses a wishlist exported from Elite Dangerous Odyssey Materials Helper (EDOMH) — a
+/// Parses a wishlist exported from Elite Dangerous Odyssey Materials Helper (EDOMH), a
 /// whitespace-aligned table ending in "... Required / Need" columns, preceded by some number of
 /// "Available X" columns (originally BP+S/FC/Total; EDOMH added a middle "Available SC" column
 /// at some point without warning, breaking an earlier version of this parser that assumed exactly

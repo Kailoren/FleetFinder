@@ -10,7 +10,7 @@
     <AssemblyName>FleetFinder</AssemblyName>
     <RootNamespace>FleetView</RootNamespace>
     <ApplicationIcon>Assets\FleetFinderIcon.ico</ApplicationIcon>
-    <Version>2.2.0</Version>
+    <Version>2.2.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +25,7 @@
 
   <ItemGroup>
     <!-- Embedded so Window.Icon can reference it by relative pack URI. Also referenced via
-         ApplicationIcon above (for the exe's own file icon) — it needs to be both a Resource
+         ApplicationIcon above (for the exe's own file icon), it needs to be both a Resource
          item (for runtime use) and an ApplicationIcon (for the file itself). -->
     <Resource Include="Assets\FleetFinderIcon.ico"/>
   </ItemGroup>

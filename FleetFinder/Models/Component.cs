@@ -38,10 +38,28 @@ public sealed class Component
     public int TargetQty { get; set; }
 
     /// <summary>
-    /// Bartender point cost/value for this component, only present for Assets (Chemicals/
-    /// Circuits/Tech) - null for Goods and Data, which aren't part of the in-game point-barter
-    /// system (they can only be sold to the bartender for a flat credit price instead).
+    /// Bartender point cost to acquire (BUY) this component via barter, only present for Assets
+    /// (Chemicals/Circuits/Tech) - null for Goods and Data, which aren't part of the in-game
+    /// point-barter system (they can only be sold to the bartender for a flat credit price
+    /// instead). This is what a "want" item costs in points, NOT what giving it up nets you -
+    /// see <see cref="BarterSellValue"/> for that.
     /// </summary>
     [JsonPropertyName("barterValue")]
     public int? BarterValue { get; set; }
+
+    /// <summary>
+    /// Bartender point value (SELL/trade-in) gained when giving up one unit of this component -
+    /// always lower than <see cref="BarterValue"/> (the BUY cost). This is the correct figure for
+    /// what a "give" item actually contributes to the pot; only present for Assets, same as
+    /// <see cref="BarterValue"/>.
+    /// </summary>
+    [JsonPropertyName("barterSellValue")]
+    public int? BarterSellValue { get; set; }
+
+    /// <summary>
+    /// Flat credit price the bartender pays for this component, informational only (not used in
+    /// the point-barter math) - only present for Assets.
+    /// </summary>
+    [JsonPropertyName("creditValue")]
+    public int? CreditValue { get; set; }
 }

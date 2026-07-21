@@ -106,7 +106,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  179,
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "chemicalcatalyst",
@@ -116,7 +118,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  180,
         "targetQty":  15,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "chemicalsuperbase",
@@ -126,7 +130,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  181,
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "epinephrine",
@@ -136,7 +142,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  186,
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "epoxyadhesive",
@@ -146,7 +154,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  182,
         "targetQty":  25,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "graphene",
@@ -156,7 +166,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  178,
         "targetQty":  0,
-        "barterValue":  23
+        "barterValue":  23,
+        "barterSellValue":  13,
+        "creditValue":  1300
     },
     {
         "key":  "oxygenicbacteria",
@@ -166,7 +178,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  185,
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "phneutraliser",
@@ -176,7 +190,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  187,
         "targetQty":  30,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "rdx",
@@ -186,7 +202,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  184,
         "targetQty":  0,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "viscoelasticpolymer",
@@ -196,7 +214,9 @@
         "inaraTypeId":  13,
         "inaraItemId":  183,
         "targetQty":  15,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "circuitboard",
@@ -206,7 +226,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  188,
         "targetQty":  5,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "circuitswitch",
@@ -216,7 +238,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  189,
         "targetQty":  10,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "electricalfuse",
@@ -226,7 +250,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  190,
         "targetQty":  5,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "electricalwiring",
@@ -236,7 +262,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  191,
         "targetQty":  40,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "electromagnet",
@@ -246,7 +274,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  197,
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "ionbattery",
@@ -256,7 +286,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  199,
         "targetQty":  10,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "metalcoil",
@@ -266,7 +298,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  192,
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "microsupercapacitor",
@@ -276,7 +310,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  193,
         "targetQty":  10,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "microtransformer",
@@ -286,7 +322,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  194,
         "targetQty":  25,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "microelectrode",
@@ -296,7 +334,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  198,
         "targetQty":  0,
-        "barterValue":  16
+        "barterValue":  16,
+        "barterSellValue":  9,
+        "creditValue":  900
     },
     {
         "key":  "motor",
@@ -306,7 +346,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  195,
         "targetQty":  10,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "opticalfibre",
@@ -316,7 +358,9 @@
         "inaraTypeId":  14,
         "inaraItemId":  196,
         "targetQty":  0,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "carbonfibreplating",
@@ -326,7 +370,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  200,
         "targetQty":  5,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "encryptedmemorychip",
@@ -336,7 +382,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  211,
         "targetQty":  0,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "memorychip",
@@ -346,7 +394,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  202,
         "targetQty":  5,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "microhydraulics",
@@ -356,7 +406,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  203,
         "targetQty":  5,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "microthrusters",
@@ -366,7 +418,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  204,
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "opticallens",
@@ -376,7 +430,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  205,
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "scrambler",
@@ -386,7 +442,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  206,
         "targetQty":  0,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "titaniumplating",
@@ -396,7 +454,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  207,
         "targetQty":  5,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "transmitter",
@@ -406,7 +466,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  208,
         "targetQty":  5,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "tungstencarbide",
@@ -416,7 +478,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  209,
         "targetQty":  0,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "weaponcomponent",
@@ -426,7 +490,9 @@
         "inaraTypeId":  15,
         "inaraItemId":  210,
         "targetQty":  5,
-        "barterValue":  18
+        "barterValue":  18,
+        "barterSellValue":  10,
+        "creditValue":  100
     },
     {
         "key":  "airqualityreports",

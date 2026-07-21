@@ -1,14 +1,6 @@
-﻿using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using FleetView.Services;
 using FleetView.ViewModels;
 
@@ -43,7 +35,7 @@ public partial class MainWindow : Window
         if (saved == null) return;
 
         // Guard against restoring off whatever's currently connected (e.g. a since-disconnected
-        // second monitor the window was last on) — fall back to the XAML defaults instead. This
+        // second monitor the window was last on) - fall back to the XAML defaults instead. This
         // only gates position/size; splitter positions below are independent of it.
         var virtualScreen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
             SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
@@ -96,7 +88,7 @@ public partial class MainWindow : Window
             ImportLeftColumn.Width.Value));
     }
 
-    /// <summary>Swaps the maximize/restore button's glyph and tooltip to match WindowState —
+    /// <summary>Swaps the maximize/restore button's glyph and tooltip to match WindowState -
     /// there's one button (double-click-to-maximize convention), not two.</summary>
     private void UpdateMaximizeRestoreGlyph()
     {

@@ -81,8 +81,8 @@ public sealed class ShipLockerReader
 
     /// <summary>
     /// Reads and parses <paramref name="path"/> as JSON, retrying while the file is locked or
-    /// (briefly) empty from the game truncating it mid-rewrite. Returns false — never throws —
-    /// if valid JSON still can't be obtained after retrying, so callers can just skip the refresh.
+    /// (briefly) empty from the game truncating it mid-rewrite. Never throws; returns false if
+    /// valid JSON still can't be obtained after retrying, so callers can just skip the refresh.
     /// </summary>
     private static bool TryReadJson(string path, out JsonDocument? doc, int attempts = 6)
     {
@@ -99,11 +99,11 @@ public sealed class ShipLockerReader
             }
             catch (IOException)
             {
-                continue; // locked for writing right now — retry
+                continue; // locked for writing right now, retry
             }
 
             if (string.IsNullOrWhiteSpace(content))
-                continue; // caught the file mid truncate-then-rewrite — retry
+                continue; // caught the file mid truncate-then-rewrite, retry
 
             try
             {
@@ -112,7 +112,7 @@ public sealed class ShipLockerReader
             }
             catch (JsonException)
             {
-                continue; // partially-written JSON — retry
+                continue; // partially-written JSON, retry
             }
         }
         doc = null;
@@ -127,7 +127,7 @@ public sealed class ShipLockerReader
 
     private static string GetSavedGamesFolder()
     {
-        // FOLDERID_SavedGames — not exposed by Environment.SpecialFolder.
+        // FOLDERID_SavedGames, not exposed by Environment.SpecialFolder.
         try
         {
             if (SHGetKnownFolderPath(FolderIdSavedGames, 0, IntPtr.Zero, out IntPtr p) == 0)

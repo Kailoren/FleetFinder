@@ -81,7 +81,7 @@ public sealed class MainViewModel : ObservableObject
 
         ComponentsView = CollectionViewSource.GetDefaultView(Components);
         // Top level: Goods / Assets / Data. Second level: Chemicals/Circuits/Tech under Assets
-        // (SubCategory is "" for Data/Goods items, so their sub-group header renders empty/hidden —
+        // (SubCategory is "" for Data/Goods items, so their sub-group header renders empty/hidden,
         // see the DataGrid's second GroupStyle in MainWindow.xaml).
         ComponentsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ComponentRow.Category)));
         ComponentsView.GroupDescriptions.Add(new PropertyGroupDescription(nameof(ComponentRow.SubCategory)));
@@ -94,7 +94,7 @@ public sealed class MainViewModel : ObservableObject
         ListingsView = CollectionViewSource.GetDefaultView(Listings);
         // Default sort: freshest first (matches the "Updated" column's SortMemberPath in
         // MainWindow.xaml, so the header shows the matching sort arrow too). Clicking any column
-        // header re-sorts as normal — this only sets the starting state.
+        // header re-sorts as normal, this only sets the starting state.
         ListingsView.SortDescriptions.Add(
             new SortDescription(nameof(CarrierGroupRow.MinAge), ListSortDirection.Ascending));
 
@@ -134,13 +134,13 @@ public sealed class MainViewModel : ObservableObject
 
     public void RefreshInventory()
     {
-        // Single source of truth for "have we already seen this write" — both the file watcher
+        // Single source of truth for "have we already seen this write", both the file watcher
         // and the polling fallback in SetupWatcher funnel through here, so this is the one place
         // that needs to stay in sync with the file's timestamp.
         _lastSeenWriteUtc = _locker.LastWriteUtc;
 
         // Covers every ShipLocker.json category (Items/Components/Consumables/Data), keyed by
-        // normalised name — shared below for both the component picker and the mod requirements.
+        // normalised name, shared below for both the component picker and the mod requirements.
         var counts = _locker.ReadAllCounts();
 
         if (Components.Count == 0)
@@ -175,18 +175,18 @@ public sealed class MainViewModel : ObservableObject
                 }
             }
             if (caughtUp > 0 && soldOut > 0)
-                Status = $"Inventory updated — {caughtUp} component(s) fully stocked, {soldOut} sold out — both deselected.";
+                Status = $"Inventory updated: {caughtUp} component(s) fully stocked, {soldOut} sold out, both deselected.";
             else if (caughtUp > 0)
-                Status = $"Inventory updated — {caughtUp} component(s) now fully stocked and deselected.";
+                Status = $"Inventory updated: {caughtUp} component(s) now fully stocked and deselected.";
             else if (soldOut > 0)
-                Status = $"Inventory updated — {soldOut} component(s) sold out and deselected.";
+                Status = $"Inventory updated: {soldOut} component(s) sold out and deselected.";
 
             // Keep "Where to buy" results' Needed column live too, not just the picker's -
             // otherwise it stays frozen at whatever it was when Search was last clicked, instead
             // of tracking purchases the same way the picker already does.
             if (Listings.Count > 0)
             {
-                var neededByNorm = BuildNeededByNorm();
+                var neededByNorm = BuildByNorm(c => c.StillNeeded);
                 foreach (var group in Listings)
                     foreach (var item in group.Items)
                         if (neededByNorm.TryGetValue(ShipLockerReader.Normalize(item.Component), out var need))
@@ -197,7 +197,7 @@ public sealed class MainViewModel : ObservableObject
             // instead of freezing at whatever you held when Search was last clicked.
             if (SellListings.Count > 0)
             {
-                var haveByNorm = BuildHaveByNorm();
+                var haveByNorm = BuildByNorm(c => c.Have);
                 foreach (var group in SellListings)
                     foreach (var item in group.Items)
                         if (haveByNorm.TryGetValue(ShipLockerReader.Normalize(item.Component), out var have))
@@ -209,7 +209,7 @@ public sealed class MainViewModel : ObservableObject
 
         InventoryStatus = _locker.Exists
             ? $"Inventory: ShipLocker.json  (updated {FormatLocal(_locker.LastWriteUtc)})"
-            : "Inventory: ShipLocker.json not found — is Elite Dangerous installed for this user?";
+            : "Inventory: ShipLocker.json not found, is Elite Dangerous installed for this user?";
 
         ComponentsView.Refresh();
     }
@@ -252,7 +252,7 @@ public sealed class MainViewModel : ObservableObject
                 _watcher = new FileSystemWatcher(dir, "ShipLocker.json")
                 {
                     // FileName included in case the game writes via a temp-file-then-rename
-                    // pattern rather than an in-place write — Renamed is wired up below for
+                    // pattern rather than an in-place write, Renamed is wired up below for
                     // exactly that case.
                     NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.FileName,
                     EnableRaisingEvents = true
@@ -351,7 +351,7 @@ public sealed class MainViewModel : ObservableObject
     // ---- Distance from current location ---------------------------------------------------
 
     private string _currentSystemLabel = "";
-    /// <summary>e.g. "Distances from Kitchang Mu" — shown above the results.</summary>
+    /// <summary>e.g. "Distances from Kitchang Mu", shown above the results.</summary>
     public string CurrentSystemLabel
     {
         get => _currentSystemLabel;
@@ -368,12 +368,12 @@ public sealed class MainViewModel : ObservableObject
         var loc = _journal.GetCurrentLocation();
         if (loc == null)
         {
-            CurrentSystemLabel = "Current location unknown (no journal) — distances unavailable.";
+            CurrentSystemLabel = "Current location unknown (no journal), distances unavailable.";
             return;
         }
 
         CurrentSystemLabel = $"Distances from {loc.System}";
-        if (_coords == null) return; // e.g. offline/mock mode — keep source-provided distances
+        if (_coords == null) return; // e.g. offline/mock mode, keep source-provided distances
 
         IReadOnlyDictionary<string, SystemCoords> map;
         try
@@ -431,11 +431,11 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Header for the top pane, e.g. "Requirements — Greater Range  ×2".</summary>
+    /// <summary>Header for the top pane, e.g. "Requirements: Greater Range  ×2".</summary>
     public string SelectedRequirementsHeader =>
         SelectedModification == null
             ? "Requirements"
-            : $"Requirements — {SelectedModification.Name}  ×{SelectedModification.Quantity}";
+            : $"Requirements: {SelectedModification.Name}  ×{SelectedModification.Quantity}";
 
     private static IEnumerable<RequirementDisplayRow> Scale(ModificationRow m) =>
         m.Requirements.Select(r => new RequirementDisplayRow
@@ -497,9 +497,21 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>Sets every component's Target from a normalized-name -> amount map (0 for anything
+    /// absent), then ticks it if that leaves it short - shared by <see cref="ApplyModTargets"/> and
+    /// <see cref="ApplyImportTargets"/>, the two "set a shopping list" entry points.</summary>
+    private void ApplyTargets(Dictionary<string, int> targetsByNorm)
+    {
+        foreach (var row in Components)
+        {
+            row.Target = targetsByNorm.GetValueOrDefault(ShipLockerReader.Normalize(row.Name), 0);
+            row.IsSelected = row.IsShort;
+        }
+    }
+
     /// <summary>
     /// Sets each component's target to the total required by the selected modifications, then
-    /// ticks every component that's now short — so Find Carriers is ready to search immediately.
+    /// ticks every component that's now short, so Find Carriers is ready to search immediately.
     /// </summary>
     private void ApplyModTargets()
     {
@@ -511,11 +523,7 @@ public sealed class MainViewModel : ObservableObject
                 agg[key] = agg.GetValueOrDefault(key) + r.Amount * m.Quantity;
             }
 
-        foreach (var row in Components)
-        {
-            row.Target = agg.GetValueOrDefault(ShipLockerReader.Normalize(row.Name), 0);
-            row.IsSelected = row.IsShort;
-        }
+        ApplyTargets(agg);
 
         int selected = Modifications.Count(m => m.IsSelected);
         int ticked = Components.Count(c => c.IsSelected);
@@ -523,7 +531,7 @@ public sealed class MainViewModel : ObservableObject
         ComponentsView.Refresh();
         Status = selected == 0
             ? "Targets cleared (no modifications selected)."
-            : $"Applied {selected} modification(s) — {ticked} component(s) selected. Go to Find Carriers → Search.";
+            : $"Applied {selected} modification(s), {ticked} component(s) selected. Go to Find Carriers → Search.";
     }
 
     private void ClearModSelection()
@@ -563,7 +571,7 @@ public sealed class MainViewModel : ObservableObject
             if (info.Length > MaxImportFileBytes)
             {
                 Status = $"{Path.GetFileName(dlg.FileName)} is too large ({info.Length / 1024} KB) " +
-                         "to be a real wishlist export — not loading it.";
+                         "to be a real wishlist export, not loading it.";
                 return;
             }
 
@@ -585,7 +593,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>
     /// Parses the pasted/loaded EDOMH wishlist text, sets each matching component's target to
     /// the wishlist's Required amount, and ticks every component that's still short against
-    /// current inventory — mirroring <see cref="ApplyModTargets"/> so Find Carriers is ready to
+    /// current inventory, mirroring <see cref="ApplyModTargets"/> so Find Carriers is ready to
     /// search immediately. Components not present in the wishlist have their target cleared, so
     /// re-importing (or switching between an import and a modification selection) replaces the
     /// prior target set rather than merging with it.
@@ -597,27 +605,15 @@ public sealed class MainViewModel : ObservableObject
 
         if (entries.Count == 0)
         {
-            Status = "No wishlist rows found — paste an EDOMH export or load its .txt file.";
+            Status = "No wishlist rows found, paste an EDOMH export or load its .txt file.";
             return;
         }
 
-        var byNorm = new Dictionary<string, WishlistEntry>();
+        var byNorm = new Dictionary<string, int>();
         foreach (var e in entries)
-            byNorm[ShipLockerReader.Normalize(e.Material)] = e;
+            byNorm[ShipLockerReader.Normalize(e.Material)] = e.Required;
 
-        foreach (var row in Components)
-        {
-            if (byNorm.TryGetValue(ShipLockerReader.Normalize(row.Name), out var entry))
-            {
-                row.Target = entry.Required;
-                row.IsSelected = row.IsShort;
-            }
-            else
-            {
-                row.Target = 0;
-                row.IsSelected = false;
-            }
-        }
+        ApplyTargets(byNorm);
 
         int matched = 0;
         foreach (var e in entries)
@@ -637,8 +633,8 @@ public sealed class MainViewModel : ObservableObject
         TargetsActive = true;
         ComponentsView.Refresh();
         Status = matched == entries.Count
-            ? $"Imported {entries.Count} item(s) — {ticked} component(s) selected. Go to Find Carriers → Search."
-            : $"Imported {entries.Count} item(s), {entries.Count - matched} unmatched — "
+            ? $"Imported {entries.Count} item(s), {ticked} component(s) selected. Go to Find Carriers → Search."
+            : $"Imported {entries.Count} item(s), {entries.Count - matched} unmatched, "
               + $"{ticked} component(s) selected. Go to Find Carriers → Search.";
     }
 
@@ -651,7 +647,7 @@ public sealed class MainViewModel : ObservableObject
     private string? _updateUrl;
 
     private bool _hasUpdateAvailable;
-    /// <summary>True when GitHub has a newer release than the one currently running — shows the
+    /// <summary>True when GitHub has a newer release than the one currently running, shows the
     /// dismissible update banner. Replaces manually commenting on the forum/Reddit threads.</summary>
     public bool HasUpdateAvailable
     {
@@ -671,7 +667,7 @@ public sealed class MainViewModel : ObservableObject
         var info = await UpdateChecker.CheckAsync().ConfigureAwait(false);
         if (info == null) return;
 
-        // The HTTP continuation resumes off the UI thread (ConfigureAwait(false) above) —
+        // The HTTP continuation resumes off the UI thread (ConfigureAwait(false) above), so
         // property changes must be marshalled back for the banner's bindings to update.
         Application.Current?.Dispatcher.Invoke(() =>
         {
@@ -689,7 +685,7 @@ public sealed class MainViewModel : ObservableObject
             System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo(_updateUrl) { UseShellExecute = true });
         }
-        catch { /* best effort — never let a failed browser launch throw into the UI */ }
+        catch { /* best effort, never let a failed browser launch throw into the UI */ }
     }
 
     // ---- Pending search (resume-on-reopen) -------------------------------------------------
@@ -700,7 +696,7 @@ public sealed class MainViewModel : ObservableObject
     private bool _hasPendingSearchPrompt;
     /// <summary>
     /// True when a targeted buy search (from Modifications or Import) still had components short,
-    /// or a Sell-column selection was still ticked, when the app last closed — shows the "continue
+    /// or a Sell-column selection was still ticked, when the app last closed, shows the "continue
     /// or start new" overlay.
     /// </summary>
     public bool HasPendingSearchPrompt
@@ -709,10 +705,15 @@ public sealed class MainViewModel : ObservableObject
         private set => SetProperty(ref _hasPendingSearchPrompt, value);
     }
 
+    /// <summary>Looks up a component row by name, tolerant of casing/punctuation differences via
+    /// <see cref="ShipLockerReader.Normalize"/> - shared by every pending-search restore path.</summary>
+    private ComponentRow? FindRowByName(string name) =>
+        Components.FirstOrDefault(c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(name));
+
     /// <summary>
     /// Checks for a cache left by <see cref="SavePendingSearch"/> on a previous close. Only
     /// prompts if at least one cached component still exists in the catalog and is still
-    /// genuinely relevant against current inventory — the game state may have moved on (e.g. the
+    /// genuinely relevant against current inventory, the game state may have moved on (e.g. the
     /// user bought or sold it outside the app, or manually in-session) since the file was written.
     /// Buy entries stay relevant while still short (Target > Have); sell entries stay relevant
     /// while there's still something to sell (Have > 0).
@@ -723,8 +724,7 @@ public sealed class MainViewModel : ObservableObject
         if (data == null) return;
 
         var stillShort = data.Buy
-            .Select(e => (Entry: e, Row: Components.FirstOrDefault(
-                c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(e.Name))))
+            .Select(e => (Entry: e, Row: FindRowByName(e.Name)))
             // Target 0 means a plain manual pick with no target math - always still relevant as
             // long as the component still exists in the catalog. Target > 0 keeps the original
             // "still short" relevance check.
@@ -733,15 +733,14 @@ public sealed class MainViewModel : ObservableObject
             .ToList();
 
         var stillSellable = data.Sell
-            .Select(e => (Entry: e, Row: Components.FirstOrDefault(
-                c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(e.Name))))
+            .Select(e => (Entry: e, Row: FindRowByName(e.Name)))
             .Where(x => x.Row != null && x.Row.Have > 0)
             .Select(x => x.Entry)
             .ToList();
 
         if (stillShort.Count == 0 && stillSellable.Count == 0)
         {
-            PendingSearchStore.Save(Array.Empty<PendingSearchEntry>(), Array.Empty<PendingSellEntry>()); // fully resolved — clear the stale cache
+            PendingSearchStore.Save(Array.Empty<PendingSearchEntry>(), Array.Empty<PendingSellEntry>()); // fully resolved, clear the stale cache
             return;
         }
 
@@ -750,7 +749,7 @@ public sealed class MainViewModel : ObservableObject
         HasPendingSearchPrompt = true;
     }
 
-    /// <summary>Restores the cached targets/selections — mirrors ApplyModTargets/ApplyImportTargets
+    /// <summary>Restores the cached targets/selections, mirrors ApplyModTargets/ApplyImportTargets
     /// for the buy side, and just re-ticks the Sell column for the sell side - but deliberately
     /// does not run a search; both results panes stay empty until the user searches.</summary>
     private void ContinuePendingSearch()
@@ -760,8 +759,7 @@ public sealed class MainViewModel : ObservableObject
             bool anyTargeted = false;
             foreach (var entry in _pendingSearch)
             {
-                var row = Components.FirstOrDefault(
-                    c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(entry.Name));
+                var row = FindRowByName(entry.Name);
                 if (row == null) continue;
                 if (entry.Target > 0)
                 {
@@ -781,8 +779,7 @@ public sealed class MainViewModel : ObservableObject
         {
             foreach (var entry in _pendingSell)
             {
-                var row = Components.FirstOrDefault(
-                    c => ShipLockerReader.Normalize(c.Name) == ShipLockerReader.Normalize(entry.Name));
+                var row = FindRowByName(entry.Name);
                 if (row == null) continue;
                 row.SellSelected = true;
             }
@@ -791,14 +788,14 @@ public sealed class MainViewModel : ObservableObject
         int buyTicked = Components.Count(c => c.IsSelected);
         int sellTicked = Components.Count(c => c.SellSelected);
         Status = sellTicked > 0
-            ? $"Resumed previous search — {buyTicked} to buy, {sellTicked} to sell. Go to Find Carriers → Search."
-            : $"Resumed previous search — {buyTicked} component(s) selected. Go to Find Carriers → Search.";
+            ? $"Resumed previous search: {buyTicked} to buy, {sellTicked} to sell. Go to Find Carriers → Search."
+            : $"Resumed previous search: {buyTicked} component(s) selected. Go to Find Carriers → Search.";
         _pendingSearch = null;
         _pendingSell = null;
         HasPendingSearchPrompt = false;
     }
 
-    /// <summary>Discards the cached search entirely — the window is left in its normal default state.</summary>
+    /// <summary>Discards the cached search entirely, the window is left in its normal default state.</summary>
     private void StartNewSearch()
     {
         _pendingSearch = null;
@@ -834,19 +831,15 @@ public sealed class MainViewModel : ObservableObject
         PendingSearchStore.Save(incompleteBuy, tickedSell);
     }
 
-    /// <summary>Normalized component name -> current StillNeeded, for stamping onto "where to buy"
-    /// listings (both a fresh search and a live inventory refresh use this).</summary>
-    private Dictionary<string, int> BuildNeededByNorm() =>
-        Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), c => c.StillNeeded);
-
-    /// <summary>Normalized component name -> current Have, for stamping onto "where to sell"
-    /// listings (both a fresh search and a live inventory refresh use this).</summary>
-    private Dictionary<string, int> BuildHaveByNorm() =>
-        Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), c => c.Have);
+    /// <summary>Normalized component name -> a per-row figure (StillNeeded or Have), for stamping
+    /// onto "where to buy"/"where to sell" listings (both a fresh search and a live inventory
+    /// refresh use this).</summary>
+    private Dictionary<string, int> BuildByNorm(Func<ComponentRow, int> selector) =>
+        Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), selector);
 
     /// <summary>
     /// Fetches listings for one market direction, resolves distances, optionally stamps the
-    /// "Needed" or "Have" figure (mutually exclusive — Needed only makes sense buy-side, Have only
+    /// "Needed" or "Have" figure (mutually exclusive, Needed only makes sense buy-side, Have only
     /// sell-side), and groups them into one row per carrier/station. Shared by both halves of
     /// <see cref="SearchSelectedAsync"/> so "where to buy" and "where to sell" run the exact same
     /// pipeline, just with a different component set / direction / which figure applies.
@@ -859,7 +852,7 @@ public sealed class MainViewModel : ObservableObject
         bool rateLimited = false;
         try
         {
-            // One combined request for every ticked component (see RelayMarketSource) — this is
+            // One combined request for every ticked component (see RelayMarketSource), this is
             // also why a failure here can't distinguish partial success per component the way a
             // per-component loop could; it's all-or-nothing now.
             collected.AddRange(await _market.GetListingsAsync(components, direction));
@@ -879,7 +872,7 @@ public sealed class MainViewModel : ObservableObject
         {
             // Stamp each listing with how many you still need, so "Where to buy" can show the
             // buy quantity without switching back to Find Carriers.
-            var neededByNorm = BuildNeededByNorm();
+            var neededByNorm = BuildByNorm(c => c.StillNeeded);
             foreach (var l in collected)
                 l.Needed = neededByNorm.GetValueOrDefault(ShipLockerReader.Normalize(l.Component));
         }
@@ -887,14 +880,14 @@ public sealed class MainViewModel : ObservableObject
         {
             // Stamp each listing with how many you currently hold, so "Where to sell" shows what
             // you have available to sell without switching back to Find Carriers.
-            var haveByNorm = BuildHaveByNorm();
+            var haveByNorm = BuildByNorm(c => c.Have);
             foreach (var l in collected)
                 l.Have = haveByNorm.GetValueOrDefault(ShipLockerReader.Normalize(l.Component));
         }
 
         // One row per carrier/station: a place trading several of the searched commodities lists
         // them together (see CarrierGroupRow) instead of repeating the row per item. Insertion
-        // order here just needs to be a consistent order — actual display order is governed by
+        // order here just needs to be a consistent order, actual display order is governed by
         // the view's default SortDescription (freshest first, see constructor), which the user
         // can override by clicking any column header.
         var groups = collected
@@ -917,7 +910,7 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>
     /// Runs "where to buy" (ticked via the picker's checkbox column, <see cref="ComponentRow.IsSelected"/>)
     /// and "where to sell" (ticked via the Sell column, <see cref="ComponentRow.SellSelected"/>) at
-    /// the same time, as two independent requests against different market directions — either one
+    /// the same time, as two independent requests against different market directions, either one
     /// can be empty, in which case only the other runs.
     /// </summary>
     private async Task SearchSelectedAsync()
@@ -957,47 +950,43 @@ public sealed class MainViewModel : ObservableObject
                 ? (chosen.Count == 1 ? $"Searching for {chosen[0].Name}…" : $"Searching for {chosen.Count} components…")
                 : (sellChosen.Count == 1 ? $"Searching buyers for {sellChosen[0].Name}…" : $"Searching buyers for {sellChosen.Count} components…");
 
-        string? buyStatus = null;
-        if (buyTask != null)
-        {
-            try
-            {
-                var (groups, failed, rateLimited) = await buyTask;
-                foreach (var g in groups) Listings.Add(g);
-                int carriers = Listings.Count(g => g.IsFleetCarrier);
-                buyStatus = failed
-                    ? (rateLimited ? "Buy: relay unreachable, try again shortly." : "Buy: couldn't fetch prices.")
-                    : $"{Listings.Count} place(s) to buy ({carriers} fleet carriers) across {chosen.Count} component(s).";
-                NoResultsFound = !failed && Listings.Count == 0;
-            }
-            finally
-            {
-                IsBuyBusy = false;
-                ListingsView.Refresh();
-            }
-        }
+        string? buyStatus = buyTask == null ? null : await CollectSearchResultsAsync(
+            buyTask, Listings, ListingsView, "buy", chosen.Count,
+            () => IsBuyBusy = false, r => NoResultsFound = r);
 
-        string? sellStatus = null;
-        if (sellTask != null)
-        {
-            try
-            {
-                var (groups, failed, rateLimited) = await sellTask;
-                foreach (var g in groups) SellListings.Add(g);
-                int carriers = SellListings.Count(g => g.IsFleetCarrier);
-                sellStatus = failed
-                    ? (rateLimited ? "Sell: relay unreachable, try again shortly." : "Sell: couldn't fetch prices.")
-                    : $"{SellListings.Count} place(s) to sell ({carriers} fleet carriers) across {sellChosen.Count} component(s).";
-                NoSellResultsFound = !failed && SellListings.Count == 0;
-            }
-            finally
-            {
-                IsSellBusy = false;
-                SellListingsView.Refresh();
-            }
-        }
+        string? sellStatus = sellTask == null ? null : await CollectSearchResultsAsync(
+            sellTask, SellListings, SellListingsView, "sell", sellChosen.Count,
+            () => IsSellBusy = false, r => NoSellResultsFound = r);
 
         Status = string.Join("   ", new[] { buyStatus, sellStatus }.Where(s => s != null));
+    }
+
+    /// <summary>Awaits one market direction's fetch, adds results to its collection, refreshes its
+    /// busy/no-results state, and returns the status line for that direction - shared by both
+    /// halves of <see cref="SearchSelectedAsync"/> so "where to buy" and "where to sell" report
+    /// identically.</summary>
+    private static async Task<string> CollectSearchResultsAsync(
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)> task,
+        ObservableCollection<CarrierGroupRow> target, ICollectionView view, string verb, int requestedCount,
+        Action clearBusy, Action<bool> setNoResults)
+    {
+        try
+        {
+            var (groups, failed, rateLimited) = await task;
+            foreach (var g in groups) target.Add(g);
+            int carriers = target.Count(g => g.IsFleetCarrier);
+            string label = char.ToUpperInvariant(verb[0]) + verb[1..];
+            string status = failed
+                ? (rateLimited ? $"{label}: relay unreachable, try again shortly." : $"{label}: couldn't fetch prices.")
+                : $"{target.Count} place(s) to {verb} ({carriers} fleet carriers) across {requestedCount} component(s).";
+            setNoResults(!failed && target.Count == 0);
+            return status;
+        }
+        finally
+        {
+            clearBusy();
+            view.Refresh();
+        }
     }
 
     // ---- Filters & status -----------------------------------------------------------------
@@ -1067,11 +1056,13 @@ public sealed class MainViewModel : ObservableObject
     // Circuits/Tech) can be bartered this way (Goods/Data can only be sold to the bartender for
     // a flat credit price, a different mechanic this tab doesn't cover), and trading only ever
     // happens within one subcategory at a time - you can't trade a Chemical for a Circuit. Each
-    // item has a fixed point value (Component.BarterValue, sourced from Inara); giving up items
-    // accumulates points, which buy whole units of the wanted item at floor(points / its value) -
-    // any remainder is wasted, matching the real trade-in math (confirmed via a worked example on
-    // the Frontier forums: 5 items worth 5 each = 25 points buys 1 unit of a 20-point item, the
-    // other 5 points are lost, not banked for a future trade).
+    // item has two distinct point values (BUY/Component.BarterValue = cost to acquire it as the
+    // "want" item, SELL/Component.BarterSellValue = points banked per unit given up - always
+    // lower than BUY, per CMDR Tarvus Indoril's barter guide reference table, 2026-07-21): giving
+    // up items accumulates points at the SELL rate, which buy whole units of the wanted item at
+    // floor(totalSellPoints / itsWantBuyValue) - any remainder is wasted, not banked for a future
+    // trade. (An earlier version of this calculator incorrectly used the BUY value on both sides,
+    // which overstated how many points a given-away item contributes - don't reintroduce that.)
     //
     // All three subcategories show together in one grouped list (BarterGiveRowsView) rather than
     // behind a picker - picking a "want" item commits you to its subcategory, and any GiveAmount
@@ -1116,7 +1107,7 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>Barter point cost of the currently wanted item, or 0 if nothing's selected.</summary>
-    public int BarterWantValue => SelectedBarterWant?.BarterValue ?? 0;
+    public int BarterWantValue => SelectedBarterWant?.BuyValue ?? 0;
 
     /// <summary>Sum of every give row's contributed points - safe to sum unconditionally since
     /// only the wanted item's own subcategory can ever hold a nonzero GiveAmount at a time.</summary>
@@ -1134,9 +1125,11 @@ public sealed class MainViewModel : ObservableObject
     private void InitializeBarterRows()
     {
         foreach (var row in Components.Where(c =>
-                     c.Category == "Assets" && c.Component.BarterValue.HasValue))
+                     c.Category == "Assets" && c.Component.BarterValue.HasValue
+                     && c.Component.BarterSellValue.HasValue))
         {
-            var give = new BarterGiveRow(row, row.Component.BarterValue!.Value);
+            var give = new BarterGiveRow(row, row.Component.BarterValue!.Value,
+                row.Component.BarterSellValue!.Value);
             give.PropertyChanged += OnBarterGiveRowPropertyChanged;
             BarterGiveRows.Add(give);
         }

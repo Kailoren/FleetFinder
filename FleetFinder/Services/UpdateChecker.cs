@@ -26,7 +26,7 @@ public static class UpdateChecker
 
     /// <summary>
     /// Returns info about a newer release, or null if already current or the check failed for any
-    /// reason (offline, rate-limited, malformed response, no releases yet). Never throws — a
+    /// reason (offline, rate-limited, malformed response, no releases yet). Never throws - a
     /// failed check should be silently invisible to the user, same as this app's other optional
     /// network calls (EDSM distances, relay listings).
     /// </summary>

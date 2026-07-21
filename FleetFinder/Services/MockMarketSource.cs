@@ -14,7 +14,7 @@ public sealed class MockMarketSource : ICarrierMarketSource
     {
         // Varied prices / distances / ages / access / carrier-vs-station so the grid is testable.
         // One set of listings per requested component, mirroring how a real batched relay
-        // response carries rows for every ticked commodity in one payload — the same carrier
+        // response carries rows for every ticked commodity in one payload - the same carrier
         // reappears once per component, letting the grouping logic collapse it into one row
         // with several items, same as it would with real multi-commodity data.
         var data = new List<CarrierListing>();

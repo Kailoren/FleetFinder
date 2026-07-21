@@ -31,14 +31,19 @@ public static class CommodityV3Handler
         if (hasDockingAccess && dockingEl.ValueKind == JsonValueKind.String)
         {
             string raw = dockingEl.GetString() ?? "";
-            dockingAccess = raw.Equals("none", StringComparison.OrdinalIgnoreCase) ? "No" : "Yes";
+            // Only "all" is genuinely open to any commander. "friends"/"squadron"/"squadronfriends"
+            // restrict docking to a subset of players, the same false-positive risk already found
+            // and removed from the old Docked-based fallback (see JournalHandler) - collapsing them
+            // to "Yes" here would reintroduce that exact bug at the authoritative source instead.
+            dockingAccess = raw.ToLowerInvariant() switch
+            {
+                "none" => "No",
+                "all" => "Yes",
+                _ => "Restricted"
+            };
         }
 
-        DateTime seenUtc = message.TryGetAny(out var tsEl, "timestamp", "Timestamp")
-            && tsEl.ValueKind == JsonValueKind.String
-            && DateTime.TryParse(tsEl.GetString(), out var ts)
-            ? ts.ToUniversalTime()
-            : DateTime.UtcNow;
+        DateTime seenUtc = message.GetTimestampUtc();
 
         db.UpsertCarrierFromCommodity(marketId.Value, stationName, systemName, dockingAccess, seenUtc);
     }

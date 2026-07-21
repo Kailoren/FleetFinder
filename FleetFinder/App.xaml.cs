@@ -59,10 +59,10 @@ public partial class App : Application
     /// <summary>
     /// Opts this process out of Windows' "Efficiency Mode" (EcoQoS) power throttling, which the
     /// OS otherwise applies to unfocused/background windows and lowers their thread scheduling
-    /// priority and timer resolution — the most likely reason live inventory/dock updates were
+    /// priority and timer resolution, the most likely reason live inventory/dock updates were
     /// previously stalling while this app sat open but unfocused (e.g. on a second monitor while
     /// the game has focus). Polling itself was also moved off the UI-thread DispatcherTimer onto
-    /// a threadpool Timer for the same reason (see MainViewModel.SetupWatcher) — this call
+    /// a threadpool Timer for the same reason (see MainViewModel.SetupWatcher) - this call
     /// addresses it at the process level too, for anything else Windows might throttle. Silently
     /// does nothing on Windows versions that don't support this (pre-Windows 11 22H2-ish); never
     /// allowed to affect startup.
@@ -80,7 +80,7 @@ public partial class App : Application
             SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, ref state,
                 (uint)Marshal.SizeOf<PROCESS_POWER_THROTTLING_STATE>());
         }
-        catch { /* best effort — must never block startup */ }
+        catch { /* best effort, must never block startup */ }
     }
 
     private const int ProcessPowerThrottling = 4; // PROCESS_INFORMATION_CLASS.ProcessPowerThrottling

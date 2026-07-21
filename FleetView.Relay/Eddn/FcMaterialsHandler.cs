@@ -22,11 +22,7 @@ public static class FcMaterialsHandler
         long? marketId = message.GetInt64Any("MarketID", "marketId");
         if (marketId is null) return;
 
-        DateTime updatedUtc = message.TryGetAny(out var tsEl, "timestamp", "Timestamp")
-            && tsEl.ValueKind == JsonValueKind.String
-            && DateTime.TryParse(tsEl.GetString(), out var ts)
-            ? ts.ToUniversalTime()
-            : DateTime.UtcNow;
+        DateTime updatedUtc = message.GetTimestampUtc();
 
         string? carrierName = message.GetStringAny("CarrierName", "CarrierName_Localised");
         db.UpsertCarrierName(marketId.Value, carrierName, updatedUtc);

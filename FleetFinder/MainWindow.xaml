@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FleetView"
         mc:Ignorable="d"
-        Title="FleetFinder — Odyssey Engineering Material Finder"
+        Title="FleetFinder - Odyssey Engineering Material Finder"
         Icon="Assets/FleetFinderIcon.ico"
         Height="740" Width="1300" MinHeight="480" MinWidth="960"
         Background="#0A0705" TextElement.Foreground="#EAE4DA"
@@ -15,7 +15,7 @@
     <!-- Custom title bar (see the "Title bar" Border below): WindowChrome keeps the native
          resize border / Aero-snap / drop shadow, but hands the top CaptionHeight strip to our
          own content instead of drawing the system caption. Only the min/max/close buttons are
-         marked IsHitTestVisibleInChrome — everything else in that strip is drag-to-move and
+         marked IsHitTestVisibleInChrome, everything else in that strip is drag-to-move and
          double-click-to-maximize for free, same as a real title bar. -->
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="36" ResizeBorderThickness="6"
@@ -83,7 +83,7 @@
 
         <!-- Horizontal breathing room from the column dividers, for the "Where to buy" results
              grid. WPF's DataGridColumn Width="Auto" sizes to the content element's own
-             DesiredSize (which includes its Margin) — it does NOT include DataGridCell.Padding,
+             DesiredSize (which includes its Margin), it does NOT include DataGridCell.Padding,
              so that padding alone left text touching the dividers on narrow/fixed-width columns
              (Dist, Updated, etc.) despite being set. Margin on the content itself is what
              actually drives both the visual gap and the auto-width calculation correctly. -->
@@ -163,7 +163,7 @@
         </Style>
 
         <!-- Custom checkbox: a small rounded box matching the app's panel/border palette, filled
-             with the accent color and a dark checkmark when ticked — replacing the native
+             with the accent color and a dark checkmark when ticked, replacing the native
              Windows checkbox glyph, same spirit as the hand-built buttons/scrollbar/title bar. -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="#EAE4DA"/>
@@ -216,7 +216,7 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Custom title bar caption buttons (minimize/maximize/close) — flat, theme-colored,
+        <!-- Custom title bar caption buttons (minimize/maximize/close), flat, theme-colored,
              replacing the native Windows caption glyphs entirely. Background flows through the
              TemplateBinding below, so a hover trigger just needs to set Background/Foreground on
              the Button itself; the Path/Canvas glyphs inside each button (see the title bar
@@ -335,8 +335,8 @@
                             </Trigger>
                             <!-- Bound to "bd"'s own IsMouseOver (not the TabItem's ambient one):
                                  the TabItem's IsMouseOver can read true while the pointer is over
-                                 the selected tab's page content — e.g. the empty gap between the
-                                 two panels on the Modifications/Import tabs — since that content is
+                                 the selected tab's page content (e.g. the empty gap between the
+                                 two panels on the Modifications/Import tabs), since that content is
                                  hosted by TabControl's own default template, not nested inside this
                                  TabItem's template. Scoping the trigger to "bd" itself (which only
                                  covers the actual header chip) keeps the hover highlight limited to
@@ -406,7 +406,7 @@
         </Border>
 
         <!-- Update banner: dismissible, non-blocking (unlike the resume-search overlay below,
-             this never covers the tabs) — shown when UpdateChecker finds a newer GitHub release
+             this never covers the tabs), shown when UpdateChecker finds a newer GitHub release
              than the one currently running. -->
         <Border DockPanel.Dock="Top" Background="{StaticResource Accent}" Padding="12,6"
                 Visibility="{Binding HasUpdateAvailable, Converter={x:Static local:BoolToVis.Instance}}">
@@ -482,7 +482,7 @@
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
                             </GroupStyle>
-                            <!-- Second level: Chemicals/Circuits/Tech, shown only under Assets —
+                            <!-- Second level: Chemicals/Circuits/Tech, shown only under Assets -
                                  Data/Goods items have an empty SubCategory, so that (redundant)
                                  sub-header collapses to nothing instead of repeating the group name. -->
                             <GroupStyle>
@@ -524,7 +524,7 @@
                             </DataGridTemplateColumn>
                             <!-- Fills remaining width so no empty "phantom column" filler appears
                                  after Amount. CanUserResize=False since there's nothing to its
-                                 right to resize against (Amount is fixed-width) — without it, the
+                                 right to resize against (Amount is fixed-width), without it, the
                                  column border shows a resize cursor that doesn't do anything. -->
                             <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*"
                                                 CanUserResize="False"/>
@@ -546,7 +546,7 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <!-- How many more you still need (Target minus current Have, floored
-                                 at 0) — set by Apply selected on the Modifications tab or by
+                                 at 0), set by Apply selected on the Modifications tab or by
                                  importing an EDOMH wishlist. Highlighted orange while > 0 so it's
                                  obvious what's still outstanding; once inventory catches up
                                  (ShipLocker.json refresh sees Have >= Target) the row's own
@@ -637,7 +637,7 @@
                               VirtualizingPanel.ScrollUnit="Item"
                               GridLinesVisibility="All"
                               VerticalGridLinesBrush="#3A2410">
-                        <!-- Vertical row breathing room only — horizontal spacing from the column
+                        <!-- Vertical row breathing room only - horizontal spacing from the column
                              dividers is handled per-column via content Margin instead of Padding
                              here (see CenterTextPadded/VCenterTextPadded above for why). -->
                         <DataGrid.CellStyle>
@@ -815,7 +815,7 @@
                                                 SortMemberPath="DistanceLy" Width="Auto" CanUserResize="False"
                                                 ElementStyle="{StaticResource CenterTextPadded}"
                                                 HeaderStyle="{StaticResource CenterHeader}"/>
-                            <!-- One value per carrier (freshest of its matching commodities) — the update
+                            <!-- One value per carrier (freshest of its matching commodities), the update
                                  time reflects the carrier's data snapshot, not any single commodity. -->
                             <DataGridTextColumn Header="Updated" Binding="{Binding UpdatedText}"
                                                 SortMemberPath="MinAge" Width="Auto" CanUserResize="False"
@@ -1086,7 +1086,7 @@
                                 </DataGridTextColumn>
                                 <!-- Quantity with -/+ steppers: how many of this mod you want. Right margin
                                      compensates for this grid's custom (narrower-than-system) scrollbar, which
-                                     otherwise desyncs body-column centering from the header — see the DataGrid
+                                     otherwise desyncs body-column centering from the header, see the DataGrid
                                      scrollbar gotcha noted elsewhere in this project. -->
                                 <DataGridTemplateColumn Header="Qty" Width="96" CanUserResize="False"
                                                         HeaderStyle="{StaticResource CenterHeader}">
@@ -1112,7 +1112,7 @@
                 <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch"
                               Background="Transparent"/>
 
-                <!-- RIGHT: clicked mod (top, fixed to 5 rows — the max a mod ever needs) + pinned totals (bottom) -->
+                <!-- RIGHT: clicked mod (top, fixed to 5 rows, the max a mod ever needs) + pinned totals (bottom) -->
                 <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
                     BorderBrush="{StaticResource Accent}" BorderThickness="1">
                     <Grid>
@@ -1154,7 +1154,7 @@
                             </DataGrid>
                         </DockPanel>
 
-                        <!-- Static divider (no longer a draggable splitter — both panes are fixed/auto sized). -->
+                        <!-- Static divider (no longer a draggable splitter, both panes are fixed/auto sized). -->
                         <Border Grid.Row="1" Height="1" Background="#5A3A15" Margin="0,10"/>
 
                         <!-- BOTTOM: total of every commodity needed across all checked modifications. -->
@@ -1295,7 +1295,15 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="Value" Binding="{Binding BarterValue}"
+                            <DataGridTextColumn Header="Buy" Binding="{Binding BuyValue}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <DataGridTextColumn Header="Sell" Binding="{Binding SellValue}"
+                                                Width="Auto" CanUserResize="False"
+                                                ElementStyle="{StaticResource CenterTextPadded}"
+                                                HeaderStyle="{StaticResource CenterHeader}"/>
+                            <DataGridTextColumn Header="Credit" Binding="{Binding CreditValue}"
                                                 Width="Auto" CanUserResize="False"
                                                 ElementStyle="{StaticResource CenterTextPadded}"
                                                 HeaderStyle="{StaticResource CenterHeader}"/>

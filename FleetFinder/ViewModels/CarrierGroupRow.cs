@@ -29,7 +29,7 @@ public sealed class CarrierGroupRow
     public int TotalAmount => Items.Sum(i => i.Amount);
 
     /// <summary>
-    /// The freshest "x ago" text among this carrier's matching commodities, shown once — the
+    /// The freshest "x ago" text among this carrier's matching commodities, shown once - the
     /// update time reflects the carrier's data snapshot, not any single commodity.
     /// </summary>
     public string UpdatedText => Items.Count == 0

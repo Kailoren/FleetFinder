@@ -7,8 +7,7 @@ namespace FleetView.Relay.Eddn;
 /// like "marketId"/"systemName" while the FCMaterials schemas pass the journal's own PascalCase
 /// field names through mostly as-is, like "MarketID"). Rather than hard-code one casing per field
 /// and risk silently reading nothing back, look up a property under any of the names it might
-/// plausibly appear as. The live-capture spike (see plan) confirms/corrects which names actually
-/// show up on the real firehose.
+/// plausibly appear as.
 /// </summary>
 internal static class JsonHelpers
 {
@@ -31,4 +30,19 @@ internal static class JsonHelpers
 
     public static int? GetInt32Any(this JsonElement element, params string[] names) =>
         element.TryGetAny(out var v, names) && v.TryGetInt32(out var n) ? n : null;
+
+    /// <summary>EDDN's "timestamp"/"Timestamp" field parsed to UTC, or now if missing/malformed -
+    /// every handler needs a timestamp regardless, so falling back rather than skipping the
+    /// message keeps that decision in one place.</summary>
+    public static DateTime GetTimestampUtc(this JsonElement message) =>
+        message.TryGetAny(out var ts, "timestamp", "Timestamp")
+            && ts.ValueKind == JsonValueKind.String
+            && DateTime.TryParse(ts.GetString(), out var parsed)
+            ? parsed.ToUniversalTime()
+            : DateTime.UtcNow;
+
+    /// <summary>True if the message's StationType/stationType field names a fleet carrier.</summary>
+    public static bool IsFleetCarrierStationType(this JsonElement message) =>
+        string.Equals(message.GetStringAny("StationType", "stationType"), "FleetCarrier",
+            StringComparison.OrdinalIgnoreCase);
 }
