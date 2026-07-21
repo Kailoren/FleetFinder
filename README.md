@@ -48,3 +48,15 @@ FleetFinder checks this repo's releases on launch and lets you know in the title
 - Carrier docking access may show as "Unknown" if that hasn't been reported yet. This fills in over time as more players visit carriers, and like any shared community data it can occasionally be out of date by the time you arrive. Since this is a new release there will likely be more "unknown" than "yes" currently, but this will improve as people continue to dock at carriers and my server gets that info from EDDN.
 
 - The component catalogue is curated for suit and weapon engineering, upgrades, and engineer unlocks, not every Odyssey component that exists. If an EDOMH import shows an item it doesn't recognize, that's flagged in the Import tab as "false" so you can see exactly what wasn't matched. If this happens, please let me know so it can be added.
+
+---
+
+### Disclaimer
+
+FleetFinder is an independent, unofficial project and is not affiliated with, endorsed by, or sponsored by Frontier Developments plc. Elite Dangerous and all related trademarks are the property of Frontier Developments plc.
+
+FleetFinder relies on Frontier's unofficial, undocumented Companion API (cAPI) and/or Elite Dangerous journal data, which may change or become unavailable at any time without notice.
+
+I do not condone or support any use of FleetFinder for malicious, abusive, or harassing purposes, or for any activity that violates Frontier's Terms of Service or End User License Agreement. Users are solely responsible for ensuring their use of this tool complies with all applicable terms and laws.
+
+This software is provided "as is," without warranty of any kind, express or implied. Use at your own risk.
