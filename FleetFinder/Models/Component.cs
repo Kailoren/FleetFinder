@@ -25,14 +25,6 @@ public sealed class Component
     [JsonPropertyName("subCategory")]
     public string SubCategory { get; set; } = "";
 
-    /// <summary>Inara component group id.</summary>
-    [JsonPropertyName("inaraTypeId")]
-    public int InaraTypeId { get; set; }
-
-    /// <summary>Inara component item id.</summary>
-    [JsonPropertyName("inaraItemId")]
-    public int InaraItemId { get; set; }
-
     /// <summary>Quantity needed to max every blueprint that uses this component.</summary>
     [JsonPropertyName("targetQty")]
     public int TargetQty { get; set; }
