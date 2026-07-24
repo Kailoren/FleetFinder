@@ -4,6 +4,15 @@ namespace FleetView.Relay.Api;
 
 public static class ListingsEndpoint
 {
+    // The real catalog is 90 components, so a legitimate client never sends more than that in one
+    // request. Cap well above real usage but far below anything that could bloat the SQL IN-clause
+    // or the query itself into a meaningful resource-abuse vector.
+    private const int MaxKeys = 200;
+
+    // Normalized keys are lower-case alphanumeric derived from short material names - real ones are
+    // well under this. Anything longer isn't a real key and is dropped before it reaches SQL.
+    private const int MaxKeyLength = 64;
+
     /// <summary>
     /// GET /listings?keys=chemicalcatalyst,compressionliquefiedgas&amp;direction=selling|buying
     /// keys are normalized component keys (FleetFinder's Component.Key, already lower-case
@@ -15,7 +24,10 @@ public static class ListingsEndpoint
     {
         app.MapGet("/listings", (string keys, string? direction, RelayDb db) =>
         {
-            var keyList = keys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var keyList = keys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(k => k.Length <= MaxKeyLength)
+                .Take(MaxKeys)
+                .ToArray();
             if (keyList.Length == 0) return Results.Ok(Array.Empty<ListingRow>());
 
             string dir = string.Equals(direction, "buying", StringComparison.OrdinalIgnoreCase)

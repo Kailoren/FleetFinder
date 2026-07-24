@@ -24,6 +24,14 @@ public sealed class EddnListener : BackgroundService
     // itself the signal that the connection is dead and needs to be torn down and recreated.
     private static readonly TimeSpan StaleThreshold = TimeSpan.FromSeconds(60);
 
+    // Real EDDN messages are small JSON documents - even a large commodity-v3 dump is a handful of
+    // KB. These caps guard against a maliciously crafted, highly-compressed message (a "zip bomb")
+    // published to the public firehose from exhausting memory on this shared process: the raw frame
+    // is rejected outright if implausibly large, and the decompressed copy is hard-stopped if it
+    // ever exceeds a generous multiple of any real payload.
+    private const int MaxRawFrameBytes = 1024 * 1024; // 1 MB compressed
+    private const int MaxDecompressedBytes = 4 * 1024 * 1024; // 4 MB decompressed
+
     private readonly RelayDb _db;
     private readonly ComponentCatalog _catalog;
     private readonly ILogger<EddnListener> _log;
@@ -94,10 +102,16 @@ public sealed class EddnListener : BackgroundService
 
     private void HandleRawMessage(byte[] raw)
     {
+        if (raw.Length > MaxRawFrameBytes)
+        {
+            _log.LogWarning("Skipping oversized EDDN frame ({Bytes} bytes)", raw.Length);
+            return;
+        }
+
         using var compressed = new MemoryStream(raw);
         using var zlib = new ZLibStream(compressed, CompressionMode.Decompress);
         using var decompressed = new MemoryStream();
-        zlib.CopyTo(decompressed);
+        CopyWithLimit(zlib, decompressed, MaxDecompressedBytes);
 
         using var doc = JsonDocument.Parse(decompressed.GetBuffer().AsMemory(0, (int)decompressed.Length));
         var root = doc.RootElement;
@@ -124,6 +138,23 @@ public sealed class EddnListener : BackgroundService
         else if (schemaRef.Contains("dockingdenied", StringComparison.OrdinalIgnoreCase))
         {
             DockingDeniedHandler.Handle(message, _db);
+        }
+    }
+
+    /// <summary>Copies src into dest, throwing once the total exceeds maxBytes - guards against a
+    /// decompression bomb (a small compressed frame expanding into an enormous stream) rather than
+    /// letting <c>Stream.CopyTo</c> allocate without bound.</summary>
+    private static void CopyWithLimit(Stream src, Stream dest, int maxBytes)
+    {
+        var buffer = new byte[81920];
+        long total = 0;
+        int read;
+        while ((read = src.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            total += read;
+            if (total > maxBytes)
+                throw new InvalidDataException($"Decompressed EDDN message exceeded {maxBytes} bytes");
+            dest.Write(buffer, 0, read);
         }
     }
 }

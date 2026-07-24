@@ -34,10 +34,14 @@ public partial class App : Application
             bool mock = Environment.GetEnvironmentVariable("FLEETVIEW_MOCK") == "1";
             // Always our own hosted relay - no Inara scraping path exists in this app anymore.
             // FLEETVIEW_RELAY_URL can still point at a different (e.g. local test) relay instance.
+            // HTTPS via a Caddy reverse proxy in front of the relay (sslip.io hostname resolves
+            // straight to the server's own IP, so Let's Encrypt can issue a real cert for it without
+            // owning a registered domain) - the old plain-HTTP :5085 listener stays up alongside it
+            // so already-installed builds pointing at the bare IP keep working unaffected.
             ICarrierMarketSource market = mock
                 ? new MockMarketSource()
                 : new RelayMarketSource(
-                    Environment.GetEnvironmentVariable("FLEETVIEW_RELAY_URL") ?? "http://77.42.73.218:5085");
+                    Environment.GetEnvironmentVariable("FLEETVIEW_RELAY_URL") ?? "https://77-42-73-218.sslip.io");
             // Distances need EDSM; skip it in mock/offline mode so tests don't hit the network.
             ICoordinateSource? coords = mock ? null : new EdsmCoordinateSource();
 
