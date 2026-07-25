@@ -470,7 +470,13 @@
                                 Command="{Binding SearchCommand}" FontSize="14" Padding="12,9"/>
                     </StackPanel>
 
-                    <DataGrid ItemsSource="{Binding ComponentsView}">
+                    <!-- IsReadOnly="False" overrides the app-wide DataGrid style's IsReadOnly="True" -
+                         needed so the Needed column below can be edited, since DataGridColumn.IsReadOnly
+                         can only make a column MORE restrictive than the grid, never less (a column-level
+                         IsReadOnly="False" cannot re-enable editing on a grid that's itself read-only).
+                         Component/Amount below get explicit IsReadOnly="True" to stay locked now that the
+                         grid default no longer covers them. -->
+                    <DataGrid ItemsSource="{Binding ComponentsView}" IsReadOnly="False">
                         <DataGrid.GroupStyle>
                             <!-- Top level: Goods / Assets / Data. -->
                             <GroupStyle>
@@ -527,7 +533,7 @@
                                  right to resize against (Amount is fixed-width), without it, the
                                  column border shows a resize cursor that doesn't do anything. -->
                             <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*"
-                                                CanUserResize="False"/>
+                                                CanUserResize="False" IsReadOnly="True"/>
                             <!-- Every column after Component (the Width="*" one) needs this same
                                  scrollbar-offset compensation, not just whichever happens to be
                                  last: Component's calculated width differs slightly between the
@@ -537,7 +543,7 @@
                                  the body relative to the header. See the DataGrid scrollbar
                                  gotcha noted elsewhere in this project. -->
                             <DataGridTextColumn Header="Amount" Binding="{Binding Have}"
-                                                Width="Auto" CanUserResize="False"
+                                                Width="Auto" CanUserResize="False" IsReadOnly="True"
                                                 HeaderStyle="{StaticResource CenterHeader}">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource CenterText}">
