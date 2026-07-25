@@ -551,15 +551,32 @@
                                  obvious what's still outstanding; once inventory catches up
                                  (ShipLocker.json refresh sees Have >= Target) the row's own
                                  IsSelected is cleared automatically in MainViewModel, so a repeat
-                                 search only looks for what's still actually needed. -->
-                            <DataGridTextColumn Header="Needed" Binding="{Binding StillNeeded}"
-                                                Width="Auto" CanUserResize="False"
+                                 search only looks for what's still actually needed. Also directly
+                                 editable (click, then click/double-click/F2 again to type a custom
+                                 amount, same as any DataGrid cell - deliberately not a +/- stepper)
+                                 for one-off overrides; ComponentRow.StillNeeded's setter back-solves
+                                 Target so it stays correct as Have changes, and the next Import or
+                                 Modifications Apply naturally overwrites it again. -->
+                            <DataGridTextColumn Header="Needed"
+                                                Binding="{Binding StillNeeded, Mode=TwoWay}"
+                                                Width="Auto" CanUserResize="False" IsReadOnly="False"
                                                 HeaderStyle="{StaticResource CenterHeader}">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock" BasedOn="{StaticResource CenterText}">
                                         <Setter Property="Margin" Value="0,0,20,0"/>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
+                                <DataGridTextColumn.EditingElementStyle>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="Background" Value="#0A0705"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                        <Setter Property="FontWeight" Value="Bold"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Setter Property="TextAlignment" Value="Center"/>
+                                        <Setter Property="Margin" Value="0,0,20,0"/>
+                                    </Style>
+                                </DataGridTextColumn.EditingElementStyle>
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                         <Style.Triggers>

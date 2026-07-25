@@ -69,8 +69,21 @@ public sealed class ComponentRow : ObservableObject
         }
     }
 
-    /// <summary>How many more are needed to hit the target (never negative).</summary>
-    public int StillNeeded => Math.Max(0, Target - Have);
+    /// <summary>How many more are needed to hit the target (never negative). Settable so the grid
+    /// cell can be hand-edited: typing a custom amount back-solves <see cref="Target"/> as
+    /// Have + value (clamped at 0), which stays correct as Have changes later and gets naturally
+    /// overwritten the next time Target is set fresh by Import or Modifications "Apply selected" -
+    /// same tick-sync rule those two use (<c>IsSelected = IsShort</c>), so a manual edit ticks or
+    /// unticks this row for the next search exactly like they do.</summary>
+    public int StillNeeded
+    {
+        get => Math.Max(0, Target - Have);
+        set
+        {
+            Target = Have + Math.Max(0, value);
+            IsSelected = IsShort;
+        }
+    }
 
     /// <summary>True when the player still needs some of this component.</summary>
     public bool IsShort => StillNeeded > 0;
