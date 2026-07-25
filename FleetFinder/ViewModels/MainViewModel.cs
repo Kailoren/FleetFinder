@@ -211,6 +211,20 @@ public sealed class MainViewModel : ObservableObject
             ? $"Inventory: ShipLocker.json  (updated {FormatLocal(_locker.LastWriteUtc)})"
             : "Inventory: ShipLocker.json not found, is Elite Dangerous installed for this user?";
 
+        RefreshComponentsView();
+    }
+
+    /// <summary>Refreshes ComponentsView, unless a picker cell (e.g. a manual Needed-cell edit,
+    /// see ComponentRow.StillNeeded's setter) is currently mid-edit - ICollectionView.Refresh()
+    /// throws InvalidOperationException ("'Refresh' is not allowed during an AddNew or EditItem
+    /// transaction") in that state. Real repro: double-click Needed to edit it, then switch away
+    /// from the app entirely (e.g. alt-tab) without committing/cancelling - the edit is left open,
+    /// and the next automatic inventory refresh (1s poll timer or ShipLocker.json file watcher,
+    /// both of which keep running in the background regardless of window focus) crashes.</summary>
+    private void RefreshComponentsView()
+    {
+        if (ComponentsView is IEditableCollectionView { IsEditingItem: true } or IEditableCollectionView { IsAddingNew: true })
+            return;
         ComponentsView.Refresh();
     }
 
@@ -567,7 +581,7 @@ public sealed class MainViewModel : ObservableObject
         int selected = Modifications.Count(m => m.IsSelected);
         int ticked = Components.Count(c => c.IsSelected);
         TargetsActive = selected > 0;
-        ComponentsView.Refresh();
+        RefreshComponentsView();
         Status = selected == 0
             ? "Targets cleared (no modifications selected)."
             : $"Applied {selected} modification(s), {ticked} component(s) selected. Go to Find Carriers → Search.";
@@ -670,7 +684,7 @@ public sealed class MainViewModel : ObservableObject
 
         int ticked = Components.Count(c => c.IsSelected);
         TargetsActive = true;
-        ComponentsView.Refresh();
+        RefreshComponentsView();
         Status = matched == entries.Count
             ? $"Imported {entries.Count} item(s), {ticked} component(s) selected. Go to Find Carriers → Search."
             : $"Imported {entries.Count} item(s), {entries.Count - matched} unmatched, "
@@ -823,7 +837,7 @@ public sealed class MainViewModel : ObservableObject
                 row.SellSelected = true;
             }
         }
-        ComponentsView.Refresh();
+        RefreshComponentsView();
         int buyTicked = Components.Count(c => c.IsSelected);
         int sellTicked = Components.Count(c => c.SellSelected);
         Status = sellTicked > 0
