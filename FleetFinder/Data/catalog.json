@@ -1,5 +1,12 @@
 [
     {
+        "key":  "biologicalsample",
+        "name":  "Biological Sample",
+        "category":  "Goods",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "compressionliquefiedgas",
         "name":  "Compression-Liquefied Gas",
         "category":  "Goods",
@@ -484,6 +491,13 @@
         "targetQty":  5
     },
     {
+        "key":  "cocktailrecipes",
+        "name":  "Cocktail Recipes",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "combattrainingmaterial",
         "name":  "Combat Training Material",
         "category":  "Data",
@@ -498,11 +512,25 @@
         "targetQty":  10
     },
     {
+        "key":  "culinaryrecipes",
+        "name":  "Culinary Recipes",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "digitaldesigns",
         "name":  "Digital Designs",
         "category":  "Data",
         "subCategory":  "",
         "targetQty":  10
+    },
+    {
+        "key":  "employeegeneticdata",
+        "name":  "Employee Genetic Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
     },
     {
         "key":  "evacuationprotocols",
@@ -514,6 +542,20 @@
     {
         "key":  "extractionyielddata",
         "name":  "Extraction Yield Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
+        "key":  "factionassociates",
+        "name":  "Faction Associates",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
+        "key":  "financialprojections",
+        "name":  "Financial Projections",
         "category":  "Data",
         "subCategory":  "",
         "targetQty":  0

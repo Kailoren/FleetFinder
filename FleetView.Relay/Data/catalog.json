@@ -1,5 +1,12 @@
 [
     {
+        "key":  "biologicalsample",
+        "name":  "Biological Sample",
+        "category":  "Goods",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "compressionliquefiedgas",
         "name":  "Compression-Liquefied Gas",
         "category":  "Goods",
@@ -82,7 +89,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "chemicalcatalyst",
@@ -90,7 +99,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  15,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "chemicalsuperbase",
@@ -98,7 +109,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "epinephrine",
@@ -106,7 +119,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "epoxyadhesive",
@@ -114,7 +129,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  25,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "graphene",
@@ -122,7 +139,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  0,
-        "barterValue":  23
+        "barterValue":  23,
+        "barterSellValue":  13,
+        "creditValue":  1300
     },
     {
         "key":  "oxygenicbacteria",
@@ -130,7 +149,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "phneutraliser",
@@ -138,7 +159,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  30,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "rdx",
@@ -146,7 +169,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  0,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "viscoelasticpolymer",
@@ -154,7 +179,9 @@
         "category":  "Assets",
         "subCategory":  "Chemicals",
         "targetQty":  15,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "circuitboard",
@@ -162,7 +189,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  5,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "circuitswitch",
@@ -170,7 +199,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  10,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "electricalfuse",
@@ -178,7 +209,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  5,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "electricalwiring",
@@ -186,7 +219,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  40,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "electromagnet",
@@ -194,7 +229,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "ionbattery",
@@ -202,7 +239,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  10,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "metalcoil",
@@ -210,7 +249,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "microsupercapacitor",
@@ -218,7 +259,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  10,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "microtransformer",
@@ -226,7 +269,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  25,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "microelectrode",
@@ -234,7 +279,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  0,
-        "barterValue":  16
+        "barterValue":  16,
+        "barterSellValue":  9,
+        "creditValue":  900
     },
     {
         "key":  "motor",
@@ -242,7 +289,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  10,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "opticalfibre",
@@ -250,7 +299,9 @@
         "category":  "Assets",
         "subCategory":  "Circuits",
         "targetQty":  0,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "carbonfibreplating",
@@ -258,7 +309,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "encryptedmemorychip",
@@ -266,7 +319,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  0,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "memorychip",
@@ -274,7 +329,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  4
+        "barterValue":  4,
+        "barterSellValue":  2,
+        "creditValue":  200
     },
     {
         "key":  "microhydraulics",
@@ -282,7 +339,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  7
+        "barterValue":  7,
+        "barterSellValue":  4,
+        "creditValue":  400
     },
     {
         "key":  "microthrusters",
@@ -290,7 +349,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  20,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "opticallens",
@@ -298,7 +359,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  0,
-        "barterValue":  9
+        "barterValue":  9,
+        "barterSellValue":  5,
+        "creditValue":  500
     },
     {
         "key":  "scrambler",
@@ -306,7 +369,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  0,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "titaniumplating",
@@ -314,7 +379,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "transmitter",
@@ -322,7 +389,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  5
+        "barterValue":  5,
+        "barterSellValue":  3,
+        "creditValue":  300
     },
     {
         "key":  "tungstencarbide",
@@ -330,7 +399,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  0,
-        "barterValue":  11
+        "barterValue":  11,
+        "barterSellValue":  6,
+        "creditValue":  600
     },
     {
         "key":  "weaponcomponent",
@@ -338,7 +409,9 @@
         "category":  "Assets",
         "subCategory":  "Tech",
         "targetQty":  5,
-        "barterValue":  18
+        "barterValue":  18,
+        "barterSellValue":  10,
+        "creditValue":  100
     },
     {
         "key":  "airqualityreports",
@@ -418,6 +491,13 @@
         "targetQty":  5
     },
     {
+        "key":  "cocktailrecipes",
+        "name":  "Cocktail Recipes",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "combattrainingmaterial",
         "name":  "Combat Training Material",
         "category":  "Data",
@@ -432,11 +512,25 @@
         "targetQty":  10
     },
     {
+        "key":  "culinaryrecipes",
+        "name":  "Culinary Recipes",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
         "key":  "digitaldesigns",
         "name":  "Digital Designs",
         "category":  "Data",
         "subCategory":  "",
         "targetQty":  10
+    },
+    {
+        "key":  "employeegeneticdata",
+        "name":  "Employee Genetic Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
     },
     {
         "key":  "evacuationprotocols",
@@ -448,6 +542,20 @@
     {
         "key":  "extractionyielddata",
         "name":  "Extraction Yield Data",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
+        "key":  "factionassociates",
+        "name":  "Faction Associates",
+        "category":  "Data",
+        "subCategory":  "",
+        "targetQty":  0
+    },
+    {
+        "key":  "financialprojections",
+        "name":  "Financial Projections",
         "category":  "Data",
         "subCategory":  "",
         "targetQty":  0
