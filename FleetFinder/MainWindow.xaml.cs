@@ -18,12 +18,19 @@ public partial class MainWindow : Window
         UpdateMaximizeRestoreGlyph();
 
         RestoreWindowBounds();
+        DataContextChanged += (_, e) =>
+        {
+            if (e.NewValue is MainViewModel vm)
+                vm.ScrollToRowRequested += OnScrollToRowRequested;
+        };
         Closing += (_, _) =>
         {
             SaveWindowBounds();
             (DataContext as MainViewModel)?.SavePendingSearch();
         };
     }
+
+    private void OnScrollToRowRequested(ComponentRow row) => ComponentGrid.ScrollIntoView(row);
 
     /// <summary>
     /// Applies the last-saved position/size (if any and still on-screen) and each tab's

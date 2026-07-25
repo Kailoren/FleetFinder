@@ -465,6 +465,16 @@
                                 Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
                     </StackPanel>
 
+                    <!-- Jump-to-match search box: typing scrolls the list to and highlights the
+                         first matching component, it does not filter the list - mirrors EDCF's
+                         own search box exactly (same property/event names, same behavior). -->
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <TextBlock Text="Search" Foreground="{StaticResource Muted}" FontSize="11" Margin="2,0,0,2"/>
+                        <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="#0A0705" Foreground="#EAE4DA" BorderBrush="#5A3A15"
+                                 BorderThickness="1" Padding="8,6"/>
+                    </StackPanel>
+
                     <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
                         <Button Content="{Binding SearchButtonLabel}"
                                 Command="{Binding SearchCommand}" FontSize="14" Padding="12,9"/>
@@ -476,7 +486,24 @@
                          IsReadOnly="False" cannot re-enable editing on a grid that's itself read-only).
                          Component/Amount below get explicit IsReadOnly="True" to stay locked now that the
                          grid default no longer covers them. -->
-                    <DataGrid ItemsSource="{Binding ComponentsView}" IsReadOnly="False">
+                    <DataGrid x:Name="ComponentGrid" ItemsSource="{Binding ComponentsView}" IsReadOnly="False">
+                        <!-- Briefly outlines whichever row the search box just jumped to (see
+                             ComponentRow.IsHighlighted) - same convention as the results grids'
+                             click-to-select outline, reused here for a different trigger (search
+                             match, not click). Deliberately no BasedOn - see the DataGridCell
+                             gotcha noted elsewhere in this project about BasedOn pulling in the
+                             framework's own light-theme default when no app-level implicit style
+                             actually exists to inherit from. -->
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderThickness" Value="2"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
                         <DataGrid.GroupStyle>
                             <!-- Top level: Goods / Assets / Data. -->
                             <GroupStyle>

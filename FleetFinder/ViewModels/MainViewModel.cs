@@ -289,6 +289,45 @@ public sealed class MainViewModel : ObservableObject
         }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
+    // ---- Search box (jump-to-match, not a filter) ------------------------------------------
+
+    /// <summary>Raised when the search box's jump-to-match should scroll the picker grid to a
+    /// row - handled in MainWindow.xaml.cs since ICollectionView-grouped DataGrid scrolling
+    /// needs the actual grid element, not just a bound property.</summary>
+    public event Action<ComponentRow>? ScrollToRowRequested;
+
+    private string _searchText = "";
+    /// <summary>Typing here scrolls the picker to and highlights the first matching component -
+    /// it does not filter the list, mirroring EDCF's own search box.</summary>
+    public string SearchText
+    {
+        get => _searchText;
+        set
+        {
+            if (SetProperty(ref _searchText, value))
+                JumpToMatch(value);
+        }
+    }
+
+    private ComponentRow? _highlightedRow;
+
+    private void JumpToMatch(string query)
+    {
+        if (_highlightedRow != null)
+        {
+            _highlightedRow.IsHighlighted = false;
+            _highlightedRow = null;
+        }
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        var match = Components.FirstOrDefault(c => c.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+        if (match == null) return;
+
+        match.IsHighlighted = true;
+        _highlightedRow = match;
+        ScrollToRowRequested?.Invoke(match);
+    }
+
     // ---- Search ---------------------------------------------------------------------------
 
     /// <summary>How many components are currently ticked for the "where to buy" search.</summary>

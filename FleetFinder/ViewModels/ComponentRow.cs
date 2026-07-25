@@ -87,4 +87,13 @@ public sealed class ComponentRow : ObservableObject
 
     /// <summary>True when the player still needs some of this component.</summary>
     public bool IsShort => StillNeeded > 0;
+
+    private bool _isHighlighted;
+    /// <summary>True while this row is the search box's current jump-to-match target - briefly
+    /// outlines the row so it's easy to spot in a long grouped list.</summary>
+    public bool IsHighlighted
+    {
+        get => _isHighlighted;
+        set => SetProperty(ref _isHighlighted, value);
+    }
 }
