@@ -7,9 +7,15 @@ namespace FleetView.Relay;
 /// </summary>
 public static class ComponentKey
 {
+    // Real component names are a few dozen characters at most. Anything past this isn't real EDDN
+    // data - treated as empty rather than stack-allocated, since stackalloc sized directly to an
+    // attacker-controlled string length is a remotely triggerable stack overflow (uncatchable in
+    // .NET, kills the whole process) once a hostile publisher sends an oversized Name field.
+    private const int MaxNameLength = 256;
+
     public static string Normalize(string? s)
     {
-        if (string.IsNullOrEmpty(s)) return "";
+        if (string.IsNullOrEmpty(s) || s.Length > MaxNameLength) return "";
         Span<char> buf = stackalloc char[s.Length];
         int n = 0;
         foreach (var ch in s)

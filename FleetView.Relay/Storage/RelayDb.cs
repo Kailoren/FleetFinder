@@ -65,10 +65,20 @@ public sealed class RelayDb
         return conn;
     }
 
+    // EDDN content is untrusted and carries no length limit of its own beyond the whole-message
+    // cap in EddnListener. Real values here (callsigns, system names, carrier/component names) are
+    // always short - clamping at write time keeps a hostile or malformed message from bloating the
+    // database or being echoed back to every FleetFinder client unbounded.
+    private static string? Clamp(string? s, int maxLen) =>
+        string.IsNullOrEmpty(s) || s.Length <= maxLen ? s : s[..maxLen];
+
     /// <summary>Upserts carrier identity/location fields learned from a commodity-v3 message.</summary>
     public void UpsertCarrierFromCommodity(
         long marketId, string callsign, string starSystem, string dockingAccess, DateTime lastSeenUtc)
     {
+        callsign = Clamp(callsign, 16) ?? "";
+        starSystem = Clamp(starSystem, 128) ?? "";
+
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -98,6 +108,9 @@ public sealed class RelayDb
     /// </summary>
     public void UpsertCarrierLocation(long marketId, string callsign, string starSystem, DateTime lastSeenUtc)
     {
+        callsign = Clamp(callsign, 16) ?? "";
+        starSystem = Clamp(starSystem, 128) ?? "";
+
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -144,6 +157,8 @@ public sealed class RelayDb
     /// <summary>Upserts the carrier's owner-chosen display name, learned from an FCMaterials message.</summary>
     public void UpsertCarrierName(long marketId, string? carrierName, DateTime lastSeenUtc)
     {
+        carrierName = Clamp(carrierName, 128);
+
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
@@ -174,6 +189,8 @@ public sealed class RelayDb
         long marketId, string componentKey, string componentName, string direction,
         int amount, long price, DateTime updatedUtc)
     {
+        componentName = Clamp(componentName, 128) ?? "";
+
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         if (amount > 0)

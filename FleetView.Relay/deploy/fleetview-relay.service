@@ -1,0 +1,37 @@
+# Deployed to /etc/systemd/system/fleetview-relay.service on the live server.
+# Runs as a dedicated unprivileged user, not root - this process parses fully untrusted public
+# EDDN data and serves a public HTTP API, so it should never hold more privilege than it needs.
+#
+# Setup (one-time), as root:
+#   useradd --system --no-create-home --shell /usr/sbin/nologin fleetview
+#   mkdir -p /opt/fleetview-relay
+#   chown -R fleetview:fleetview /opt/fleetview-relay
+#   chmod 750 /opt/fleetview-relay
+#   cp this file to /etc/systemd/system/fleetview-relay.service
+#   systemctl daemon-reload && systemctl enable --now fleetview-relay
+
+[Unit]
+Description=FleetView Relay - EDDN listener and database
+After=network.target
+
+[Service]
+Type=simple
+User=fleetview
+Group=fleetview
+WorkingDirectory=/opt/fleetview-relay
+ExecStart=/opt/fleetview-relay/FleetView.Relay
+Environment=RelayUrl=http://127.0.0.1:5085
+Environment=RelayDbPath=/opt/fleetview-relay/relay.db
+Restart=on-failure
+RestartSec=5
+
+# Sandboxing - the process only ever needs to read its own binary/Data folder and read-write its
+# own SQLite database, nothing else on the filesystem.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/opt/fleetview-relay
+
+[Install]
+WantedBy=multi-user.target

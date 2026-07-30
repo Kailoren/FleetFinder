@@ -9,9 +9,21 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <!-- No debug symbols in the production artifact - this deploys straight to an internet-facing
+       server, so there's no reason to ship a .pdb there. -->
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="NetMQ" Version="4.0.4.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
+    <!-- Microsoft.Data.Sqlite 10.0.10 still transitively pins SQLitePCLRaw.lib.e_sqlite3 2.1.11,
+         which bundles a SQLite build affected by CVE-2025-6965 (GHSA-2m69-gcr7-jv3q, memory
+         corruption when aggregate terms exceed available columns, fixed upstream in SQLite
+         3.50.2). Pinned directly here to the current build until Microsoft.Data.Sqlite's own
+         transitive reference catches up. -->
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
 
   <ItemGroup>

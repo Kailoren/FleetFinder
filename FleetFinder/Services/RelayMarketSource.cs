@@ -11,6 +11,10 @@ namespace FleetView.Services;
 /// </summary>
 public sealed class RelayMarketSource : ICarrierMarketSource
 {
+    // Generously above any real catalog-wide response - guards against a compromised or
+    // man-in-the-middled relay response driving an unbounded deserialization.
+    private const long MaxResponseBytes = 8 * 1024 * 1024;
+
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private static readonly HttpClient Http = CreateClient();
 
@@ -38,7 +42,13 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         string dir = direction == MarketDirection.Selling ? "selling" : "buying";
         string url = $"{_baseUrl}/listings?keys={keys}&direction={dir}";
 
-        await using var stream = await Http.GetStreamAsync(url, ct).ConfigureAwait(false);
+        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
+            .ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+        if (response.Content.Headers.ContentLength is long len && len > MaxResponseBytes)
+            throw new InvalidOperationException("Relay response exceeded the expected size limit.");
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         var dtos = await JsonSerializer.DeserializeAsync<List<ListingDto>>(stream, JsonOptions, ct)
             .ConfigureAwait(false);
         if (dtos is null) return Array.Empty<CarrierListing>();

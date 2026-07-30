@@ -24,16 +24,18 @@ public static class ListingsEndpoint
     {
         app.MapGet("/listings", (string keys, string? direction, RelayDb db) =>
         {
+            string dir;
+            if (string.Equals(direction, "selling", StringComparison.OrdinalIgnoreCase)) dir = "Selling";
+            else if (string.Equals(direction, "buying", StringComparison.OrdinalIgnoreCase)) dir = "Buying";
+            else return Results.BadRequest("direction must be 'selling' or 'buying'");
+
             var keyList = keys.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Where(k => k.Length <= MaxKeyLength)
                 .Take(MaxKeys)
                 .ToArray();
             if (keyList.Length == 0) return Results.Ok(Array.Empty<ListingRow>());
 
-            string dir = string.Equals(direction, "buying", StringComparison.OrdinalIgnoreCase)
-                ? "Buying" : "Selling";
-
             return Results.Ok(db.QueryListings(keyList, dir));
-        });
+        }).RequireRateLimiting("listings");
     }
 }

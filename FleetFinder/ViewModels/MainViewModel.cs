@@ -733,6 +733,17 @@ public sealed class MainViewModel : ObservableObject
     private void OpenUpdate()
     {
         if (_updateUrl == null) return;
+
+        // Defense in depth: _updateUrl is GitHub's own computed html_url from the releases API, so
+        // this should always be true, but don't shell-open a network-sourced value without checking
+        // it actually points at GitHub first.
+        if (!Uri.TryCreate(_updateUrl, UriKind.Absolute, out var uri)
+            || uri.Scheme != Uri.UriSchemeHttps
+            || !uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         try
         {
             System.Diagnostics.Process.Start(
