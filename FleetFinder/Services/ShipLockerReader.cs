@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -69,14 +70,31 @@ public sealed class ShipLockerReader
     }
 
     /// <summary>Lower-cases and strips non-alphanumerics so display and internal names match.</summary>
+    /// <remarks>
+    /// The stack buffer is capped and falls back to a pooled array. The names reaching here are
+    /// not this app's to trust: as well as ShipLocker.json, <see cref="EdsmCoordinateSource"/>
+    /// passes system names straight out of edsm.net's HTTP response. Sizing a stackalloc from
+    /// one of those made a long enough name a stack overflow, which unlike a failed heap
+    /// allocation cannot be caught and takes the process down with it - and the caller's
+    /// catch-all would have looked like it covered that, while catching nothing.
+    /// </remarks>
     public static string Normalize(string? s)
     {
         if (string.IsNullOrEmpty(s)) return "";
-        Span<char> buf = stackalloc char[s.Length];
-        int n = 0;
-        foreach (var ch in s)
-            if (char.IsLetterOrDigit(ch)) buf[n++] = char.ToLowerInvariant(ch);
-        return new string(buf[..n]);
+
+        char[]? rented = s.Length <= 256 ? null : ArrayPool<char>.Shared.Rent(s.Length);
+        try
+        {
+            Span<char> buf = s.Length <= 256 ? stackalloc char[s.Length] : rented;
+            int n = 0;
+            foreach (var ch in s)
+                if (char.IsLetterOrDigit(ch)) buf[n++] = char.ToLowerInvariant(ch);
+            return new string(buf[..n]);
+        }
+        finally
+        {
+            if (rented != null) ArrayPool<char>.Shared.Return(rented);
+        }
     }
 
     /// <summary>

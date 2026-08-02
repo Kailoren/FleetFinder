@@ -1,4 +1,4 @@
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Text.Json;
 using FleetView.Models;
 
@@ -14,6 +14,10 @@ public sealed class RelayMarketSource : ICarrierMarketSource
     // Generously above any real catalog-wide response - guards against a compromised or
     // man-in-the-middled relay response driving an unbounded deserialization.
     private const long MaxResponseBytes = 8 * 1024 * 1024;
+
+    // Enforced while reading rather than from Content-Length. The header is absent on a chunked
+    // response and is the sender's claim about itself in any case, so the check this replaced
+    // could be skipped entirely by answering without it.
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private static readonly HttpClient Http = CreateClient();
@@ -45,11 +49,9 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        if (response.Content.Headers.ContentLength is long len && len > MaxResponseBytes)
-            throw new InvalidOperationException("Relay response exceeded the expected size limit.");
-
         await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-        var dtos = await JsonSerializer.DeserializeAsync<List<ListingDto>>(stream, JsonOptions, ct)
+        await using var bounded = BoundedHttp.Limit(stream, MaxResponseBytes);
+        var dtos = await JsonSerializer.DeserializeAsync<List<ListingDto>>(bounded, JsonOptions, ct)
             .ConfigureAwait(false);
         if (dtos is null) return Array.Empty<CarrierListing>();
 

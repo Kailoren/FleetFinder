@@ -14,6 +14,12 @@ namespace FleetView.Services;
 public sealed class EdsmCoordinateSource : ICoordinateSource
 {
     private const int ChunkSize = 40;
+
+    // Forty systems with coordinates is a few kilobytes. This is far above any real answer and
+    // exists so a hostile or broken edsm.net cannot hand us an unbounded body: the names in it
+    // are passed to ShipLockerReader.Normalize, which sizes a buffer from their length.
+    private const long MaxResponseBytes = 4 * 1024 * 1024;
+
     private static readonly HttpClient Http = CreateClient();
 
     private readonly string _cachePath;
@@ -81,7 +87,9 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
 
         try
         {
-            var json = await Http.GetStringAsync(url, ct).ConfigureAwait(false);
+            var json = await BoundedHttp
+                .GetStringAsync(Http, url, MaxResponseBytes, ct)
+                .ConfigureAwait(false);
             using var doc = JsonDocument.Parse(json);
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return;
 
