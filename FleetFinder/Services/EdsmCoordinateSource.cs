@@ -172,13 +172,30 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         }
     }
 
+    /// <summary>
+    /// Reads one coordinate, requiring it to be a number this app can actually compute with.
+    /// </summary>
+    /// <remarks>
+    /// Being a JSON number is not enough. <c>TryGetDouble</c> returns true for an exponent past
+    /// double's range and hands back an infinity - verified, <c>1e400</c> parses to +∞ - and a
+    /// single infinite coordinate turns every distance into NaN, which then sorts arbitrarily and
+    /// renders as blank. The galaxy is about 100,000 ly across, so the bound below is far outside
+    /// anything real while still excluding a number that is finite but meaningless.
+    /// </remarks>
     private static bool TryDouble(JsonElement parent, string name, out double value)
     {
         value = 0;
         return parent.TryGetProperty(name, out var el)
                && el.ValueKind == JsonValueKind.Number
-               && el.TryGetDouble(out value);
+               && el.TryGetDouble(out value)
+               && IsPlausibleCoordinate(value);
     }
+
+    /// <summary>Finite, and inside a box generously larger than the galaxy.</summary>
+    internal static bool IsPlausibleCoordinate(double v) =>
+        double.IsFinite(v) && Math.Abs(v) <= MaxCoordinate;
+
+    private const double MaxCoordinate = 1_000_000;
 
     private void LoadCache()
     {

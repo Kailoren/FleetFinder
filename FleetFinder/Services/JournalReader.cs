@@ -204,12 +204,18 @@ public sealed partial class JournalReader
             // refuse an oversized one - it could only measure it once it already existed.
             if (sp.GetArrayLength() != 3) return null;
 
+            // Type-checked and range-checked. TryGetDouble returns true for an exponent past
+            // double's range and yields an infinity (1e400 parses to +∞), and one infinite
+            // coordinate makes every computed distance NaN - which sorts arbitrarily and displays
+            // as blank, so the failure would show up as "distances are broken" rather than as a
+            // bad journal line.
             var c = new double[3];
             int i = 0;
             foreach (var el in sp.EnumerateArray())
             {
                 if (el.ValueKind != JsonValueKind.Number || !el.TryGetDouble(out double v))
                     return null;
+                if (!EdsmCoordinateSource.IsPlausibleCoordinate(v)) return null;
                 c[i++] = v;
             }
 

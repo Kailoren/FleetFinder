@@ -108,7 +108,12 @@ public static class UpdateChecker
 
         bool onGitHub = uri.Host.Equals(ReleasesHost, StringComparison.OrdinalIgnoreCase)
             || uri.Host.EndsWith("." + ReleasesHost, StringComparison.OrdinalIgnoreCase);
-        return onGitHub ? value : ReleasesPageUrl;
+
+        // The parsed Uri, not the string it was parsed from. Returning the original meant the
+        // value that got checked and the value that got used were two different things, and any
+        // disagreement between the parser and the consumer about where that string points would
+        // land on the side that was never checked.
+        return onGitHub ? uri.AbsoluteUri : ReleasesPageUrl;
     }
 
     /// <summary>

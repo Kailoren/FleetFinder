@@ -747,8 +747,10 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
+            // uri.AbsoluteUri, not _updateUrl: the check above was performed on the parsed Uri, so
+            // handing the raw string to the shell would launch a value nothing actually validated.
             System.Diagnostics.Process.Start(
-                new System.Diagnostics.ProcessStartInfo(_updateUrl) { UseShellExecute = true });
+                new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
         }
         catch { /* best effort, never let a failed browser launch throw into the UI */ }
     }

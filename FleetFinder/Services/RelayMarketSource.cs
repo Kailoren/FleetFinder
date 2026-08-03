@@ -97,7 +97,7 @@ public sealed class RelayMarketSource : ICarrierMarketSource
 
         string keys = string.Join(",", components.Select(c => Uri.EscapeDataString(c.Key)));
         string dir = direction == MarketDirection.Selling ? "selling" : "buying";
-        string url = $"{_baseUrl}/listings?keys={keys}&direction={dir}";
+        var requested = new Uri($"{_baseUrl}/listings?keys={keys}&direction={dir}", UriKind.Absolute);
 
         // The body read is bounded independently of the caller's token: HttpClient.Timeout stops
         // applying once the headers arrive under ResponseHeadersRead, and a byte limit can only
@@ -105,10 +105,12 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         using var timed = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timed.CancelAfter(BoundedHttp.DefaultDeadline);
 
-        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timed.Token)
+        using var response = await Http.GetAsync(requested, HttpCompletionOption.ResponseHeadersRead, timed.Token)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        BoundedHttp.RejectUnusable(response, MaxResponseBytes);
+        // The https-only base URL checked in the constructor only decides where the first request
+        // goes; a redirect would otherwise deliver the answer from anywhere.
+        BoundedHttp.RejectUnusable(response, requested, MaxResponseBytes);
 
         await using var stream = await response.Content.ReadAsStreamAsync(timed.Token).ConfigureAwait(false);
         await using var bounded = BoundedHttp.Limit(stream, MaxResponseBytes);

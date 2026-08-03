@@ -42,16 +42,18 @@ internal static class BoundedHttp
     public static async Task<string> GetStringAsync(
         HttpClient http, string url, long maxBytes, TimeSpan deadline, CancellationToken ct)
     {
+        var requested = new Uri(url, UriKind.Absolute);
+
         using var timed = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timed.CancelAfter(deadline);
         var token = timed.Token;
 
         using var response = await http
-            .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token)
+            .GetAsync(requested, HttpCompletionOption.ResponseHeadersRead, token)
             .ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
-        RejectUnusable(response, maxBytes);
+        RejectUnusable(response, requested, maxBytes);
 
         var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
@@ -73,8 +75,10 @@ internal static class BoundedHttp
     /// check is the same kind of thing: a courtesy the sender extends, worth acting on when it is
     /// there and proving nothing when it is not.
     /// </remarks>
-    public static void RejectUnusable(HttpResponseMessage response, long maxBytes)
+    public static void RejectUnusable(HttpResponseMessage response, Uri requested, long maxBytes)
     {
+        RejectRedirectedElsewhere(response, requested);
+
         if (response.Content.Headers.ContentLength is long declared && declared > maxBytes)
             throw new InvalidDataException(
                 $"Response declared {declared:N0} bytes, over the {maxBytes:N0} byte limit, and was not read.");
@@ -83,6 +87,43 @@ internal static class BoundedHttp
         if (mediaType != null && !IsTextual(mediaType))
             throw new InvalidDataException(
                 $"Response content type '{mediaType}' is not text this app reads.");
+    }
+
+    /// <summary>
+    /// Refuses an answer that came from a different host or scheme than the one asked for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Redirects are followed automatically - up to fifty hops - and every check in this app runs
+    /// against the final response, so without this the callers' own restrictions decide only where
+    /// the first request goes. RelayMarketSource refuses a base URL that is not https, and
+    /// UpdateChecker refuses a release URL that is not on github.com; a single 302 from either
+    /// endpoint would otherwise have this app read its answer from wherever it was sent, having
+    /// passed both.
+    /// </para>
+    /// <para>
+    /// Same-host redirects are allowed, so an endpoint that reorganises its own paths keeps
+    /// working. No credentials are sent on any of these requests, so what matters is which host
+    /// the answer is accepted <em>from</em>, and that is what the final URI records.
+    /// </para>
+    /// </remarks>
+    private static void RejectRedirectedElsewhere(HttpResponseMessage response, Uri requested)
+    {
+        // Set by HttpClient on every response and updated as redirects are followed. Refused
+        // rather than skipped when absent: this is the only evidence of where the answer came
+        // from, and "could not tell" is not a reason to accept it.
+        var final = response.RequestMessage?.RequestUri;
+        if (final is null)
+            throw new InvalidDataException(
+                $"Could not confirm the answer to {requested.Host} came from {requested.Host}.");
+
+        if (!string.Equals(final.Host, requested.Host, StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(final.Scheme, requested.Scheme, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException(
+                $"Request to {requested.Scheme}://{requested.Host} was redirected to " +
+                $"{final.Scheme}://{final.Host}, which this app does not accept an answer from.");
+        }
     }
 
     private static bool IsTextual(string mediaType) =>
