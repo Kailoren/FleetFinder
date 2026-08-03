@@ -43,7 +43,11 @@ public static class WindowStateStore
             // a negative height or 1e18 for Top deserialized cleanly and went straight to window
             // setup. MainWindow checks the rectangle against the virtual screen, which catches a
             // window placed off every monitor but not one that is valid and unusable.
-            if (!IsUsable(bounds)) return null;
+            if (!IsUsable(bounds))
+            {
+                DiagnosticLog.Note("Saved window bounds were out of range; using the defaults.");
+                return null;
+            }
 
             return bounds with
             {
@@ -78,8 +82,10 @@ public static class WindowStateStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Best effort - losing a window position is not worth interrupting a close over.
-            // Caught by type so an unexpected failure still surfaces.
+            // Still best effort - losing a window position is not worth interrupting a close over.
+            // It is recorded now, though: a read-only install location made every save fail and
+            // look identical to success, so the window silently never remembered anything.
+            DiagnosticLog.Note($"Window state could not be saved ({ex.GetType().Name}).");
         }
     }
 }

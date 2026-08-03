@@ -17,7 +17,8 @@ public partial class App : Application
 
         DispatcherUnhandledException += (_, args) =>
         {
-            ReportUnexpectedError(args.Exception);
+            DiagnosticLog.Crash(args.Exception);
+            ReportUnexpectedError();
             args.Handled = true;
         };
 
@@ -46,8 +47,11 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            // The message is shown because the reasons startup fails here are the ones the user
-            // can act on: "catalog.json entry 3 has no key", "Data\catalog.json not found".
+            DiagnosticLog.Crash(ex);
+            // Unlike the dispatcher handler, this one keeps the message: the app is exiting, and
+            // the reasons it fails here are the ones the user can act on ("catalog.json entry 3
+            // has no key", "Data\catalog.json not found"). A generic message would leave them with
+            // an app that will not start and nothing to go on.
             MessageBox.Show(
                 $"FleetFinder failed to start:\n\n{ex.Message}",
                 "FleetFinder", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -77,37 +81,47 @@ public partial class App : Application
     /// <remarks>
     /// An environment variable is ordinary process configuration rather than a hostile input, but
     /// it decides where every market query in the app goes, and it was previously passed through
-    /// with no check that it was even a URL, let alone an encrypted one.
+    /// with no check that it was even a URL, let alone an encrypted one. Both outcomes are
+    /// recorded: a silently redirected app and a silently ignored override look identical from the
+    /// outside otherwise.
     /// </remarks>
     private static string ResolveRelayUrl()
     {
         var configured = Environment.GetEnvironmentVariable("FLEETVIEW_RELAY_URL");
         if (string.IsNullOrWhiteSpace(configured)) return DefaultRelayUrl;
 
-        return RelayMarketSource.TryNormaliseBaseUrl(configured, out var normalised)
-            ? normalised
-            : DefaultRelayUrl;
+        if (RelayMarketSource.TryNormaliseBaseUrl(configured, out var normalised))
+        {
+            if (!string.Equals(normalised, DefaultRelayUrl, StringComparison.OrdinalIgnoreCase))
+                DiagnosticLog.Note($"FLEETVIEW_RELAY_URL override in use: {normalised}");
+            return normalised;
+        }
+
+        DiagnosticLog.Note(
+            "FLEETVIEW_RELAY_URL ignored: not an absolute https:// URL (or an http:// loopback one) " +
+            "without query, fragment or user info. Using the built-in relay.");
+        return DefaultRelayUrl;
     }
 
     /// <summary>
     /// How many error dialogs one session will show before it stops. A fault that repeats every
-    /// poll tick would otherwise stack dialogs faster than they can be dismissed - which is what
-    /// happened in practice on the mid-edit refresh bug, which fired once a second.
+    /// tick would otherwise stack dialogs faster than they can be dismissed; the log keeps
+    /// recording all of them regardless.
     /// </summary>
     private const int MaxErrorDialogs = 3;
 
     private static int _errorDialogsShown;
 
     /// <summary>
-    /// Tells the user their action failed, and stops after <see cref="MaxErrorDialogs"/>.
+    /// Tells the user their action failed and points at the log, without putting the exception
+    /// message on screen.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The exception message is shown. It is written for whoever is reading a stack trace rather
-    /// than for a user, but with no log file there is nowhere else for it to go, and a report of
-    /// "it said something went wrong" cannot be acted on. Worth knowing what that trades away: the
-    /// message can carry a path or a fragment of a server response, so it is not something to put
-    /// on screen if this app ever gets used while streaming.
+    /// An exception message is written for whoever is reading the stack trace, and can carry a
+    /// path, a URL or a fragment of a response. The full detail is already in the log by the time
+    /// this runs, which is the right place for it: one destination the user chooses to open and
+    /// send on, rather than a dialog that may be sitting on a stream.
     /// </para>
     /// <para>
     /// The exception stays handled. This is a WPF shell where an escaping exception is almost
@@ -118,17 +132,18 @@ public partial class App : Application
     /// state on the next pass rather than continuing from a half-finished one.
     /// </para>
     /// </remarks>
-    private static void ReportUnexpectedError(Exception ex)
+    private static void ReportUnexpectedError()
     {
         if (_errorDialogsShown >= MaxErrorDialogs) return;
         _errorDialogsShown++;
 
         var suffix = _errorDialogsShown == MaxErrorDialogs
-            ? "\n\nFurther errors this session will not be reported."
+            ? "\n\nFurther errors this session will be logged without a message."
             : "";
 
         MessageBox.Show(
-            $"Something went wrong and that action was cancelled. FleetFinder is still running.\n\n{ex.Message}{suffix}",
+            "Something went wrong and that action was cancelled. FleetFinder is still running.\n\n" +
+            $"The details were written to:\n{DiagnosticLog.FilePath}{suffix}",
             "FleetFinder", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 

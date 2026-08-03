@@ -80,6 +80,8 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         return normalised.Length > 0;
     }
 
+    public string SourceDescription => _baseUrl;
+
     private static HttpClient CreateClient()
     {
         var c = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
@@ -148,6 +150,10 @@ public sealed class RelayMarketSource : ICarrierMarketSource
                 DockingAccess = Clean(d.DockingAccess) is { Length: > 0 } access ? access : "Unknown",
             });
         }
+
+        if (dtos.Count > MaxListings)
+            DiagnosticLog.Note(
+                $"Relay returned {dtos.Count:N0} rows for {dir}; kept the first {MaxListings:N0}.");
 
         return listings;
     }

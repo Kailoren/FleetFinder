@@ -55,7 +55,8 @@ public sealed partial class JournalReader
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return null; // unreadable directory - report no location rather than throwing
+            DiagnosticLog.Note($"Journal directory could not be listed ({ex.GetType().Name}).");
+            return null;
         }
 
         // Newest journal first; use the last StarPos in the first file that has one.
@@ -118,6 +119,7 @@ public sealed partial class JournalReader
     private static PlayerLocation? ScanFile(string path)
     {
         PlayerLocation? found = null;
+        bool anyOversize = false;
 
         try
         {
@@ -126,6 +128,7 @@ public sealed partial class JournalReader
 
             while (ReadBoundedLine(sr, out var line, out bool oversize))
             {
+                anyOversize |= oversize;
                 if (oversize) continue;
                 if (!line.Contains("StarPos", StringComparison.Ordinal)) continue;
 
@@ -137,9 +140,16 @@ public sealed partial class JournalReader
                                        or System.Security.SecurityException)
         {
             // The file being locked mid-write is routine and this is a best-effort read, so it
-            // stays non-fatal. Caught by type rather than blanket, so an exception this method has
-            // no answer for still propagates instead of vanishing.
+            // stays non-fatal - but it is recorded now. Swallowing it silently meant a journal
+            // this app could never read looked exactly like a commander who had not jumped yet.
+            DiagnosticLog.Note(
+                $"Journal file could not be read ({ex.GetType().Name}): {Path.GetFileName(path)}");
         }
+
+        if (anyOversize)
+            DiagnosticLog.Note(
+                $"Skipped one or more journal lines over {MaxLineLength:N0} characters in " +
+                Path.GetFileName(path));
 
         return found;
     }

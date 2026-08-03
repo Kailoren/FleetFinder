@@ -152,7 +152,13 @@ public sealed class ShipLockerReader
                 // with no ceiling at all, and it happens six times over in the retry loop below -
                 // so an oversized file was six unbounded allocations, not one. The stream wrapper
                 // is what makes the limit hold if the file grows between the check and the read.
-                if (info.Length > MaxFileBytes) return false;
+                if (info.Length > MaxFileBytes)
+                {
+                    DiagnosticLog.Note(
+                        $"ShipLocker file is {info.Length:N0} bytes, over the {MaxFileBytes:N0} " +
+                        "byte limit; inventory not read.");
+                    return false;
+                }
 
                 if (info.Length == 0) continue; // caught mid truncate-then-rewrite, retry
 
@@ -174,8 +180,8 @@ public sealed class ShipLockerReader
             {
                 // Neither derives from IOException, so both used to escape this method entirely
                 // and out of ReadAllCounts, which has no handler either. File.Exists returning
-                // true says the file is there, not that this process may open it. Retrying will
-                // not help with a permission problem, so this gives up rather than looping.
+                // true says the file is there, not that this process may open it.
+                DiagnosticLog.Note($"ShipLocker file could not be opened ({ex.GetType().Name}).");
                 return false;
             }
         }

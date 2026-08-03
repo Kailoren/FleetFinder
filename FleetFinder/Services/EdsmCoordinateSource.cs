@@ -119,12 +119,10 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
             // requests nobody was waiting for any more.
             throw;
         }
-        catch
+        catch (Exception ex)
         {
             // Network or protocol failure: leave these systems unresolved (distance shows blank).
-            // Deliberately broad - the transport can fail in a dozen unrelated ways and none of
-            // them should interrupt a search. Cancellation is excluded by the clause above, which
-            // is the part that actually matters here.
+            DiagnosticLog.Note($"EDSM lookup of {names.Count} system(s) failed: {ex.GetType().Name}.");
             return;
         }
 
@@ -135,7 +133,8 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         }
         catch (JsonException)
         {
-            return; // edsm.net answered with something that is not JSON
+            DiagnosticLog.Note("EDSM answered with something that is not JSON.");
+            return;
         }
 
         // Only names we actually asked about are accepted. The key used to come from the reply,
@@ -195,8 +194,7 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            // Corrupt or unreadable cache: start empty and refetch. Caught by type rather than
-            // blanket so anything unexpected still surfaces instead of being hidden here.
+            DiagnosticLog.Note($"System coordinate cache could not be read ({ex.GetType().Name}); starting empty.");
         }
     }
 
@@ -213,7 +211,7 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Best effort: the cache is an optimisation, and losing it only costs a refetch.
+            DiagnosticLog.Note($"System coordinate cache could not be written ({ex.GetType().Name}).");
         }
     }
 }
