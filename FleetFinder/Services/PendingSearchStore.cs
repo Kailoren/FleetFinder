@@ -69,8 +69,7 @@ public static class PendingSearchStore
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            DiagnosticLog.Note($"Pending search could not be read ({ex.GetType().Name}); starting fresh.");
-            return null;
+            return null; // corrupt or unreadable -> start with nothing to resume
         }
     }
 
@@ -94,9 +93,8 @@ public static class PendingSearchStore
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Best effort by design, but recorded: a write that always fails (a read-only install
-            // location, say) is indistinguishable from one that always works if nothing says so.
-            DiagnosticLog.Note($"Pending search could not be saved ({ex.GetType().Name}).");
+            // Best effort by design - losing a resume prompt is not worth interrupting a close
+            // over. Caught by type so an unexpected failure still surfaces.
         }
     }
 }

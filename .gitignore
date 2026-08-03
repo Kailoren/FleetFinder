@@ -12,6 +12,8 @@ publish/
 # Runtime files written into Data/ at run time (see App.xaml.cs, Services/EdsmCoordinateSource.cs,
 # Services/WindowStateStore.cs, Services/PendingSearchStore.cs)
 system-coords-cache.json
+# No longer written (the diagnostic log was removed), kept so a stale one left over from an
+# older build in a working tree doesn't show up as untracked.
 fleetview-crash.log
 window-state.json
 pending-search.json

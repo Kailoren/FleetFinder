@@ -945,27 +945,17 @@ public sealed class MainViewModel : ObservableObject
         List<CarrierListing> collected = new();
         bool failed = false;
         bool rateLimited = false;
-        // Both branches below log to Data\fleetview-crash.log. The on-screen wording is the same
-        // for every cause ("couldn't fetch prices"), which makes a user's report unactionable on
-        // its own, so the actual cause is recorded for them to send on.
-        string verb = direction == MarketDirection.Selling ? "buy" : "sell";
-        var timer = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             // One combined request for every ticked component (see RelayMarketSource), this is
             // also why a failure here can't distinguish partial success per component the way a
             // per-component loop could; it's all-or-nothing now.
             collected.AddRange(await _market.GetListingsAsync(components, direction));
-            timer.Stop();
-            if (collected.Count == 0)
-                DiagnosticLog.FetchEmpty(verb, components.Count, _market.SourceDescription, timer.Elapsed);
         }
         catch (Exception ex)
         {
-            timer.Stop();
             failed = true;
             rateLimited = IsTransient(ex);
-            DiagnosticLog.FetchFailed(verb, components.Count, _market.SourceDescription, timer.Elapsed, ex);
         }
 
         // Recompute the Distance column relative to the commander's current system.
