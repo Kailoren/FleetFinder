@@ -11,6 +11,13 @@ namespace FleetView.Services;
 /// </summary>
 public sealed class ShipLockerReader
 {
+    /// <summary>
+    /// Ceiling on the inventory file. A full on-foot locker is tens of kilobytes; this is far
+    /// above any real one and exists because the file is written by another process, so its size
+    /// is not this app's to assume.
+    /// </summary>
+    private const long MaxFileBytes = 8 * 1024 * 1024;
+
     public string FilePath { get; }
 
     public ShipLockerReader(string? filePath = null)
@@ -48,24 +55,49 @@ public sealed class ShipLockerReader
 
                 foreach (var item in arr.EnumerateArray())
                 {
+                    if (item.ValueKind != JsonValueKind.Object) continue;
+
+                    // TryGetProperty establishes that "Count" is there, not that it is a number.
+                    // GetInt32 throws on a string, a fraction or anything past Int32, and the only
+                    // try block around this disposes the document rather than handling anything -
+                    // so a file that is valid JSON with one odd value took the whole read down.
                     if (!item.TryGetProperty("Count", out var countEl)) continue;
-                    int count = countEl.GetInt32();
+                    if (countEl.ValueKind != JsonValueKind.Number) continue;
+                    if (!countEl.TryGetInt32(out int count) || count < 0) continue;
 
                     // Key by both the internal name and the localised display name so a
                     // modification's display-name commodity matches whatever the journal used.
-                    if (item.TryGetProperty("Name", out var nEl))
-                        Add(result, nEl.GetString(), count);
-                    if (item.TryGetProperty("Name_Localised", out var lEl))
-                        Add(result, lEl.GetString(), count);
+                    // They usually normalise to the same string ("Chemical Catalyst" and
+                    // "chemicalcatalyst" both reduce to the latter), so the count is added once
+                    // per distinct key - adding it per property would double every such entry.
+                    string nameKey = KeyOf(item, "Name");
+                    string localKey = KeyOf(item, "Name_Localised");
+
+                    Add(result, nameKey, count);
+                    if (!string.Equals(localKey, nameKey, StringComparison.Ordinal))
+                        Add(result, localKey, count);
                 }
             }
         }
         return result;
 
-        static void Add(Dictionary<string, int> map, string? name, int count)
+        static string KeyOf(JsonElement item, string property) =>
+            item.TryGetProperty(property, out var el) && el.ValueKind == JsonValueKind.String
+                ? Normalize(el.GetString())
+                : "";
+
+        // Accumulates rather than assigns. The file lists an entry per stack, so the same item can
+        // appear more than once (mission-specific holdings are separate entries), and Normalize is
+        // lossy enough that two different names can reduce to one key. Assigning meant the last
+        // occurrence won and every earlier one was discarded, under-reporting what the commander
+        // actually holds and understating it in exactly the direction that matters here - the app
+        // would say something was still needed when it was not.
+        static void Add(Dictionary<string, int> map, string key, int count)
         {
-            var key = Normalize(name);
-            if (key.Length > 0) map[key] = count;
+            if (key.Length == 0) return;
+            map[key] = map.TryGetValue(key, out int running)
+                ? (int)Math.Min((long)running + count, int.MaxValue)
+                : count;
         }
     }
 
@@ -104,36 +136,56 @@ public sealed class ShipLockerReader
     /// </summary>
     private static bool TryReadJson(string path, out JsonDocument? doc, int attempts = 6)
     {
+        doc = null;
+
         for (int i = 0; i < attempts; i++)
         {
             if (i > 0) Thread.Sleep(120);
 
-            string content;
             try
             {
+                var info = new FileInfo(path);
+                if (!info.Exists) return false;
+
+                // Checked before opening, and enforced again while reading. This file's size is
+                // whatever another process wrote, the read used to be a ReadToEnd into a string
+                // with no ceiling at all, and it happens six times over in the retry loop below -
+                // so an oversized file was six unbounded allocations, not one. The stream wrapper
+                // is what makes the limit hold if the file grows between the check and the read.
+                if (info.Length > MaxFileBytes)
+                {
+                    DiagnosticLog.Note(
+                        $"ShipLocker file is {info.Length:N0} bytes, over the {MaxFileBytes:N0} " +
+                        "byte limit; inventory not read.");
+                    return false;
+                }
+
+                if (info.Length == 0) continue; // caught mid truncate-then-rewrite, retry
+
                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var sr = new StreamReader(fs);
-                content = sr.ReadToEnd();
+                using var bounded = BoundedHttp.Limit(fs, MaxFileBytes);
+                doc = JsonDocument.Parse(bounded);
+                return true;
             }
             catch (IOException)
             {
                 continue; // locked for writing right now, retry
             }
-
-            if (string.IsNullOrWhiteSpace(content))
-                continue; // caught the file mid truncate-then-rewrite, retry
-
-            try
-            {
-                doc = JsonDocument.Parse(content);
-                return true;
-            }
             catch (JsonException)
             {
                 continue; // partially-written JSON, retry
             }
+            catch (Exception ex) when (ex is UnauthorizedAccessException
+                                           or System.Security.SecurityException)
+            {
+                // Neither derives from IOException, so both used to escape this method entirely
+                // and out of ReadAllCounts, which has no handler either. File.Exists returning
+                // true says the file is there, not that this process may open it.
+                DiagnosticLog.Note($"ShipLocker file could not be opened ({ex.GetType().Name}).");
+                return false;
+            }
         }
-        doc = null;
+
         return false;
     }
 
@@ -146,12 +198,12 @@ public sealed class ShipLockerReader
     private static string GetSavedGamesFolder()
     {
         // FOLDERID_SavedGames, not exposed by Environment.SpecialFolder.
+        IntPtr buffer = IntPtr.Zero;
         try
         {
-            if (SHGetKnownFolderPath(FolderIdSavedGames, 0, IntPtr.Zero, out IntPtr p) == 0)
+            if (SHGetKnownFolderPath(FolderIdSavedGames, 0, IntPtr.Zero, out buffer) == 0)
             {
-                string path = Marshal.PtrToStringUni(p) ?? "";
-                Marshal.FreeCoTaskMem(p);
+                string path = Marshal.PtrToStringUni(buffer) ?? "";
                 if (!string.IsNullOrEmpty(path))
                     return path;
             }
@@ -160,6 +212,15 @@ public sealed class ShipLockerReader
         {
             // fall through to profile-based path
         }
+        finally
+        {
+            // Freed on every path, not only the successful one: the API's contract is that the
+            // caller owns the buffer whenever it is non-null, including on a failure return, and
+            // the free used to sit inside the success branch with the catch below it able to skip
+            // it entirely.
+            if (buffer != IntPtr.Zero) Marshal.FreeCoTaskMem(buffer);
+        }
+
         return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Saved Games");
     }

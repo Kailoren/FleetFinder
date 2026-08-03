@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -20,10 +21,28 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
     // are passed to ShipLockerReader.Normalize, which sizes a buffer from their length.
     private const long MaxResponseBytes = 4 * 1024 * 1024;
 
+    /// <summary>
+    /// Ceiling on entries kept on disk. Coordinates are fixed, so there is nothing to expire and a
+    /// time-to-live would only throw away correct answers - but the file grows for as long as the
+    /// app is used and nothing else bounds it, and each entry's key comes from a reply rather than
+    /// from us. This is the bound: past it the file stops growing rather than being rewritten
+    /// larger every session.
+    /// </summary>
+    private const int MaxCachedSystems = 50_000;
+
     private static readonly HttpClient Http = CreateClient();
 
     private readonly string _cachePath;
-    private readonly Dictionary<string, SystemCoords> _cache = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Concurrent because the read path does not take <see cref="_gate"/>. That gate serialises
+    /// writers against each other, but a second overlapping <see cref="GetCoordsAsync"/> reads
+    /// this dictionary before ever reaching it, and a plain Dictionary being resized by a writer
+    /// can make such a reader throw or walk a stale bucket chain. Nothing about this class's
+    /// public surface forbids concurrent use, so the collection is the right place to fix it.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, SystemCoords> _cache = new(StringComparer.Ordinal);
+
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public EdsmCoordinateSource()
@@ -67,6 +86,7 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         {
             for (int i = 0; i < missing.Count; i += ChunkSize)
             {
+                ct.ThrowIfCancellationRequested();
                 var chunk = missing.Skip(i).Take(ChunkSize).ToList();
                 await FetchChunkAsync(chunk, result, ct).ConfigureAwait(false);
             }
@@ -85,31 +105,79 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         var query = string.Join("&", names.Select(n => "systemName[]=" + Uri.EscapeDataString(n)));
         var url = $"https://www.edsm.net/api-v1/systems?{query}&showCoordinates=1";
 
+        string json;
         try
         {
-            var json = await BoundedHttp
+            json = await BoundedHttp
                 .GetStringAsync(Http, url, MaxResponseBytes, ct)
                 .ConfigureAwait(false);
-            using var doc = JsonDocument.Parse(json);
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation is the caller's decision and has to reach them. Swallowing it here left
+            // the chunk loop in GetCoordsAsync running to the end of the list, working through
+            // requests nobody was waiting for any more.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Network or protocol failure: leave these systems unresolved (distance shows blank).
+            DiagnosticLog.Note($"EDSM lookup of {names.Count} system(s) failed: {ex.GetType().Name}.");
+            return;
+        }
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(json);
+        }
+        catch (JsonException)
+        {
+            DiagnosticLog.Note("EDSM answered with something that is not JSON.");
+            return;
+        }
+
+        // Only names we actually asked about are accepted. The key used to come from the reply,
+        // with nothing checking it against the request, which let the far end decide what went
+        // into a cache this app then persists and trusts. Nothing is lost by requiring the match:
+        // a coordinate filed under a name we never asked for could never be looked up again.
+        var requested = new HashSet<string>(
+            names.Select(ShipLockerReader.Normalize), StringComparer.Ordinal);
+
+        using (doc)
+        {
             if (doc.RootElement.ValueKind != JsonValueKind.Array) return;
 
             foreach (var el in doc.RootElement.EnumerateArray())
             {
-                if (!el.TryGetProperty("name", out var nameEl)) continue;
-                if (!el.TryGetProperty("coords", out var co)) continue;
-                var coords = new SystemCoords(
-                    co.GetProperty("x").GetDouble(),
-                    co.GetProperty("y").GetDouble(),
-                    co.GetProperty("z").GetDouble());
+                // Per-element and non-throwing. A single malformed entry used to abort the whole
+                // enumeration from inside the try, discarding every later system in a 40-item
+                // batch along with it.
+                if (el.ValueKind != JsonValueKind.Object) continue;
+                if (!el.TryGetProperty("name", out var nameEl)
+                    || nameEl.ValueKind != JsonValueKind.String) continue;
+                if (!el.TryGetProperty("coords", out var co)
+                    || co.ValueKind != JsonValueKind.Object) continue;
+                if (!TryDouble(co, "x", out var x)) continue;
+                if (!TryDouble(co, "y", out var y)) continue;
+                if (!TryDouble(co, "z", out var z)) continue;
+
                 var key = ShipLockerReader.Normalize(nameEl.GetString());
+                if (key.Length == 0 || !requested.Contains(key)) continue;
+
+                var coords = new SystemCoords(x, y, z);
                 _cache[key] = coords;
                 result[key] = coords;
             }
         }
-        catch
-        {
-            // Network/parse failure: leave these systems unresolved (distance shows blank).
-        }
+    }
+
+    private static bool TryDouble(JsonElement parent, string name, out double value)
+    {
+        value = 0;
+        return parent.TryGetProperty(name, out var el)
+               && el.ValueKind == JsonValueKind.Number
+               && el.TryGetDouble(out value);
     }
 
     private void LoadCache()
@@ -119,15 +187,31 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
             if (!File.Exists(_cachePath)) return;
             var data = JsonSerializer.Deserialize<Dictionary<string, SystemCoords>>(
                 File.ReadAllText(_cachePath));
-            if (data != null)
-                foreach (var kv in data) _cache[kv.Key] = kv.Value;
+            if (data == null) return;
+
+            foreach (var kv in data.Take(MaxCachedSystems))
+                if (!string.IsNullOrEmpty(kv.Key)) _cache[kv.Key] = kv.Value;
         }
-        catch { /* ignore corrupt cache */ }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            DiagnosticLog.Note($"System coordinate cache could not be read ({ex.GetType().Name}); starting empty.");
+        }
     }
 
     private void SaveCache()
     {
-        try { File.WriteAllText(_cachePath, JsonSerializer.Serialize(_cache)); }
-        catch { /* best effort */ }
+        try
+        {
+            var snapshot = _cache.Count <= MaxCachedSystems
+                ? _cache.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal)
+                : _cache.Take(MaxCachedSystems)
+                        .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+
+            File.WriteAllText(_cachePath, JsonSerializer.Serialize(snapshot));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DiagnosticLog.Note($"System coordinate cache could not be written ({ex.GetType().Name}).");
+        }
     }
 }

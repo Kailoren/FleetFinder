@@ -9,6 +9,8 @@ namespace FleetView.Services;
 /// </summary>
 public sealed class MockMarketSource : ICarrierMarketSource
 {
+    public string SourceDescription => "mock (FLEETVIEW_MOCK=1)";
+
     public Task<IReadOnlyList<CarrierListing>> GetListingsAsync(
         IReadOnlyList<Component> components, MarketDirection direction, CancellationToken ct = default)
     {

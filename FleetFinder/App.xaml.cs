@@ -17,9 +17,8 @@ public partial class App : Application
 
         DispatcherUnhandledException += (_, args) =>
         {
-            LogCrash(args.Exception);
-            MessageBox.Show($"Unexpected error:\n\n{args.Exception.Message}",
-                "FleetView", MessageBoxButton.OK, MessageBoxImage.Error);
+            DiagnosticLog.Crash(args.Exception);
+            ReportUnexpectedError();
             args.Handled = true;
         };
 
@@ -28,20 +27,16 @@ public partial class App : Application
             var catalog = CatalogLoader.Load();
             var modifications = ModificationLoader.Load();
             var locker = new ShipLockerReader();
-            var journalDir = System.IO.Path.GetDirectoryName(locker.FilePath) ?? "";
-            var journal = new JournalReader(journalDir);
+            // Null when the locker path has no directory component. JournalReader takes that as
+            // "no journals available" and says so; the empty string this used to substitute would
+            // instead have been resolved against whatever the process's working directory happened
+            // to be, which is not a place this app has any business reading game logs from.
+            var journal = new JournalReader(System.IO.Path.GetDirectoryName(locker.FilePath));
 
             bool mock = Environment.GetEnvironmentVariable("FLEETVIEW_MOCK") == "1";
-            // Always our own hosted relay - no Inara scraping path exists in this app anymore.
-            // FLEETVIEW_RELAY_URL can still point at a different (e.g. local test) relay instance.
-            // HTTPS via a Caddy reverse proxy in front of the relay (sslip.io hostname resolves
-            // straight to the server's own IP, so Let's Encrypt can issue a real cert for it without
-            // owning a registered domain) - the old plain-HTTP :5085 listener stays up alongside it
-            // so already-installed builds pointing at the bare IP keep working unaffected.
             ICarrierMarketSource market = mock
                 ? new MockMarketSource()
-                : new RelayMarketSource(
-                    Environment.GetEnvironmentVariable("FLEETVIEW_RELAY_URL") ?? "https://77-42-73-218.sslip.io");
+                : new RelayMarketSource(ResolveRelayUrl());
             // Distances need EDSM; skip it in mock/offline mode so tests don't hit the network.
             ICoordinateSource? coords = mock ? null : new EdsmCoordinateSource();
 
@@ -52,12 +47,104 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            LogCrash(ex);
+            DiagnosticLog.Crash(ex);
+            // Unlike the dispatcher handler, this one keeps the message: the app is exiting, and
+            // the reasons it fails here are the ones the user can act on ("catalog.json entry 3
+            // has no key", "Data\catalog.json not found"). A generic message would leave them with
+            // an app that will not start and nothing to go on.
             MessageBox.Show(
-                $"FleetView failed to start:\n\n{ex.Message}",
-                "FleetView", MessageBoxButton.OK, MessageBoxImage.Error);
+                $"FleetFinder failed to start:\n\n{ex.Message}",
+                "FleetFinder", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    /// <summary>
+    /// Our own hosted relay. No Inara scraping path exists in this app anymore.
+    /// </summary>
+    /// <remarks>
+    /// HTTPS via a Caddy reverse proxy in front of the relay. The sslip.io hostname resolves
+    /// straight to the server's own IP, so Let's Encrypt can issue a real certificate for it
+    /// without owning a registered domain - worth being clear about what that does and does not
+    /// buy: the connection is encrypted and cannot be read or altered in transit, but because the
+    /// name is derived from the address, the certificate attests to whoever controls that address
+    /// at the time rather than to this project. A registered domain is what would fix that, and
+    /// nothing in the code can substitute for one. The old plain-HTTP :5085 listener stays up
+    /// alongside it so already-installed builds pointing at the bare IP keep working unaffected.
+    /// </remarks>
+    private const string DefaultRelayUrl = "https://77-42-73-218.sslip.io";
+
+    /// <summary>
+    /// The relay to query: <c>FLEETVIEW_RELAY_URL</c> if it is one this app will talk to, and
+    /// <see cref="DefaultRelayUrl"/> otherwise.
+    /// </summary>
+    /// <remarks>
+    /// An environment variable is ordinary process configuration rather than a hostile input, but
+    /// it decides where every market query in the app goes, and it was previously passed through
+    /// with no check that it was even a URL, let alone an encrypted one. Both outcomes are
+    /// recorded: a silently redirected app and a silently ignored override look identical from the
+    /// outside otherwise.
+    /// </remarks>
+    private static string ResolveRelayUrl()
+    {
+        var configured = Environment.GetEnvironmentVariable("FLEETVIEW_RELAY_URL");
+        if (string.IsNullOrWhiteSpace(configured)) return DefaultRelayUrl;
+
+        if (RelayMarketSource.TryNormaliseBaseUrl(configured, out var normalised))
+        {
+            if (!string.Equals(normalised, DefaultRelayUrl, StringComparison.OrdinalIgnoreCase))
+                DiagnosticLog.Note($"FLEETVIEW_RELAY_URL override in use: {normalised}");
+            return normalised;
+        }
+
+        DiagnosticLog.Note(
+            "FLEETVIEW_RELAY_URL ignored: not an absolute https:// URL (or an http:// loopback one) " +
+            "without query, fragment or user info. Using the built-in relay.");
+        return DefaultRelayUrl;
+    }
+
+    /// <summary>
+    /// How many error dialogs one session will show before it stops. A fault that repeats every
+    /// tick would otherwise stack dialogs faster than they can be dismissed; the log keeps
+    /// recording all of them regardless.
+    /// </summary>
+    private const int MaxErrorDialogs = 3;
+
+    private static int _errorDialogsShown;
+
+    /// <summary>
+    /// Tells the user their action failed and points at the log, without putting the exception
+    /// message on screen.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// An exception message is written for whoever is reading the stack trace, and can carry a
+    /// path, a URL or a fragment of a response. The full detail is already in the log by the time
+    /// this runs, which is the right place for it: one destination the user chooses to open and
+    /// send on, rather than a dialog that may be sitting on a stream.
+    /// </para>
+    /// <para>
+    /// The exception stays handled. This is a WPF shell where an escaping exception is almost
+    /// always one action failing - a search, a refresh tick, a file read - and letting it end the
+    /// process would discard a whole session's search results over a failure the next tick would
+    /// recover from anyway. What it does not do is pretend nothing happened: the affected work is
+    /// abandoned, the user is told, and the inventory poll and search paths both rebuild their own
+    /// state on the next pass rather than continuing from a half-finished one.
+    /// </para>
+    /// </remarks>
+    private static void ReportUnexpectedError()
+    {
+        if (_errorDialogsShown >= MaxErrorDialogs) return;
+        _errorDialogsShown++;
+
+        var suffix = _errorDialogsShown == MaxErrorDialogs
+            ? "\n\nFurther errors this session will be logged without a message."
+            : "";
+
+        MessageBox.Show(
+            "Something went wrong and that action was cancelled. FleetFinder is still running.\n\n" +
+            $"The details were written to:\n{DiagnosticLog.FilePath}{suffix}",
+            "FleetFinder", MessageBoxButton.OK, MessageBoxImage.Warning);
     }
 
     /// <summary>
@@ -106,16 +193,4 @@ public partial class App : Application
     [DllImport("kernel32.dll")]
     private static extern IntPtr GetCurrentProcess();
 
-    private static void LogCrash(Exception ex)
-    {
-        try
-        {
-            var dir = System.IO.Path.Combine(AppContext.BaseDirectory, "Data");
-            System.IO.Directory.CreateDirectory(dir);
-            var path = System.IO.Path.Combine(dir, "fleetview-crash.log");
-            System.IO.File.AppendAllText(path,
-                $"{DateTime.Now:s}\n{ex}\n\n");
-        }
-        catch { /* logging must never throw */ }
-    }
 }

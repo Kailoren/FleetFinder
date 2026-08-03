@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Data;
@@ -902,6 +903,36 @@ public sealed class MainViewModel : ObservableObject
         Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), selector);
 
     /// <summary>
+    /// Whether a fetch failure is the kind worth retrying in a moment (relay busy, relay
+    /// restarting behind its reverse proxy, or the request timing out) rather than one the user's
+    /// next click will hit again identically. Picks which of the two failure messages shows.
+    ///
+    /// Read from the typed status code where there is one, rather than matched out of the message
+    /// text, so it doesn't depend on the wording or language of the exception; the older substring
+    /// checks are kept alongside as a fallback.
+    /// </summary>
+    private static bool IsTransient(Exception ex)
+    {
+        for (Exception? e = ex; e != null; e = e.InnerException)
+        {
+            // 502/504 are what the reverse proxy in front of the relay returns while the relay
+            // process itself is down or restarting, so they mean "try again shortly" every bit as
+            // much as the relay's own 429/503 do.
+            if (e is HttpRequestException { StatusCode: { } code }
+                && (int)code is 429 or 502 or 503 or 504)
+                return true;
+
+            // HttpClient's own timeout surfaces as a cancellation wrapping a TimeoutException,
+            // and its message doesn't contain the phrase the text match below looks for.
+            if (e is TimeoutException or TaskCanceledException)
+                return true;
+        }
+
+        return ex.Message.Contains("503") || ex.Message.Contains("429")
+            || ex.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Fetches listings for one market direction, resolves distances, optionally stamps the
     /// "Needed" or "Have" figure (mutually exclusive, Needed only makes sense buy-side, Have only
     /// sell-side), and groups them into one row per carrier/station. Shared by both halves of
@@ -914,19 +945,27 @@ public sealed class MainViewModel : ObservableObject
         List<CarrierListing> collected = new();
         bool failed = false;
         bool rateLimited = false;
+        // Both branches below log to Data\fleetview-crash.log. The on-screen wording is the same
+        // for every cause ("couldn't fetch prices"), which makes a user's report unactionable on
+        // its own, so the actual cause is recorded for them to send on.
+        string verb = direction == MarketDirection.Selling ? "buy" : "sell";
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             // One combined request for every ticked component (see RelayMarketSource), this is
             // also why a failure here can't distinguish partial success per component the way a
             // per-component loop could; it's all-or-nothing now.
             collected.AddRange(await _market.GetListingsAsync(components, direction));
+            timer.Stop();
+            if (collected.Count == 0)
+                DiagnosticLog.FetchEmpty(verb, components.Count, _market.SourceDescription, timer.Elapsed);
         }
         catch (Exception ex)
         {
+            timer.Stop();
             failed = true;
-            if (ex.Message.Contains("503") || ex.Message.Contains("429")
-                || ex.Message.Contains("timed out", StringComparison.OrdinalIgnoreCase))
-                rateLimited = true;
+            rateLimited = IsTransient(ex);
+            DiagnosticLog.FetchFailed(verb, components.Count, _market.SourceDescription, timer.Elapsed, ex);
         }
 
         // Recompute the Distance column relative to the commander's current system.

@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using FleetView.Models;
 
@@ -11,23 +12,75 @@ namespace FleetView.Services;
 /// </summary>
 public sealed class RelayMarketSource : ICarrierMarketSource
 {
-    // Generously above any real catalog-wide response - guards against a compromised or
-    // man-in-the-middled relay response driving an unbounded deserialization.
+    /// <summary>
+    /// Generously above any real catalog-wide response - guards against a compromised or
+    /// man-in-the-middled relay response driving an unbounded deserialization. Enforced while
+    /// reading (see <see cref="BoundedHttp.Limit"/>) rather than from <c>Content-Length</c>, which
+    /// is absent on a chunked reply and is the sender's claim about itself in any case.
+    /// </summary>
     private const long MaxResponseBytes = 8 * 1024 * 1024;
 
-    // Enforced while reading rather than from Content-Length. The header is absent on a chunked
-    // response and is the sender's claim about itself in any case, so the check this replaced
-    // could be skipped entirely by answering without it.
+    /// <summary>
+    /// Ceiling on rows accepted from one answer. The byte limit above does not bound this on its
+    /// own: a minimal JSON object is a few dozen bytes, so eight megabytes of them is six figures
+    /// of rows, each expanded here into an object and a formatted string and then handed to a grid
+    /// to lay out. The real catalog across every carrier is orders of magnitude under this.
+    /// </summary>
+    private const int MaxListings = 20_000;
+
+    /// <summary>
+    /// Ceiling on any single text field. Carrier names, system names and callsigns are all short;
+    /// the length of what actually arrives is the sender's choice, and these strings are rendered.
+    /// </summary>
+    private const int MaxFieldLength = 120;
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
     private static readonly HttpClient Http = CreateClient();
 
     private readonly string _baseUrl;
 
+    /// <param name="baseUrl">
+    /// Must satisfy <see cref="TryNormaliseBaseUrl"/>. Callers taking this from configuration
+    /// should normalise first and decide for themselves what to do with a value that fails,
+    /// rather than letting the constructor throw during startup.
+    /// </param>
     public RelayMarketSource(string baseUrl)
     {
-        _baseUrl = baseUrl.TrimEnd('/');
+        if (!TryNormaliseBaseUrl(baseUrl, out _baseUrl))
+            throw new ArgumentException(
+                "Relay base URL must be an absolute https:// URL (or http:// on loopback) with no " +
+                "query, fragment or user info.", nameof(baseUrl));
     }
+
+    /// <summary>
+    /// Accepts an absolute https URL, or an http one pointing at loopback so a relay running on
+    /// this machine can still be tested against. Rejects user info, a query and a fragment, and
+    /// returns the scheme/host/path with any trailing slash removed.
+    /// </summary>
+    /// <remarks>
+    /// The request URL is built by appending to this, so a value carrying its own query would
+    /// silently demote the parameters meant for the relay into part of somebody else's - and the
+    /// scheme decides whether the whole exchange is encrypted at all. Neither was checked before:
+    /// the string was taken as given and only trimmed. This is reachable from configuration, so
+    /// what it is allowed to be is worth stating rather than assuming.
+    /// </remarks>
+    public static bool TryNormaliseBaseUrl(string? value, out string normalised)
+    {
+        normalised = "";
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (!Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)) return false;
+
+        bool schemeOk = uri.Scheme == Uri.UriSchemeHttps
+                        || (uri.Scheme == Uri.UriSchemeHttp && uri.IsLoopback);
+        if (!schemeOk) return false;
+        if (!string.IsNullOrEmpty(uri.UserInfo)) return false;
+        if (!string.IsNullOrEmpty(uri.Query) || !string.IsNullOrEmpty(uri.Fragment)) return false;
+
+        normalised = uri.GetLeftPart(UriPartial.Path).TrimEnd('/');
+        return normalised.Length > 0;
+    }
+
+    public string SourceDescription => _baseUrl;
 
     private static HttpClient CreateClient()
     {
@@ -46,36 +99,94 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         string dir = direction == MarketDirection.Selling ? "selling" : "buying";
         string url = $"{_baseUrl}/listings?keys={keys}&direction={dir}";
 
-        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
+        // The body read is bounded independently of the caller's token: HttpClient.Timeout stops
+        // applying once the headers arrive under ResponseHeadersRead, and a byte limit can only
+        // fire on bytes that arrive, so neither bounds a relay that answers and then stalls.
+        using var timed = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timed.CancelAfter(BoundedHttp.DefaultDeadline);
+
+        using var response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timed.Token)
             .ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        BoundedHttp.RejectUnusable(response, MaxResponseBytes);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(timed.Token).ConfigureAwait(false);
         await using var bounded = BoundedHttp.Limit(stream, MaxResponseBytes);
-        var dtos = await JsonSerializer.DeserializeAsync<List<ListingDto>>(bounded, JsonOptions, ct)
+        var dtos = await JsonSerializer
+            .DeserializeAsync<List<ListingDto>>(bounded, JsonOptions, timed.Token)
             .ConfigureAwait(false);
         if (dtos is null) return Array.Empty<CarrierListing>();
 
         var now = DateTime.Now;
-        return dtos.Select(d =>
+        var listings = new List<CarrierListing>(Math.Min(dtos.Count, MaxListings));
+
+        foreach (var d in dtos)
         {
+            if (listings.Count >= MaxListings) break;
+            if (d is null) continue;
+
+            // Nothing between the deserializer and here decided these were present. The DTO
+            // declares them non-nullable and System.Text.Json does not enforce that, so a reply of
+            // [{"component":null}] deserializes cleanly into a record whose every string is null,
+            // and those nulls would reach the grid as the fields it binds and formats.
+            var component = Clean(d.Component);
+            if (component.Length == 0) continue; // a row naming no component is not a result
+
             var updatedLocal = d.UpdatedAt.ToLocalTime();
             var age = now - updatedLocal;
-            return new CarrierListing
+
+            listings.Add(new CarrierListing
             {
-                Component = d.Component,
-                StationName = d.StationName,
-                Callsign = d.Callsign,
-                System = d.System,
-                Direction = d.Direction,
-                Amount = d.Amount,
-                Price = d.Price,
+                Component = component,
+                StationName = Clean(d.StationName),
+                Callsign = Clean(d.Callsign),
+                System = Clean(d.System),
+                Direction = Clean(d.Direction),
+                Amount = Math.Max(0, d.Amount),
+                Price = Math.Max(0, d.Price),
                 UpdatedAt = updatedLocal,
                 Age = age,
                 UpdatedText = FormatAge(age),
-                DockingAccess = d.DockingAccess,
-            };
-        }).ToList();
+                DockingAccess = Clean(d.DockingAccess) is { Length: > 0 } access ? access : "Unknown",
+            });
+        }
+
+        if (dtos.Count > MaxListings)
+            DiagnosticLog.Note(
+                $"Relay returned {dtos.Count:N0} rows for {dir}; kept the first {MaxListings:N0}.");
+
+        return listings;
     }
+
+    /// <summary>
+    /// Reduces one field of an answer to something safe to put in a grid cell: never null, capped
+    /// at <see cref="MaxFieldLength"/>, and with control characters and the bidirectional
+    /// overrides removed. Those overrides can reorder a line as displayed without changing the
+    /// text, which is worth denying in a name shown next to a price the user is about to fly to.
+    /// </summary>
+    private static string Clean(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+
+        var span = value.Length <= MaxFieldLength ? value.AsSpan() : value.AsSpan(0, MaxFieldLength);
+        var sb = new StringBuilder(span.Length);
+        foreach (var ch in span)
+        {
+            if (char.IsControl(ch) || IsBidiControl(ch)) continue;
+            sb.Append(ch);
+        }
+        return sb.ToString().Trim();
+    }
+
+    /// <summary>
+    /// LRM/RLM, the LRE..RLO embedding set, and the LRI..PDI isolate set. Written as code points
+    /// rather than character literals on purpose: these are invisible, so a literal one here would
+    /// be a line of source nobody can read or review.
+    /// </summary>
+    private static bool IsBidiControl(char ch) =>
+        ch is (char)0x200E or (char)0x200F                 // LRM, RLM
+           or (>= (char)0x202A and <= (char)0x202E)        // LRE, RLE, PDF, LRO, RLO
+           or (>= (char)0x2066 and <= (char)0x2069);       // LRI, RLI, FSI, PDI
 
     /// <summary>Turns a TimeSpan into friendly text, e.g. "11 minutes ago".</summary>
     public static string FormatAge(TimeSpan age)
@@ -90,8 +201,16 @@ public sealed class RelayMarketSource : ICarrierMarketSource
 
     private static string Plural(int n, string unit) => $"{n} {unit}{(n == 1 ? "" : "s")} ago";
 
-    /// <summary>Mirrors the JSON shape returned by FleetView.Relay's GET /listings endpoint.</summary>
+    /// <summary>
+    /// Mirrors the JSON shape returned by FleetView.Relay's GET /listings endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Every string is nullable, and that is the honest declaration rather than a defensive one:
+    /// System.Text.Json will happily write a JSON null into a non-nullable string property without
+    /// complaint, so declaring these non-null only made the compiler stop asking about a case that
+    /// can still happen. <see cref="Clean"/> is where they become non-null.
+    /// </remarks>
     private sealed record ListingDto(
-        string Component, string StationName, string Callsign, string System,
-        string Direction, int Amount, long Price, DateTime UpdatedAt, string DockingAccess);
+        string? Component, string? StationName, string? Callsign, string? System,
+        string? Direction, int Amount, long Price, DateTime UpdatedAt, string? DockingAccess);
 }

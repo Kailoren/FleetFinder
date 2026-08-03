@@ -10,7 +10,15 @@
     <AssemblyName>FleetFinder</AssemblyName>
     <RootNamespace>FleetView</RootNamespace>
     <ApplicationIcon>Assets\FleetFinderIcon.ico</ApplicationIcon>
-    <Version>2.2.7</Version>
+    <Version>2.2.8</Version>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- No .pdb in a published build. Symbols carry the build machine's source paths, local
+         variable names and line numbers, none of which a downloaded release needs. Debug builds
+         keep theirs. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
 
   <ItemGroup>

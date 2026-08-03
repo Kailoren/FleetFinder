@@ -21,21 +21,63 @@ public sealed record PendingSearchData(List<PendingSearchEntry> Buy, List<Pendin
 /// </summary>
 public static class PendingSearchStore
 {
+    /// <summary>The catalog is 90 components, so a list several times that is already not
+    /// something this app wrote. Bounds what one file can make the app rebuild on startup.</summary>
+    private const int MaxEntries = 500;
+
+    /// <summary>Longest component name accepted. Every real one is well under this; names longer
+    /// than the catalog's own would not match a row anyway.</summary>
+    private const int MaxNameLength = 120;
+
+    /// <summary>Sanity ceiling on a saved target, far above any real shopping list.</summary>
+    private const int MaxTarget = 100_000;
+
     private static string FilePath =>
         Path.Combine(AppContext.BaseDirectory, "Data", "pending-search.json");
 
+    /// <summary>
+    /// Returns the saved list, or null if there is nothing usable to resume.
+    /// </summary>
+    /// <remarks>
+    /// The deserialized entries are filtered rather than returned as they arrive. This file lives
+    /// beside the executable, so anything able to write to the install directory can write it, and
+    /// the result was previously handed to the caller with no check on the lists being present,
+    /// their length, or the values inside. Names are matched against the catalog downstream and
+    /// out-of-range entries would mostly be dropped there, but "mostly, somewhere else" is not
+    /// where a file's contents should stop being arbitrary.
+    /// </remarks>
     public static PendingSearchData? Load()
     {
         try
         {
             if (!File.Exists(FilePath)) return null;
-            return JsonSerializer.Deserialize<PendingSearchData>(File.ReadAllText(FilePath));
+
+            var data = JsonSerializer.Deserialize<PendingSearchData>(File.ReadAllText(FilePath));
+            if (data is null) return null;
+
+            var buy = (data.Buy ?? [])
+                .Where(e => e is not null && IsUsableName(e.Name) && e.Target >= 0 && e.Target <= MaxTarget)
+                .Take(MaxEntries)
+                .ToList();
+
+            var sell = (data.Sell ?? [])
+                .Where(e => e is not null && IsUsableName(e.Name))
+                .Take(MaxEntries)
+                .ToList();
+
+            return buy.Count == 0 && sell.Count == 0 ? null : new PendingSearchData(buy, sell);
         }
-        catch
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
+            DiagnosticLog.Note($"Pending search could not be read ({ex.GetType().Name}); starting fresh.");
             return null;
         }
     }
+
+    private static bool IsUsableName(string? name) =>
+        !string.IsNullOrWhiteSpace(name)
+        && name.Length <= MaxNameLength
+        && !name.Any(char.IsControl);
 
     /// <summary>Overwrites the cache with the current incomplete set, or clears it if both are empty.</summary>
     public static void Save(IReadOnlyList<PendingSearchEntry> buy, IReadOnlyList<PendingSellEntry> sell)
@@ -50,6 +92,11 @@ public static class PendingSearchStore
             Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "Data"));
             File.WriteAllText(FilePath, JsonSerializer.Serialize(new PendingSearchData(buy.ToList(), sell.ToList())));
         }
-        catch { /* best effort */ }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best effort by design, but recorded: a write that always fails (a read-only install
+            // location, say) is indistinguishable from one that always works if nothing says so.
+            DiagnosticLog.Note($"Pending search could not be saved ({ex.GetType().Name}).");
+        }
     }
 }

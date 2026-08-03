@@ -26,4 +26,12 @@ public interface ICarrierMarketSource
     /// </summary>
     Task<IReadOnlyList<CarrierListing>> GetListingsAsync(
         IReadOnlyList<Component> components, MarketDirection direction, CancellationToken ct = default);
+
+    /// <summary>
+    /// Where this source is actually reading from, for the diagnostic log. Worth recording because
+    /// it is overridable at runtime (FLEETVIEW_RELAY_URL) and because an older install can still be
+    /// pointed at a different endpoint than the current build's default, which is invisible from a
+    /// user's description of the symptom.
+    /// </summary>
+    string SourceDescription { get; }
 }
