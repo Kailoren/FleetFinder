@@ -1,9 +1,19 @@
+<div align="center">
+
 # FleetFinder
+[![Stars](https://img.shields.io/github/stars/kailoren/fleetfinder?style=plastic)](https://github.com/kailoren/fleetfinder/stargazers)
+[![Release](https://img.shields.io/github/v/release/kailoren/fleetfinder?style=plastic)](https://github.com/kailoren/fleetfinder/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kailoren/fleetfinder/total?style=plastic)](https://github.com/kailoren/fleetfinder/releases)
+[![License](https://img.shields.io/github/license/kailoren/fleetfinder?style=plastic)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-Windows-blue?style=plastic)
 
 A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carriers trading the engineering components you still need, tracks what you already hold, and lets you plan suit and weapon builds without doing the searching yourself.
 
-## What it does
+</div>
 
+---
+
+### What it does:
 The app has four tabs:
 
 - **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map. If you are looking to offload your components instead of buying more, however, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
