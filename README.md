@@ -1,6 +1,7 @@
 <div align="center">
 
-# FleetFinder
+<img width="512" height="266" alt="fa292a28-bde8-4db1-a132-3e0250b59a60" src="https://github.com/user-attachments/assets/5e2a1a07-870f-49b7-9150-4e82e276cc1f" />
+
 [![Stars](https://img.shields.io/github/stars/kailoren/fleetfinder?style=plastic)](https://github.com/kailoren/fleetfinder/stargazers)
 [![Release](https://img.shields.io/github/v/release/kailoren/fleetfinder?style=plastic)](https://github.com/kailoren/fleetfinder/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/kailoren/fleetfinder/total?style=plastic)](https://github.com/kailoren/fleetfinder/releases)
