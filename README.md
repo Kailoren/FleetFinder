@@ -8,6 +8,8 @@
 [![License](https://img.shields.io/github/license/kailoren/fleetfinder?style=plastic)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=plastic)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T3N624MRS4)
+
 A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carriers trading the engineering components you still need, tracks what you already hold, and lets you plan suit and weapon builds without doing the searching yourself.
 
 </div>
