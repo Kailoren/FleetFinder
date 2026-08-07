@@ -25,11 +25,38 @@
     <!-- Component reference data ships next to the exe and can be edited without a rebuild. -->
     <None Update="Data\catalog.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
     <None Update="Data\modifications.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </None>
   </ItemGroup>
+
+  <!--
+    Puts the two reference files back after publishing.
+
+    Publishing a second time into a folder that already holds a publish deleted both of them, and
+    the app then failed at launch with "Component catalog not found" - an exe shipped with no
+    catalog beside it. The cause is an interaction between single-file publishing and incremental
+    build: GenerateSingleFileBundle is skipped when its outputs are up to date, which drops these
+    files out of ResolvedFileToPublish, and the SDK then removes them from the publish folder as
+    output that is no longer produced. Nothing else in the folder is touched, which is what makes
+    it easy to miss - the app looks published and the user's saved state is all still there.
+
+    CopyToPublishDirectory=Always above is correct but does not fix it on its own, because the
+    target that would act on it never runs. Copying afterwards does not depend on any of that
+    being true, which is the point: this is the step that decides whether the app can start, and it
+    should not be conditional on an incremental check several targets away.
+  -->
+  <Target Name="EnsureReferenceDataPublished" AfterTargets="Publish">
+    <ItemGroup>
+      <ReferenceDataToPublish Include="$(MSBuildProjectDirectory)\Data\*.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(ReferenceDataToPublish)" DestinationFolder="$(PublishDir)Data" />
+    <Error Condition="!Exists('$(PublishDir)Data\catalog.json')"
+           Text="catalog.json is missing from the publish output; the app would not start." />
+  </Target>
 
   <ItemGroup>
     <!-- Embedded so Window.Icon can reference it by relative pack URI. Also referenced via
