@@ -30,9 +30,19 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
     /// </summary>
     private const int MaxCachedSystems = 50_000;
 
+    /// <summary>
+    /// Ceiling on the cache file. <see cref="MaxCachedSystems"/> entries of a name and three
+    /// numbers is a few megabytes at the outside; this is well past that and exists because
+    /// <see cref="MaxCachedSystems"/> is applied to the deserialized result, which is one
+    /// allocation too late to bound the read that produced it.
+    /// </summary>
+    private const long MaxCacheFileBytes = 16 * 1024 * 1024;
+
     private static readonly HttpClient Http = CreateClient();
 
-    private readonly string _cachePath;
+    /// <summary>Null when the cache directory could not be created, i.e. this session keeps its
+    /// coordinates in memory only.</summary>
+    private readonly string? _cachePath;
 
     /// <summary>
     /// Concurrent because the read path does not take <see cref="_gate"/>. That gate serialises
@@ -45,17 +55,37 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
 
     private readonly SemaphoreSlim _gate = new(1, 1);
 
+    /// <summary>
+    /// Prepares the on-disk cache, degrading to an in-memory one if the directory cannot be made.
+    /// </summary>
+    /// <remarks>
+    /// Every other filesystem operation in this class catches and carries on; this one used to
+    /// throw, out of a constructor, on a read-only or otherwise unwritable install directory - and
+    /// the caller is App's startup path, so the app that could not create a cache folder did not
+    /// start. A missing cache costs a round trip to EDSM per session and nothing else.
+    /// </remarks>
     public EdsmCoordinateSource()
     {
-        var dir = Path.Combine(AppContext.BaseDirectory, "Data");
-        Directory.CreateDirectory(dir);
-        _cachePath = Path.Combine(dir, "system-coords-cache.json");
+        try
+        {
+            var dir = Path.Combine(AppContext.BaseDirectory, "Data");
+            Directory.CreateDirectory(dir);
+            _cachePath = Path.Combine(dir, "system-coords-cache.json");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DiagnosticLog.Note(
+                $"System coordinate cache directory could not be created ({ex.GetType().Name}); " +
+                "coordinates will be kept in memory for this session only.");
+            _cachePath = null;
+        }
+
         LoadCache();
     }
 
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        var c = new HttpClient(BoundedHttp.CreateHandler()) { Timeout = TimeSpan.FromSeconds(30) };
         c.DefaultRequestHeaders.UserAgent.ParseAdd("FleetView/0.1 (personal Odyssey material finder)");
         return c;
     }
@@ -75,7 +105,11 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
         foreach (var name in wanted)
         {
             var key = ShipLockerReader.Normalize(name);
-            if (_cache.TryGetValue(key, out var c)) result[key] = c;
+            if (_cache.TryGetValue(key, out var c))
+            {
+                result[key] = c;
+                Touch(key);
+            }
             else missing.Add(name);
         }
 
@@ -167,6 +201,7 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
 
                 var coords = new SystemCoords(x, y, z);
                 _cache[key] = coords;
+                Touch(key);
                 result[key] = coords;
             }
         }
@@ -197,17 +232,68 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
 
     private const double MaxCoordinate = 1_000_000;
 
+    /// <summary>
+    /// When each cached system was last written or looked up, used to decide what to keep once
+    /// <see cref="MaxCachedSystems"/> is reached.
+    /// </summary>
+    /// <remarks>
+    /// A plain <c>Take(MaxCachedSystems)</c> over a <see cref="ConcurrentDictionary"/> keeps
+    /// whichever entries enumeration happens to reach first, which is hash-dependent and unrelated
+    /// to usefulness - so past the ceiling the file froze around an arbitrary set and newly fetched
+    /// coordinates were the ones most likely to be dropped, every session, forever.
+    /// </remarks>
+    private readonly ConcurrentDictionary<string, long> _lastUsed = new(StringComparer.Ordinal);
+
+    private long _useCounter;
+
+    private void Touch(string key) => _lastUsed[key] = Interlocked.Increment(ref _useCounter);
+
     private void LoadCache()
     {
+        if (_cachePath is null) return;
+
         try
         {
-            if (!File.Exists(_cachePath)) return;
+            var file = new FileInfo(_cachePath);
+            if (!file.Exists) return;
+
+            // Checked before reading, not after parsing. The entry ceiling below is applied to an
+            // already-materialised dictionary, so on its own it bounds what is kept rather than
+            // what is read - and this file is only as trustworthy as the directory it sits in.
+            if (file.Length > MaxCacheFileBytes)
+            {
+                DiagnosticLog.Note(
+                    $"System coordinate cache is {file.Length:N0} bytes, over the " +
+                    $"{MaxCacheFileBytes:N0} byte limit; starting empty.");
+                return;
+            }
+
             var data = JsonSerializer.Deserialize<Dictionary<string, SystemCoords>>(
                 File.ReadAllText(_cachePath));
             if (data == null) return;
 
-            foreach (var kv in data.Take(MaxCachedSystems))
-                if (!string.IsNullOrEmpty(kv.Key)) _cache[kv.Key] = kv.Value;
+            int kept = 0;
+            foreach (var kv in data)
+            {
+                if (kept >= MaxCachedSystems) break;
+                if (string.IsNullOrEmpty(kv.Key)) continue;
+
+                // The same plausibility test the network path applies. Coordinates arriving from
+                // edsm.net were gated on it and coordinates arriving from this file were not, which
+                // is the same data reaching the same dictionary through a door with no check on it.
+                // A half-written file is enough to produce an infinity here without any attacker,
+                // and one infinite coordinate turns every computed distance into NaN.
+                if (!IsPlausibleCoordinate(kv.Value.X)
+                    || !IsPlausibleCoordinate(kv.Value.Y)
+                    || !IsPlausibleCoordinate(kv.Value.Z)) continue;
+
+                var key = ShipLockerReader.Normalize(kv.Key);
+                if (key.Length == 0) continue;
+
+                _cache[key] = kv.Value;
+                Touch(key);
+                kept++;
+            }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -217,18 +303,41 @@ public sealed class EdsmCoordinateSource : ICoordinateSource
 
     private void SaveCache()
     {
+        if (_cachePath is null) return;
+
         try
         {
-            var snapshot = _cache.Count <= MaxCachedSystems
-                ? _cache.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal)
-                : _cache.Take(MaxCachedSystems)
-                        .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+            if (_cache.Count > MaxCachedSystems) EvictLeastRecentlyUsed();
 
+            var snapshot = _cache.ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
             File.WriteAllText(_cachePath, JsonSerializer.Serialize(snapshot));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             DiagnosticLog.Note($"System coordinate cache could not be written ({ex.GetType().Name}).");
+        }
+    }
+
+    /// <summary>
+    /// Drops the least recently used entries until the cache is back at
+    /// <see cref="MaxCachedSystems"/>. Caller holds <see cref="_gate"/>.
+    /// </summary>
+    /// <remarks>
+    /// In memory as well as on disk. The ceiling used to apply only to the snapshot being written,
+    /// so the dictionary itself carried every system looked up since launch regardless - the file
+    /// stopped growing and the process did not.
+    /// </remarks>
+    private void EvictLeastRecentlyUsed()
+    {
+        var doomed = _cache.Keys
+            .OrderBy(k => _lastUsed.GetValueOrDefault(k))
+            .Take(_cache.Count - MaxCachedSystems)
+            .ToList();
+
+        foreach (var key in doomed)
+        {
+            _cache.TryRemove(key, out _);
+            _lastUsed.TryRemove(key, out _);
         }
     }
 }

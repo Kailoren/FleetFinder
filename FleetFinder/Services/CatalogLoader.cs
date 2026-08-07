@@ -46,6 +46,11 @@ public static class CatalogLoader
         // field at its default, which the old null check could never catch - it only ever refused
         // a top-level JSON null. Each entry is checked here so a wrong file fails at startup with
         // its index named, instead of the app running on an empty catalog.
+        // Uniqueness is checked alongside the per-entry rules rather than after them, so a file
+        // with both problems reports the first one in file order either way.
+        var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var normalisedNames = new HashSet<string>(StringComparer.Ordinal);
+
         for (int i = 0; i < list.Count; i++)
         {
             var c = list[i];
@@ -56,6 +61,23 @@ public static class CatalogLoader
             if (c.TargetQty < 0)
                 throw new InvalidDataException(
                     $"catalog.json entry \"{c.Key}\" has a negative \"targetQty\".");
+
+            // The one rule that spans entries, and so the one the per-entry loop above could never
+            // have caught. Case-insensitively, to match the deserializer this file deliberately
+            // configured that way.
+            if (!keys.Add(c.Key))
+                throw new InvalidDataException(
+                    $"catalog.json entry {i} repeats the key \"{c.Key}\", which must be unique.");
+
+            // Names matter as much as keys, because they are what the catalog is joined to
+            // inventory on: MainViewModel builds a lookup keyed by the normalised name, and two
+            // entries reducing to one key throw there instead - once per second, on the background
+            // inventory poll, a long way from the file that caused it.
+            var normalised = ShipLockerReader.Normalize(c.Name);
+            if (!normalisedNames.Add(normalised))
+                throw new InvalidDataException(
+                    $"catalog.json entry \"{c.Key}\" has a \"name\" of \"{c.Name}\", which is not " +
+                    "distinct from an earlier entry's once punctuation and case are ignored.");
         }
 
         return list;

@@ -31,15 +31,35 @@ internal static class JsonHelpers
     public static int? GetInt32Any(this JsonElement element, params string[] names) =>
         element.TryGetAny(out var v, names) && v.TryGetInt32(out var n) ? n : null;
 
-    /// <summary>EDDN's "timestamp"/"Timestamp" field parsed to UTC, or now if missing/malformed -
-    /// every handler needs a timestamp regardless, so falling back rather than skipping the
-    /// message keeps that decision in one place.</summary>
-    public static DateTime GetTimestampUtc(this JsonElement message) =>
-        message.TryGetAny(out var ts, "timestamp", "Timestamp")
-            && ts.ValueKind == JsonValueKind.String
-            && DateTime.TryParse(ts.GetString(), out var parsed)
-            ? parsed.ToUniversalTime()
-            : DateTime.UtcNow;
+    /// <summary>
+    /// EDDN's "timestamp"/"Timestamp" field parsed to UTC, or now if missing, malformed or dated
+    /// into the future - every handler needs a timestamp regardless, so falling back rather than
+    /// skipping the message keeps that decision in one place.
+    /// </summary>
+    /// <remarks>
+    /// The future clamp is what stops a publisher claiming the year 3000 and pinning a row against
+    /// every later, real update: the storage layer refuses to let a listing go backwards in time
+    /// (see <see cref="Storage.RelayDb.UpsertMaterialListing"/>), which makes this value an
+    /// authority signal, and it is chosen entirely by whoever sent the message. An hour of slack
+    /// covers a publisher whose clock is genuinely out without leaving that open. A timestamp in
+    /// the past needs no such treatment - a delayed message is ordinary, and being old only ever
+    /// costs it the argument against fresher data.
+    /// </remarks>
+    private static readonly TimeSpan MaxClockSkew = TimeSpan.FromHours(1);
+
+    public static DateTime GetTimestampUtc(this JsonElement message)
+    {
+        var now = DateTime.UtcNow;
+        if (!message.TryGetAny(out var ts, "timestamp", "Timestamp")
+            || ts.ValueKind != JsonValueKind.String
+            || !DateTime.TryParse(ts.GetString(), out var parsed))
+        {
+            return now;
+        }
+
+        var utc = parsed.ToUniversalTime();
+        return utc > now + MaxClockSkew ? now : utc;
+    }
 
     /// <summary>True if the message's StationType/stationType field names a fleet carrier.</summary>
     public static bool IsFleetCarrierStationType(this JsonElement message) =>

@@ -32,6 +32,12 @@ public static class PendingSearchStore
     /// <summary>Sanity ceiling on a saved target, far above any real shopping list.</summary>
     private const int MaxTarget = 100_000;
 
+    /// <summary>
+    /// Ceiling on the file itself. <see cref="MaxEntries"/> names of <see cref="MaxNameLength"/>
+    /// characters is well under a hundred kilobytes, so this is far above any file this app wrote.
+    /// </summary>
+    private const long MaxFileBytes = 1 * 1024 * 1024;
+
     private static string FilePath =>
         Path.Combine(AppContext.BaseDirectory, "Data", "pending-search.json");
 
@@ -50,7 +56,22 @@ public static class PendingSearchStore
     {
         try
         {
-            if (!File.Exists(FilePath)) return null;
+            var file = new FileInfo(FilePath);
+            if (!file.Exists) return null;
+
+            // Checked before reading rather than after. Take(MaxEntries) and the length checks
+            // below all run on an object that already exists, so what they bound is what gets
+            // returned, not what gets allocated getting there - a hundred-megabyte file was read
+            // and parsed in full and only then trimmed to five hundred entries. This is also what
+            // makes the catch below's type list complete: the memory-exhaustion case it does not
+            // name is the one this stops happening.
+            if (file.Length > MaxFileBytes)
+            {
+                DiagnosticLog.Note(
+                    $"Pending search file is {file.Length:N0} bytes, over the {MaxFileBytes:N0} " +
+                    "byte limit; starting fresh.");
+                return null;
+            }
 
             var data = JsonSerializer.Deserialize<PendingSearchData>(File.ReadAllText(FilePath));
             if (data is null) return null;

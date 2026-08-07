@@ -1,5 +1,4 @@
 ﻿using System.Net.Http;
-using System.Text;
 using System.Text.Json;
 using FleetView.Models;
 
@@ -84,7 +83,7 @@ public sealed class RelayMarketSource : ICarrierMarketSource
 
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+        var c = new HttpClient(BoundedHttp.CreateHandler()) { Timeout = TimeSpan.FromSeconds(15) };
         c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         return c;
     }
@@ -105,26 +104,33 @@ public sealed class RelayMarketSource : ICarrierMarketSource
         using var timed = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timed.CancelAfter(BoundedHttp.DefaultDeadline);
 
-        using var response = await Http.GetAsync(requested, HttpCompletionOption.ResponseHeadersRead, timed.Token)
-            .ConfigureAwait(false);
-        response.EnsureSuccessStatusCode();
         // The https-only base URL checked in the constructor only decides where the first request
-        // goes; a redirect would otherwise deliver the answer from anywhere.
+        // goes; a redirect would otherwise deliver the answer from anywhere. BoundedHttp.GetAsync
+        // checks each hop before following it, rather than the chain being walked inside HttpClient
+        // and only the destination being judged afterwards.
+        using var response = await BoundedHttp.GetAsync(Http, requested, timed.Token).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
         BoundedHttp.RejectUnusable(response, requested, MaxResponseBytes);
 
         await using var stream = await response.Content.ReadAsStreamAsync(timed.Token).ConfigureAwait(false);
         await using var bounded = BoundedHttp.Limit(stream, MaxResponseBytes);
-        var dtos = await JsonSerializer
-            .DeserializeAsync<List<ListingDto>>(bounded, JsonOptions, timed.Token)
-            .ConfigureAwait(false);
-        if (dtos is null) return Array.Empty<CarrierListing>();
 
         var now = DateTime.Now;
-        var listings = new List<CarrierListing>(Math.Min(dtos.Count, MaxListings));
+        var listings = new List<CarrierListing>();
+        bool truncated = false;
 
-        foreach (var d in dtos)
+        // Streamed rather than deserialized into a List first. MaxListings used to be checked in
+        // the loop below, which is after the whole array already exists as objects - eight megabytes
+        // of minimal JSON is six figures of rows, so the cap that was meant to bound the work was
+        // only ever bounding what got kept. Stopping the enumeration stops the parse.
+        var rows = JsonSerializer.DeserializeAsyncEnumerable<ListingDto>(bounded, JsonOptions, timed.Token);
+        await foreach (var d in rows.ConfigureAwait(false))
         {
-            if (listings.Count >= MaxListings) break;
+            if (listings.Count >= MaxListings)
+            {
+                truncated = true;
+                break;
+            }
             if (d is null) continue;
 
             // Nothing between the deserializer and here decided these were present. The DTO
@@ -153,42 +159,24 @@ public sealed class RelayMarketSource : ICarrierMarketSource
             });
         }
 
-        if (dtos.Count > MaxListings)
+        // Reports what was kept, not what was sent: the parse stops at the cap, so how many rows
+        // the relay actually had is no longer something this app finds out. Saying so is the point
+        // of the note - silently keeping a prefix reads as a complete answer.
+        if (truncated)
             DiagnosticLog.Note(
-                $"Relay returned {dtos.Count:N0} rows for {dir}; kept the first {MaxListings:N0}.");
+                $"Relay returned more than {MaxListings:N0} rows for {dir}; kept the first " +
+                $"{MaxListings:N0} and stopped reading.");
 
         return listings;
     }
 
     /// <summary>
     /// Reduces one field of an answer to something safe to put in a grid cell: never null, capped
-    /// at <see cref="MaxFieldLength"/>, and with control characters and the bidirectional
-    /// overrides removed. Those overrides can reorder a line as displayed without changing the
-    /// text, which is worth denying in a name shown next to a price the user is about to fly to.
+    /// at <see cref="MaxFieldLength"/>, and with the invisible formatting characters removed. Those
+    /// can reorder a line as displayed without changing the text, which is worth denying in a name
+    /// shown next to a price the user is about to fly to. See <see cref="SafeText"/> for the set.
     /// </summary>
-    private static string Clean(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return "";
-
-        var span = value.Length <= MaxFieldLength ? value.AsSpan() : value.AsSpan(0, MaxFieldLength);
-        var sb = new StringBuilder(span.Length);
-        foreach (var ch in span)
-        {
-            if (char.IsControl(ch) || IsBidiControl(ch)) continue;
-            sb.Append(ch);
-        }
-        return sb.ToString().Trim();
-    }
-
-    /// <summary>
-    /// LRM/RLM, the LRE..RLO embedding set, and the LRI..PDI isolate set. Written as code points
-    /// rather than character literals on purpose: these are invisible, so a literal one here would
-    /// be a line of source nobody can read or review.
-    /// </summary>
-    private static bool IsBidiControl(char ch) =>
-        ch is (char)0x200E or (char)0x200F                 // LRM, RLM
-           or (>= (char)0x202A and <= (char)0x202E)        // LRE, RLE, PDF, LRO, RLO
-           or (>= (char)0x2066 and <= (char)0x2069);       // LRI, RLI, FSI, PDI
+    private static string Clean(string? value) => SafeText.Clean(value, MaxFieldLength);
 
     /// <summary>Turns a TimeSpan into friendly text, e.g. "11 minutes ago".</summary>
     public static string FormatAge(TimeSpan age)

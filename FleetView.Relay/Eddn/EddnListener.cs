@@ -53,6 +53,12 @@ public sealed class EddnListener : BackgroundService
             try
             {
                 using var socket = new SubscriberSocket();
+                // Set before connecting, so the transport itself refuses an oversized message
+                // rather than handing us one to measure. The length check in HandleRawMessage runs
+                // after TryReceiveFrameBytes has already materialised the whole frame, which is one
+                // allocation too late to be the thing protecting this process from it; it stays as
+                // the backstop for anything that arrives under the socket's limit but over ours.
+                socket.Options.MaxMsgSize = MaxRawFrameBytes;
                 socket.Connect(RelayUrl);
                 socket.SubscribeToAnyTopic();
                 _log.LogInformation("Connected to EDDN at {Url}", RelayUrl);
@@ -62,7 +68,7 @@ public sealed class EddnListener : BackgroundService
 
                 while (!ct.IsCancellationRequested)
                 {
-                    if (!socket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out var raw))
+                    if (!socket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out var raw, out bool more))
                     {
                         if (DateTime.UtcNow - lastMessageUtc > StaleThreshold)
                         {
@@ -71,6 +77,13 @@ public sealed class EddnListener : BackgroundService
                         }
                         continue;
                     }
+
+                    // EDDN sends one frame per message today, so this normally does nothing. If it
+                    // ever sent a multipart one, reading only the first frame would leave the rest
+                    // queued and every later receive would return the tail of the previous message
+                    // instead of the head of the next - the stream would silently desynchronise
+                    // rather than fail.
+                    DrainRemainingFrames(socket, more);
 
                     lastMessageUtc = DateTime.UtcNow;
                     try
@@ -100,6 +113,18 @@ public sealed class EddnListener : BackgroundService
         }
     }
 
+    /// <summary>Reads and discards the remaining frames of a multipart message, so the next
+    /// receive starts on a message boundary.</summary>
+    private void DrainRemainingFrames(SubscriberSocket socket, bool more)
+    {
+        int discarded = 0;
+        while (more && socket.TryReceiveFrameBytes(TimeSpan.FromSeconds(1), out _, out more))
+            discarded++;
+
+        if (discarded > 0)
+            _log.LogWarning("Discarded {Count} trailing frame(s) of a multipart EDDN message", discarded);
+    }
+
     private void HandleRawMessage(byte[] raw)
     {
         if (raw.Length > MaxRawFrameBytes)
@@ -119,26 +144,65 @@ public sealed class EddnListener : BackgroundService
         string schemaRef = root.GetStringAny("$schemaRef") ?? "";
         if (!root.TryGetAny(out var message, "message")) return;
 
-        if (schemaRef.Contains("commodity/3", StringComparison.OrdinalIgnoreCase)
-            || schemaRef.Contains("commodity-v3", StringComparison.OrdinalIgnoreCase))
+        switch (SchemaNameOf(schemaRef))
         {
-            CommodityV3Handler.Handle(message, _db);
+            case "commodity/3":
+            case "commodity-v3":
+                CommodityV3Handler.Handle(message, _db);
+                break;
+            case "fcmaterials_journal/1":
+            case "fcmaterials_capi/1":
+                FcMaterialsHandler.Handle(message, _db, _catalog);
+                break;
+            case "journal/1":
+                // Distinct from "fcmaterials_journal/1" above - that ends in "_journal/1" (no slash
+                // before "journal"), this one is the plain "journal/1" schema.
+                JournalHandler.Handle(message, _db);
+                break;
+            case "dockingdenied/1":
+                DockingDeniedHandler.Handle(message, _db);
+                break;
         }
-        else if (schemaRef.Contains("fcmaterials_journal", StringComparison.OrdinalIgnoreCase)
-            || schemaRef.Contains("fcmaterials_capi", StringComparison.OrdinalIgnoreCase))
-        {
-            FcMaterialsHandler.Handle(message, _db, _catalog);
-        }
-        else if (schemaRef.Contains("/journal/1", StringComparison.OrdinalIgnoreCase))
-        {
-            // Distinct from "fcmaterials_journal/1" above - that ends in "_journal/1" (no slash
-            // before "journal"), this one is the plain "journal/1" schema.
-            JournalHandler.Handle(message, _db);
-        }
-        else if (schemaRef.Contains("dockingdenied", StringComparison.OrdinalIgnoreCase))
-        {
-            DockingDeniedHandler.Handle(message, _db);
-        }
+    }
+
+    private const string SchemaHost = "eddn.edcd.io";
+    private const string SchemaPath = "/schemas/";
+
+    /// <summary>
+    /// The schema name and version from a <c>$schemaRef</c>, or "" if it is not one of EDDN's own.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This value is chosen by whoever published the message, and the dispatch above used
+    /// <c>Contains</c> on it - so a ref of "https://example.invalid/commodity/3-and-anything-else"
+    /// routed to the commodity handler, and a publisher could pick which handler read their payload
+    /// independently of what the payload actually was. Anchoring to EDDN's own schema host and
+    /// comparing the remainder exactly is what makes the ref name a schema rather than merely
+    /// contain the name of one.
+    /// </para>
+    /// <para>
+    /// Parsed as a URI and matched on host and path rather than against a literal string prefix.
+    /// The scheme is deliberately not part of the test: getting it wrong would not fail loudly, it
+    /// would ingest nothing at all and look exactly like a quiet firehose, and the host is what
+    /// carries the meaning here in any case.
+    /// </para>
+    /// <para>
+    /// EDDN appends "/test" to a ref for messages from its test channel. Those were accepted before
+    /// this change (a substring match cannot tell them apart) and still are, so what gets ingested
+    /// is unchanged - only the routing is now decided by the whole value rather than a fragment.
+    /// </para>
+    /// </remarks>
+    private static string SchemaNameOf(string schemaRef)
+    {
+        if (!Uri.TryCreate(schemaRef, UriKind.Absolute, out var uri)) return "";
+        if (!uri.Host.Equals(SchemaHost, StringComparison.OrdinalIgnoreCase)) return "";
+        if (!uri.AbsolutePath.StartsWith(SchemaPath, StringComparison.OrdinalIgnoreCase)) return "";
+
+        var name = uri.AbsolutePath.AsSpan(SchemaPath.Length);
+        if (name.EndsWith("/test", StringComparison.OrdinalIgnoreCase))
+            name = name[..^"/test".Length];
+
+        return name.ToString().ToLowerInvariant();
     }
 
     /// <summary>Copies src into dest, throwing once the total exceeds maxBytes - guards against a

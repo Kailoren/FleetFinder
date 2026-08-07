@@ -134,18 +134,41 @@ public sealed class ShipLockerReader
     /// (briefly) empty from the game truncating it mid-rewrite. Never throws; returns false if
     /// valid JSON still can't be obtained after retrying, so callers can just skip the refresh.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Retrying is for a file being written right now. A file that is simply not valid JSON is not
+    /// going to become valid by waiting, and this runs on the UI thread from the one-second
+    /// inventory poll - so a permanently malformed ShipLocker.json cost six attempts and six tenths
+    /// of a second of frozen window, every second, forever. The file's size and write time are
+    /// checked between attempts: unchanged means the writer is not mid-write, so a parse failure is
+    /// the file's actual content and there is nothing to wait for.
+    /// </para>
+    /// <para>
+    /// Giving up is also recorded now. Returning an empty dictionary made an unreadable file look
+    /// exactly like an empty locker, which is the one failure that produces a confidently wrong
+    /// answer rather than a missing one - the app would say a component was still needed while the
+    /// commander was carrying it.
+    /// </para>
+    /// </remarks>
     private static bool TryReadJson(string path, out JsonDocument? doc, int attempts = 6)
     {
         doc = null;
+        (long Length, DateTime Written) previous = (-1, DateTime.MinValue);
 
         for (int i = 0; i < attempts; i++)
         {
             if (i > 0) Thread.Sleep(120);
 
+            bool unchangedSinceLastAttempt = false;
+
             try
             {
                 var info = new FileInfo(path);
                 if (!info.Exists) return false;
+
+                var current = (info.Length, info.LastWriteTimeUtc);
+                unchangedSinceLastAttempt = current == previous;
+                previous = current;
 
                 // Checked before opening, and enforced again while reading. This file's size is
                 // whatever another process wrote, the read used to be a ReadToEnd into a string
@@ -173,7 +196,14 @@ public sealed class ShipLockerReader
             }
             catch (JsonException)
             {
-                continue; // partially-written JSON, retry
+                // A file that has not changed since the previous attempt is not being written, so
+                // this is what it contains rather than a snapshot taken mid-write.
+                if (!unchangedSinceLastAttempt) continue;
+
+                DiagnosticLog.Note(
+                    "ShipLocker file is not valid JSON and is not currently being written; " +
+                    "inventory not read.");
+                return false;
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException
                                            or System.Security.SecurityException)
@@ -186,6 +216,11 @@ public sealed class ShipLockerReader
             }
         }
 
+        // Every attempt was spent on a file that kept changing under us, or that stayed locked.
+        // Recorded for the same reason as the malformed case: an empty result reads as an empty
+        // locker, and the two need telling apart.
+        DiagnosticLog.Note(
+            $"ShipLocker file could not be read after {attempts} attempts; inventory not read.");
         return false;
     }
 

@@ -133,7 +133,30 @@ public sealed class MainViewModel : ObservableObject
 
     // ---- Inventory ------------------------------------------------------------------------
 
+    /// <summary>
+    /// Rebuilds the inventory-derived state from ShipLocker.json.
+    /// </summary>
+    /// <remarks>
+    /// Guarded as a whole because of how it is called. The user-initiated path is one button, but
+    /// the file watcher and the one-second poll in <see cref="SetupWatcher"/> both invoke it
+    /// unattended, so an exception from anywhere in here escapes to the dispatcher handler - which
+    /// shows its three dialogs and then goes quiet, once per second, for as long as the app is
+    /// open. Failing one refresh is the right outcome; the next tick rebuilds from the file again.
+    /// </remarks>
     public void RefreshInventory()
+    {
+        try
+        {
+            RefreshInventoryCore();
+        }
+        catch (Exception ex)
+        {
+            DiagnosticLog.Crash(ex);
+            Status = "Couldn't read the inventory just then; will try again on the next update.";
+        }
+    }
+
+    private void RefreshInventoryCore()
     {
         // Single source of truth for "have we already seen this write", both the file watcher
         // and the polling fallback in SetupWatcher funnel through here, so this is the one place
@@ -621,16 +644,27 @@ public sealed class MainViewModel : ObservableObject
 
         try
         {
-            var info = new FileInfo(dlg.FileName);
-            if (info.Length > MaxImportFileBytes)
+            // Opened once and read through a limit, rather than the size being sampled from the
+            // path and the file then opened again. The two statements addressed the file
+            // separately, so what was measured and what was read were not guaranteed to be the same
+            // bytes - a file still being written, or one in a synced folder, can grow in between.
+            using var fs = new FileStream(dlg.FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            if (fs.Length > MaxImportFileBytes)
             {
-                Status = $"{Path.GetFileName(dlg.FileName)} is too large ({info.Length / 1024} KB) " +
+                Status = $"{Path.GetFileName(dlg.FileName)} is too large ({fs.Length / 1024} KB) " +
                          "to be a real wishlist export, not loading it.";
                 return;
             }
 
-            ImportText = File.ReadAllText(dlg.FileName);
+            using var bounded = BoundedHttp.Limit(fs, MaxImportFileBytes);
+            using var reader = new StreamReader(bounded);
+            ImportText = reader.ReadToEnd();
             Status = $"Loaded {Path.GetFileName(dlg.FileName)}.";
+        }
+        catch (InvalidDataException)
+        {
+            Status = $"{Path.GetFileName(dlg.FileName)} grew past " +
+                     $"{MaxImportFileBytes / 1024} KB while being read, not loading it.";
         }
         catch (Exception ex)
         {
@@ -737,10 +771,12 @@ public sealed class MainViewModel : ObservableObject
 
         // Defense in depth: _updateUrl is GitHub's own computed html_url from the releases API, so
         // this should always be true, but don't shell-open a network-sourced value without checking
-        // it actually points at GitHub first.
+        // it actually points at this project's releases first. Deliberately the same predicate
+        // UpdateChecker applied when it stored the value, rather than a second hand-written copy of
+        // it - the copy that used to be here checked the host and not the user-info segment, so the
+        // two checks disagreed about what they were both supposed to be enforcing.
         if (!Uri.TryCreate(_updateUrl, UriKind.Absolute, out var uri)
-            || uri.Scheme != Uri.UriSchemeHttps
-            || !uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase))
+            || !UpdateChecker.IsThisRepository(uri))
         {
             return;
         }
@@ -901,8 +937,21 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>Normalized component name -> a per-row figure (StillNeeded or Have), for stamping
     /// onto "where to buy"/"where to sell" listings (both a fresh search and a live inventory
     /// refresh use this).</summary>
-    private Dictionary<string, int> BuildByNorm(Func<ComponentRow, int> selector) =>
-        Components.ToDictionary(c => ShipLockerReader.Normalize(c.Name), selector);
+    /// <remarks>
+    /// Built by assignment rather than <c>ToDictionary</c>, which throws on a duplicate key. Two
+    /// catalog names that differ only in punctuation or case normalise to the same string, so that
+    /// throw was a bad catalog.json surfacing here - on the background inventory poll, once a
+    /// second, a long way from the file responsible. CatalogLoader now refuses such a file at
+    /// startup and names the entry; this is the second half of the same fix, so that a catalog
+    /// which somehow gets past it costs a shadowed row rather than a repeating fault.
+    /// </remarks>
+    private Dictionary<string, int> BuildByNorm(Func<ComponentRow, int> selector)
+    {
+        var map = new Dictionary<string, int>(Components.Count, StringComparer.Ordinal);
+        foreach (var c in Components)
+            map[ShipLockerReader.Normalize(c.Name)] = selector(c);
+        return map;
+    }
 
     /// <summary>
     /// Whether a fetch failure is the kind worth retrying in a moment (relay busy, relay

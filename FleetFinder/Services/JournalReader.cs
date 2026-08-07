@@ -241,19 +241,13 @@ public sealed partial class JournalReader
     /// label, the EDSM query this name is escaped into, the normaliser that sizes a buffer from
     /// its length - treats a PlayerLocation as this app's own data, so this is where it stops
     /// being a string from a file another process wrote and becomes something with known limits.
+    ///
+    /// Shared with the relay-answer path rather than filtering here, which used to drop only
+    /// <see cref="char.IsControl"/> characters: that leaves the right-to-left override and the
+    /// zero-width joiners, which are what actually let a name render as something other than what
+    /// it says. Truncation is <see cref="SafeText"/>'s too, so the 128-character cut cannot land
+    /// inside a surrogate pair.
     /// </remarks>
-    private static string CleanSystemName(string? raw)
-    {
-        if (string.IsNullOrEmpty(raw)) return "";
-
-        var span = raw.Length <= MaxSystemNameLength
-            ? raw.AsSpan()
-            : raw.AsSpan(0, MaxSystemNameLength);
-
-        var sb = new StringBuilder(span.Length);
-        foreach (var ch in span)
-            if (!char.IsControl(ch)) sb.Append(ch);
-
-        return sb.ToString().Trim();
-    }
+    private static string CleanSystemName(string? raw) =>
+        SafeText.Clean(raw, MaxSystemNameLength);
 }

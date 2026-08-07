@@ -11,6 +11,7 @@ builder.Services.AddSingleton(new RelayDb(dbPath));
 builder.Services.AddSingleton(new ComponentCatalog(
     Path.Combine(AppContext.BaseDirectory, "Data", "catalog.json")));
 builder.Services.AddHostedService<EddnListener>();
+builder.Services.AddHostedService<RetentionService>();
 
 // /listings is public and unauthenticated by design, so it has no per-caller identity to
 // partition on (Caddy fronts it as a reverse proxy, and forwarded-header trust isn't configured

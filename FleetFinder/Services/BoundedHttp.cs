@@ -31,6 +31,71 @@ internal static class BoundedHttp
     public static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(30);
 
     /// <summary>
+    /// Most redirects one call will follow. Generous for the endpoints this app uses, all of which
+    /// answer directly, and far below the fifty hops <see cref="HttpClient"/> allows by default.
+    /// </summary>
+    private const int MaxRedirects = 5;
+
+    /// <summary>
+    /// The handler every <see cref="HttpClient"/> in this app is built on.
+    /// </summary>
+    /// <remarks>
+    /// Automatic redirect following is turned off deliberately. With it on, the intermediate
+    /// requests happen inside the awaited <c>GetAsync</c> call, so every check in this app - which
+    /// hosts are acceptable, what a URL is allowed to look like - runs against the final response,
+    /// after this app has already contacted whatever the chain pointed at. Refusing the answer
+    /// afterwards does not undo the request that fetched it. <see cref="GetAsync"/> walks the chain
+    /// itself instead, checking each hop before it is followed.
+    /// </remarks>
+    public static HttpClientHandler CreateHandler() => new() { AllowAutoRedirect = false };
+
+    /// <summary>
+    /// GETs <paramref name="requested"/>, following redirects only to the same origin and only up
+    /// to <see cref="MaxRedirects"/> times. The returned response's headers have been read; its
+    /// body has not.
+    /// </summary>
+    /// <remarks>
+    /// The origin is compared against the URL originally asked for, not against the previous hop,
+    /// so a chain cannot walk somewhere a hop at a time. The caller still owns the response and
+    /// must dispose it.
+    /// </remarks>
+    public static async Task<HttpResponseMessage> GetAsync(
+        HttpClient http, Uri requested, CancellationToken ct)
+    {
+        var next = requested;
+
+        for (int hop = 0; ; hop++)
+        {
+            var response = await http
+                .GetAsync(next, HttpCompletionOption.ResponseHeadersRead, ct)
+                .ConfigureAwait(false);
+
+            if (!IsRedirect(response.StatusCode)) return response;
+
+            // Disposed here rather than left to the caller: this one is being discarded in favour
+            // of the hop it names, and its body is never read.
+            var location = response.Headers.Location;
+            response.Dispose();
+
+            if (hop >= MaxRedirects)
+                throw new InvalidDataException(
+                    $"Request to {Origin(requested)} was redirected more than {MaxRedirects} times.");
+
+            if (location is null)
+                throw new InvalidDataException(
+                    $"Request to {Origin(requested)} was redirected without saying where to.");
+
+            // Relative Locations are legal and common, and resolving against the current hop is
+            // what a browser does. Absolute ones are checked below either way.
+            next = location.IsAbsoluteUri ? location : new Uri(next, location);
+            RejectOtherOrigin(next, requested);
+        }
+    }
+
+    private static bool IsRedirect(System.Net.HttpStatusCode status) =>
+        (int)status is >= 300 and < 400;
+
+    /// <summary>
     /// GETs <paramref name="url"/> and returns the body, or throws once it passes
     /// <paramref name="maxBytes"/> or <see cref="DefaultDeadline"/>.
     /// </summary>
@@ -48,9 +113,7 @@ internal static class BoundedHttp
         timed.CancelAfter(deadline);
         var token = timed.Token;
 
-        using var response = await http
-            .GetAsync(requested, HttpCompletionOption.ResponseHeadersRead, token)
-            .ConfigureAwait(false);
+        using var response = await GetAsync(http, requested, token).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
         RejectUnusable(response, requested, maxBytes);
@@ -90,41 +153,60 @@ internal static class BoundedHttp
     }
 
     /// <summary>
-    /// Refuses an answer that came from a different host or scheme than the one asked for.
+    /// Refuses an answer that came from a different origin than the one asked for.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Redirects are followed automatically - up to fifty hops - and every check in this app runs
-    /// against the final response, so without this the callers' own restrictions decide only where
-    /// the first request goes. RelayMarketSource refuses a base URL that is not https, and
-    /// UpdateChecker refuses a release URL that is not on github.com; a single 302 from either
-    /// endpoint would otherwise have this app read its answer from wherever it was sent, having
-    /// passed both.
+    /// The per-hop check in <see cref="GetAsync"/> is what actually stops this app contacting
+    /// somewhere it did not intend to. This stays as the check on the response finally accepted,
+    /// which is a different question and worth asking separately: the callers' own restrictions
+    /// (RelayMarketSource refuses a base URL that is not https, UpdateChecker refuses a release URL
+    /// that is not on github.com) decide only where the first request goes.
     /// </para>
     /// <para>
-    /// Same-host redirects are allowed, so an endpoint that reorganises its own paths keeps
-    /// working. No credentials are sent on any of these requests, so what matters is which host
+    /// Same-origin redirects are allowed, so an endpoint that reorganises its own paths keeps
+    /// working. No credentials are sent on any of these requests, so what matters is which origin
     /// the answer is accepted <em>from</em>, and that is what the final URI records.
     /// </para>
     /// </remarks>
     private static void RejectRedirectedElsewhere(HttpResponseMessage response, Uri requested)
     {
-        // Set by HttpClient on every response and updated as redirects are followed. Refused
-        // rather than skipped when absent: this is the only evidence of where the answer came
-        // from, and "could not tell" is not a reason to accept it.
+        // Set by HttpClient on every response. Refused rather than skipped when absent: this is
+        // the only evidence of where the answer came from, and "could not tell" is not a reason to
+        // accept it.
         var final = response.RequestMessage?.RequestUri;
         if (final is null)
             throw new InvalidDataException(
                 $"Could not confirm the answer to {requested.Host} came from {requested.Host}.");
 
-        if (!string.Equals(final.Host, requested.Host, StringComparison.OrdinalIgnoreCase)
-            || !string.Equals(final.Scheme, requested.Scheme, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidDataException(
-                $"Request to {requested.Scheme}://{requested.Host} was redirected to " +
-                $"{final.Scheme}://{final.Host}, which this app does not accept an answer from.");
-        }
+        RejectOtherOrigin(final, requested);
     }
+
+    /// <summary>
+    /// Throws unless <paramref name="candidate"/> is on the same origin as <paramref name="requested"/>.
+    /// </summary>
+    /// <remarks>
+    /// An origin is scheme, host <em>and</em> port. The port used to be left out, which made
+    /// "same host" the whole test - so a redirect from an endpoint to another service listening on
+    /// a different port of the same machine read as staying put. On a shared host that is a
+    /// different party's service; on our own relay's box it is the plain-HTTP listener that exists
+    /// for older builds. Neither is the thing that was asked.
+    /// </remarks>
+    private static void RejectOtherOrigin(Uri candidate, Uri requested)
+    {
+        if (string.Equals(candidate.Scheme, requested.Scheme, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(candidate.Host, requested.Host, StringComparison.OrdinalIgnoreCase)
+            && candidate.Port == requested.Port)
+        {
+            return;
+        }
+
+        throw new InvalidDataException(
+            $"Request to {Origin(requested)} was redirected to {Origin(candidate)}, " +
+            "which this app does not accept an answer from.");
+    }
+
+    private static string Origin(Uri uri) => uri.GetLeftPart(UriPartial.Authority);
 
     private static bool IsTextual(string mediaType) =>
         mediaType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)

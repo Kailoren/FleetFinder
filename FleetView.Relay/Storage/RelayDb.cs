@@ -69,8 +69,34 @@ public sealed class RelayDb
     // cap in EddnListener. Real values here (callsigns, system names, carrier/component names) are
     // always short - clamping at write time keeps a hostile or malformed message from bloating the
     // database or being echoed back to every FleetFinder client unbounded.
-    private static string? Clamp(string? s, int maxLen) =>
-        string.IsNullOrEmpty(s) || s.Length <= maxLen ? s : s[..maxLen];
+    //
+    // The cut is backed off a character when it would land between a surrogate pair. A .NET string
+    // is UTF-16, so a name whose 128th code unit is the first half of an emoji or a supplementary
+    // character would otherwise be stored ending in a lone surrogate - not well-formed text, and
+    // handed on verbatim by QueryListings to every client that asks.
+    private static string? Clamp(string? s, int maxLen)
+    {
+        if (string.IsNullOrEmpty(s) || s.Length <= maxLen) return s;
+        int cut = maxLen;
+        if (char.IsHighSurrogate(s[cut - 1])) cut--;
+        return s[..cut];
+    }
+
+    /// <summary>
+    /// Longest component key stored. Keys are already normalised to lower-case alphanumerics by
+    /// <see cref="ComponentKey"/>, and the real catalog's longest is 25 characters; the listings
+    /// endpoint drops anything over this length before querying, so a longer key could only ever
+    /// occupy a primary key nothing can look up again. Rejected rather than truncated - truncating
+    /// would file a row under a key that is not the one reported.
+    /// </summary>
+    private const int MaxComponentKeyLength = 64;
+
+    /// <summary>The only two directions this schema has. Both are chosen by the calling handler
+    /// rather than read from a message, so this is a guard against a future caller, not against
+    /// the feed - but it is the other half of the primary key and it was the one field arriving
+    /// unchecked.</summary>
+    private static bool IsKnownDirection(string direction) =>
+        direction is "Selling" or "Buying";
 
     /// <summary>Upserts carrier identity/location fields learned from a commodity-v3 message.</summary>
     public void UpsertCarrierFromCommodity(
@@ -189,12 +215,22 @@ public sealed class RelayDb
         long marketId, string componentKey, string componentName, string direction,
         int amount, long price, DateTime updatedUtc)
     {
+        // Both halves of the primary key are checked here rather than assumed. ComponentKey is the
+        // one untrusted value in this method that Clamp never covered, and it is the field the row
+        // is filed under - a bad one is not a long string in a column, it is a row nothing can find.
+        if (componentKey.Length == 0 || componentKey.Length > MaxComponentKeyLength) return;
+        if (!IsKnownDirection(direction)) return;
+
         componentName = Clamp(componentName, 128) ?? "";
 
         using var conn = Open();
         using var cmd = conn.CreateCommand();
         if (amount > 0)
         {
+            // The UpdatedUtc comparison is what stops a replayed or back-dated message from
+            // overwriting fresher data. EDDN messages carry their own timestamp and are not
+            // authenticated, so the feed decides the value this ordering is judged on; refusing to
+            // go backwards is the part that can be enforced here.
             cmd.CommandText = """
                 INSERT INTO MaterialListings
                     (MarketId, ComponentKey, ComponentName, Direction, Amount, Price, UpdatedUtc)
@@ -204,7 +240,8 @@ public sealed class RelayDb
                     ComponentName = excluded.ComponentName,
                     Amount = excluded.Amount,
                     Price = excluded.Price,
-                    UpdatedUtc = excluded.UpdatedUtc;
+                    UpdatedUtc = excluded.UpdatedUtc
+                WHERE excluded.UpdatedUtc >= MaterialListings.UpdatedUtc;
                 """;
         }
         else
@@ -212,7 +249,8 @@ public sealed class RelayDb
             cmd.CommandText = """
                 UPDATE MaterialListings
                 SET ComponentName = $name, Amount = $amount, Price = $price, UpdatedUtc = $updated
-                WHERE MarketId = $marketId AND ComponentKey = $key AND Direction = $direction;
+                WHERE MarketId = $marketId AND ComponentKey = $key AND Direction = $direction
+                  AND $updated >= UpdatedUtc;
                 """;
         }
         cmd.Parameters.AddWithValue("$marketId", marketId);
@@ -239,37 +277,124 @@ public sealed class RelayDb
     public void ClearUnreportedListings(
         long marketId, string direction, IReadOnlyCollection<string> reportedKeys, DateTime updatedUtc)
     {
-        using var conn = Open();
-        using var cmd = conn.CreateCommand();
+        if (!IsKnownDirection(direction)) return;
 
-        if (reportedKeys.Count == 0)
+        string updated = updatedUtc.ToString("o");
+
+        using var conn = Open();
+
+        // Which of this carrier's rows the report leaves out is worked out here rather than in SQL.
+        // The obvious statement is one UPDATE with the reported keys in a NOT IN clause, but that
+        // binds one parameter per reported key, and the report is an EDDN message whose item count
+        // nothing bounds on the wire - past SQLite's own variable limit the statement is simply
+        // refused. It also cannot be split: NOT IN over half the keys zeroes the rows named in the
+        // other half, so several statements do not add up to the one they replace.
+        //
+        // Reading the keys that are actually stored inverts it into an IN clause over the rows that
+        // really are stale, which is bounded by what this database already holds for one carrier
+        // and one direction, and which does split cleanly across statements - each batch zeroes its
+        // own rows and nothing else's.
+        var stale = new List<string>();
+        using (var existing = conn.CreateCommand())
         {
-            cmd.CommandText = """
-                UPDATE MaterialListings SET Amount = 0, UpdatedUtc = $updated
-                WHERE MarketId = $marketId AND Direction = $direction AND Amount > 0;
+            existing.CommandText = """
+                SELECT ComponentKey FROM MaterialListings
+                WHERE MarketId = $marketId AND Direction = $direction AND Amount > 0
+                  AND $updated >= UpdatedUtc;
                 """;
+            existing.Parameters.AddWithValue("$marketId", marketId);
+            existing.Parameters.AddWithValue("$direction", direction);
+            existing.Parameters.AddWithValue("$updated", updated);
+
+            using var reader = existing.ExecuteReader();
+            while (reader.Read())
+            {
+                string key = reader.GetString(0);
+                if (!reportedKeys.Contains(key)) stale.Add(key);
+            }
         }
-        else
+
+        if (stale.Count == 0) return;
+
+        // One transaction, so a report either clears everything it should or nothing: with the keys
+        // split across several statements, a failure partway through would otherwise leave some of
+        // this carrier's stale rows zeroed and the rest not.
+        using var tx = conn.BeginTransaction();
+        foreach (var batch in Batched(stale, MaxSqlParameters))
         {
-            var placeholders = new string[reportedKeys.Count];
-            int i = 0;
-            foreach (var key in reportedKeys)
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+
+            var placeholders = new string[batch.Count];
+            for (int i = 0; i < batch.Count; i++)
             {
                 string p = $"$k{i}";
                 placeholders[i] = p;
-                cmd.Parameters.AddWithValue(p, key);
-                i++;
+                cmd.Parameters.AddWithValue(p, batch[i]);
             }
             cmd.CommandText = $"""
                 UPDATE MaterialListings SET Amount = 0, UpdatedUtc = $updated
                 WHERE MarketId = $marketId AND Direction = $direction AND Amount > 0
-                  AND ComponentKey NOT IN ({string.Join(",", placeholders)});
+                  AND $updated >= UpdatedUtc
+                  AND ComponentKey IN ({string.Join(",", placeholders)});
                 """;
+            cmd.Parameters.AddWithValue("$marketId", marketId);
+            cmd.Parameters.AddWithValue("$direction", direction);
+            cmd.Parameters.AddWithValue("$updated", updated);
+            cmd.ExecuteNonQuery();
         }
-        cmd.Parameters.AddWithValue("$marketId", marketId);
-        cmd.Parameters.AddWithValue("$direction", direction);
-        cmd.Parameters.AddWithValue("$updated", updatedUtc.ToString("o"));
-        cmd.ExecuteNonQuery();
+        tx.Commit();
+    }
+
+    /// <summary>
+    /// How many keys go into one <c>IN</c> clause. SQLite refuses a statement past its own variable
+    /// limit - 999 on older builds, 32,766 since 3.32 - and this stays under the smaller of the two
+    /// rather than depending on which one the deployed build enforces.
+    /// </summary>
+    private const int MaxSqlParameters = 500;
+
+    private static IEnumerable<IReadOnlyList<string>> Batched(List<string> items, int size)
+    {
+        for (int i = 0; i < items.Count; i += size)
+            yield return items.GetRange(i, Math.Min(size, items.Count - i));
+    }
+
+    /// <summary>
+    /// Drops listing rows not refreshed since <paramref name="olderThanUtc"/>, and carriers left
+    /// with no listings and no sighting since then.
+    /// </summary>
+    /// <remarks>
+    /// Nothing else in this schema ever deletes. A carrier that stops broadcasting keeps its rows
+    /// for good, and every distinct component key that has ever arrived from the feed keeps a row
+    /// per carrier per direction - so the database's size is a function of everything EDDN has ever
+    /// said rather than of what is currently true. Queries already exclude what is stale, which is
+    /// why this had no visible symptom; the file growing without bound is the symptom.
+    /// </remarks>
+    public int PruneStale(DateTime olderThanUtc)
+    {
+        string cutoff = olderThanUtc.ToString("o");
+
+        using var conn = Open();
+        using var tx = conn.BeginTransaction();
+
+        using var listings = conn.CreateCommand();
+        listings.Transaction = tx;
+        listings.CommandText = "DELETE FROM MaterialListings WHERE UpdatedUtc < $cutoff;";
+        listings.Parameters.AddWithValue("$cutoff", cutoff);
+        int removed = listings.ExecuteNonQuery();
+
+        using var carriers = conn.CreateCommand();
+        carriers.Transaction = tx;
+        carriers.CommandText = """
+            DELETE FROM Carriers
+            WHERE LastSeenUtc < $cutoff
+              AND MarketId NOT IN (SELECT DISTINCT MarketId FROM MaterialListings);
+            """;
+        carriers.Parameters.AddWithValue("$cutoff", cutoff);
+        removed += carriers.ExecuteNonQuery();
+
+        tx.Commit();
+        return removed;
     }
 
     /// <summary>
@@ -289,6 +414,13 @@ public sealed class RelayDb
     public IReadOnlyList<ListingRow> QueryListings(IReadOnlyList<string> componentKeys, string direction)
     {
         if (componentKeys.Count == 0) return Array.Empty<ListingRow>();
+        if (!IsKnownDirection(direction)) return Array.Empty<ListingRow>();
+
+        // ListingsEndpoint already caps a request at 200 keys, well under this. Repeated here so
+        // the statement this method builds is bounded by this method, rather than by a constant in
+        // the one caller that happens to exist today.
+        if (componentKeys.Count > MaxSqlParameters)
+            componentKeys = componentKeys.Take(MaxSqlParameters).ToList();
 
         using var conn = Open();
         using var cmd = conn.CreateCommand();

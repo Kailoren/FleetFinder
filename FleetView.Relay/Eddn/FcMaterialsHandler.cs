@@ -17,6 +17,18 @@ namespace FleetView.Relay.Eddn;
 /// </summary>
 public static class FcMaterialsHandler
 {
+    /// <summary>
+    /// Most items one report may list. The bartender's whole catalog is under a hundred entries, so
+    /// this is far above any real message.
+    /// </summary>
+    /// <remarks>
+    /// The frame caps in <see cref="EddnListener"/> bound a message's bytes, not its item count,
+    /// and an item is only a few dozen bytes - so four megabytes of them is six figures of entries,
+    /// each one a database write and a key in the set handed to
+    /// <see cref="RelayDb.ClearUnreportedListings"/>. Counted rather than trusted to be sane.
+    /// </remarks>
+    private const int MaxItems = 1000;
+
     public static void Handle(JsonElement message, RelayDb db, ComponentCatalog catalog)
     {
         long? marketId = message.GetInt64Any("MarketID", "marketId");
@@ -34,8 +46,10 @@ public static class FcMaterialsHandler
             // fcmaterials_journal shape: flat array of { id, Name, Price, Stock, Demand }, each
             // entry covering both directions at once.
             var seenKeys = new HashSet<string>();
+            int seenItems = 0;
             foreach (var item in itemsEl.EnumerateArray())
             {
+                if (++seenItems > MaxItems) return;
                 string key = UpsertBothDirections(db, catalog, marketId.Value, item, updatedUtc,
                     nameNames: new[] { "Name_Localised", "Name", "name" },
                     priceNames: new[] { "Price", "price" },
@@ -46,37 +60,60 @@ public static class FcMaterialsHandler
             // Anything previously listed but missing from this fresh report is no longer offered
             // (see ClearUnreportedListings) - the game omits items entirely rather than listing
             // them at 0 once the whole bartender empties out.
-            db.ClearUnreportedListings(marketId.Value, "Selling", seenKeys, updatedUtc);
-            db.ClearUnreportedListings(marketId.Value, "Buying", seenKeys, updatedUtc);
+            if (!ClearWouldBeUnfounded(seenItems, seenKeys.Count))
+            {
+                db.ClearUnreportedListings(marketId.Value, "Selling", seenKeys, updatedUtc);
+                db.ClearUnreportedListings(marketId.Value, "Buying", seenKeys, updatedUtc);
+            }
         }
         else if (itemsEl.ValueKind == JsonValueKind.Object)
         {
             // fcmaterials_capi shape: { sales: [] | {"0": {...}, ...}, purchases: [{...}, ...] }.
             var sellKeys = new HashSet<string>();
+            int sellItems = 0;
             if (itemsEl.TryGetAny(out var salesEl, "sales", "Sales"))
                 foreach (var item in EnumerateArrayOrObjectValues(salesEl))
                 {
+                    if (++sellItems > MaxItems) return;
                     string key = UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Selling",
                         nameNames: new[] { "name", "Name", "Name_Localised" },
                         priceNames: new[] { "price", "Price" },
                         amountNames: new[] { "stock", "Stock" });
                     if (key.Length > 0) sellKeys.Add(key);
                 }
-            db.ClearUnreportedListings(marketId.Value, "Selling", sellKeys, updatedUtc);
+            if (!ClearWouldBeUnfounded(sellItems, sellKeys.Count))
+                db.ClearUnreportedListings(marketId.Value, "Selling", sellKeys, updatedUtc);
 
             var buyKeys = new HashSet<string>();
+            int buyItems = 0;
             if (itemsEl.TryGetAny(out var purchasesEl, "purchases", "Purchases"))
                 foreach (var item in EnumerateArrayOrObjectValues(purchasesEl))
                 {
+                    if (++buyItems > MaxItems) return;
                     string key = UpsertOneDirection(db, catalog, marketId.Value, item, updatedUtc, "Buying",
                         nameNames: new[] { "name", "Name", "Name_Localised" },
                         priceNames: new[] { "price", "Price" },
                         amountNames: new[] { "outstanding", "Outstanding" });
                     if (key.Length > 0) buyKeys.Add(key);
                 }
-            db.ClearUnreportedListings(marketId.Value, "Buying", buyKeys, updatedUtc);
+            if (!ClearWouldBeUnfounded(buyItems, buyKeys.Count))
+                db.ClearUnreportedListings(marketId.Value, "Buying", buyKeys, updatedUtc);
         }
     }
+
+    /// <summary>
+    /// True when a report listed items but none of them yielded a usable key, in which case
+    /// clearing would be acting on a report this build could not actually read.
+    /// </summary>
+    /// <remarks>
+    /// An empty key set means "this carrier offers nothing", which is a real state worth recording
+    /// and is why a genuinely empty Items array still clears. It is also what a report of a hundred
+    /// unrecognised names reduces to, and those two are not the same claim: the first is the feed
+    /// saying the bartender is empty, the second is this build failing to parse a bartender that is
+    /// not. Told apart by whether there were items to begin with.
+    /// </remarks>
+    private static bool ClearWouldBeUnfounded(int itemsSeen, int keysRecognised) =>
+        itemsSeen > 0 && keysRecognised == 0;
 
     private static string UpsertBothDirections(
         RelayDb db, ComponentCatalog catalog, long marketId, JsonElement item, DateTime updatedUtc,

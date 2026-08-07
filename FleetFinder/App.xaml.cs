@@ -18,6 +18,8 @@ public partial class App : Application
         DispatcherUnhandledException += (_, args) =>
         {
             DiagnosticLog.Crash(args.Exception);
+            if (!IsRecoverable(args.Exception)) return;
+
             ReportUnexpectedError();
             args.Handled = true;
         };
@@ -132,6 +134,29 @@ public partial class App : Application
     /// state on the next pass rather than continuing from a half-finished one.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Whether an exception that reached the dispatcher is one this app can carry on after.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The reasoning in <see cref="ReportUnexpectedError"/> - that an escaping exception is almost
+    /// always one action failing, and ending the process would discard a session's results over
+    /// something the next tick recovers from - holds for the exceptions this app actually produces.
+    /// It does not hold for the ones that say the process itself is no longer sound. Marking those
+    /// handled does not recover anything; it continues on a runtime that has already said it
+    /// cannot, and the next thing to go wrong does so with the original cause a long way back.
+    /// </para>
+    /// <para>
+    /// <see cref="StackOverflowException"/> is not in the list because it cannot be caught at all -
+    /// the runtime ends the process without consulting any handler, which is why the buffer sizing
+    /// in ShipLockerReader and ComponentKey is written the way it is.
+    /// </para>
+    /// </remarks>
+    private static bool IsRecoverable(Exception ex) => ex is not (OutOfMemoryException
+        or InsufficientExecutionStackException
+        or System.Runtime.InteropServices.SEHException
+        or AccessViolationException);
+
     private static void ReportUnexpectedError()
     {
         if (_errorDialogsShown >= MaxErrorDialogs) return;

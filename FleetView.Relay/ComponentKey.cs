@@ -16,7 +16,10 @@ public static class ComponentKey
     public static string Normalize(string? s)
     {
         if (string.IsNullOrEmpty(s) || s.Length > MaxNameLength) return "";
-        Span<char> buf = stackalloc char[s.Length];
+        // Sized from the constant, not from s.Length. The guard above already bounds the input, so
+        // the two are equivalent at runtime - but a buffer whose size is a literal cannot be argued
+        // about, and it stops this reading like the very pattern the guard exists to prevent.
+        Span<char> buf = stackalloc char[MaxNameLength];
         int n = 0;
         foreach (var ch in s)
             if (char.IsLetterOrDigit(ch)) buf[n++] = char.ToLowerInvariant(ch);

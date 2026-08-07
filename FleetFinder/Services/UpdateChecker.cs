@@ -32,7 +32,7 @@ public static class UpdateChecker
 
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+        var c = new HttpClient(BoundedHttp.CreateHandler()) { Timeout = TimeSpan.FromSeconds(10) };
         // GitHub's API rejects requests with no User-Agent header.
         c.DefaultRequestHeaders.UserAgent.ParseAdd("FleetFinder-UpdateCheck");
         c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
@@ -93,28 +93,52 @@ public static class UpdateChecker
     /// anything else falls back to <see cref="ReleasesPageUrl"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// This value's whole purpose is to be handed to the shell when the user clicks the update
     /// banner, so what it is allowed to be matters more than that it is non-null - the null check
     /// this replaced let through <c>file://</c>, a UNC path and any registered custom scheme
     /// alike. MainViewModel.OpenUpdate checks the same thing again at the point it opens: this is
     /// a value from someone else's server that gets stored, and the two checks are one apiece for
     /// the trust boundary it crosses and the action it ends at.
+    /// </para>
+    /// <para>
+    /// Exactly github.com, and exactly this repository's path. The suffix match this replaced
+    /// admitted every github.com subdomain - user content, gists, pages - when what is being
+    /// checked is a link to one project's releases, and the fallback constant right above already
+    /// names it. Narrowing the host to a whole site was never what the check needed to allow.
+    /// </para>
     /// </remarks>
     private static string SafeReleaseUrl(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return ReleasesPageUrl;
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)) return ReleasesPageUrl;
-        if (uri.Scheme != Uri.UriSchemeHttps) return ReleasesPageUrl;
-
-        bool onGitHub = uri.Host.Equals(ReleasesHost, StringComparison.OrdinalIgnoreCase)
-            || uri.Host.EndsWith("." + ReleasesHost, StringComparison.OrdinalIgnoreCase);
+        if (!IsThisRepository(uri)) return ReleasesPageUrl;
 
         // The parsed Uri, not the string it was parsed from. Returning the original meant the
         // value that got checked and the value that got used were two different things, and any
         // disagreement between the parser and the consumer about where that string points would
         // land on the side that was never checked.
-        return onGitHub ? uri.AbsoluteUri : ReleasesPageUrl;
+        return uri.AbsoluteUri;
     }
+
+    /// <summary>Path every release of this project lives under.</summary>
+    private const string ReleasesPathPrefix = "/Kailoren/FleetFinder/";
+
+    /// <summary>
+    /// True if <paramref name="uri"/> is an https link into this project's own GitHub repository.
+    /// </summary>
+    /// <remarks>
+    /// The user-info check is the one that is easy to miss. <c>Host</c> for
+    /// "https://accounts.example.com@github.com/x" is github.com, so a host comparison passes,
+    /// while the string a user sees in the address bar leads with somebody else's domain - and
+    /// <c>AbsoluteUri</c> keeps that segment, so the value handed to the shell is not the value the
+    /// check reasoned about. A release link has no business carrying credentials either way.
+    /// </remarks>
+    internal static bool IsThisRepository(Uri uri) =>
+        uri.Scheme == Uri.UriSchemeHttps
+        && string.IsNullOrEmpty(uri.UserInfo)
+        && uri.Host.Equals(ReleasesHost, StringComparison.OrdinalIgnoreCase)
+        && uri.AbsolutePath.StartsWith(ReleasesPathPrefix, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The tag as shown in the update banner, reduced to characters a version tag can contain and

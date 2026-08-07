@@ -51,9 +51,9 @@ public static class WindowStateStore
 
             return bounds with
             {
-                FindCarriersSplit = UsableSplit(bounds.FindCarriersSplit),
-                ModificationsSplit = UsableSplit(bounds.ModificationsSplit),
-                ImportSplit = UsableSplit(bounds.ImportSplit),
+                FindCarriersSplit = UsableSplit(bounds.FindCarriersSplit, bounds.Width),
+                ModificationsSplit = UsableSplit(bounds.ModificationsSplit, bounds.Width),
+                ImportSplit = UsableSplit(bounds.ImportSplit, bounds.Width),
             };
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -68,17 +68,70 @@ public static class WindowStateStore
         && b.Width >= MinWidth && b.Width <= MaxExtent
         && b.Height >= MinHeight && b.Height <= MaxExtent;
 
-    /// <summary>A splitter width is dropped rather than rejecting the whole file - the columns
-    /// have their own MinWidth and fall back to the XAML default individually.</summary>
-    private static double? UsableSplit(double? value) =>
-        value is double w && double.IsFinite(w) && w > 0 && w <= MaxExtent ? w : null;
+    /// <summary>Smallest remainder a splitter must leave for the pane on the other side of it.</summary>
+    private const double MinRemainingPane = 200;
 
+    /// <summary>
+    /// A splitter width is dropped rather than rejecting the whole file - the columns have their
+    /// own MinWidth and fall back to the XAML default individually.
+    /// </summary>
+    /// <remarks>
+    /// Bounded against the window it belongs to, not against <see cref="MaxExtent"/>. That constant
+    /// is a whole-desktop coordinate ceiling, so a splitter of 90,000 passed as "in range" while
+    /// being far wider than any window it could sit in, and the comment claiming the columns'
+    /// MinWidth compensated described a control that only works the other way - MinWidth stops a
+    /// pane being squeezed to nothing, not the pane beside it being pushed off the edge.
+    /// </remarks>
+    /// <summary>
+    /// Drops any splitter width that is not a finite number, so the three nullable fields cannot
+    /// carry a NaN into the serializer after <see cref="IsUsable"/> has cleared the four that
+    /// matter. A column that has never been measured reports NaN for its width.
+    /// </summary>
+    private static WindowBounds Finite(WindowBounds b) => b with
+    {
+        FindCarriersSplit = FiniteOrNull(b.FindCarriersSplit),
+        ModificationsSplit = FiniteOrNull(b.ModificationsSplit),
+        ImportSplit = FiniteOrNull(b.ImportSplit),
+    };
+
+    private static double? FiniteOrNull(double? value) =>
+        value is double v && double.IsFinite(v) ? v : null;
+
+    private static double? UsableSplit(double? value, double windowWidth) =>
+        value is double w
+        && double.IsFinite(w)
+        && w > 0
+        && w <= MaxExtent
+        && w <= windowWidth - MinRemainingPane
+            ? w
+            : null;
+
+    /// <summary>
+    /// Writes the current bounds, or does nothing if they are not values worth restoring.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The finite check is not decoration. A <see cref="Window"/> that has not been laid out yet
+    /// reports NaN for Left, Top, Width and Height, and <c>JsonSerializer</c> refuses to write NaN
+    /// or an infinity - it throws <see cref="ArgumentException"/>, which is not in the type list
+    /// below, so it escaped from a method documented as best effort, out of the Closing handler
+    /// that calls it, and into the dispatcher. A window that failed to lay out is exactly the case
+    /// where the app is already in trouble, and adding an error dialog to the way out is no help.
+    /// </para>
+    /// <para>
+    /// Refusing to write is also the correct outcome on its own terms: <see cref="Load"/> rejects
+    /// non-finite values anyway, so the alternative is a file written now to be discarded on the
+    /// next launch, replacing whatever usable bounds were saved before it.
+    /// </para>
+    /// </remarks>
     public static void Save(WindowBounds bounds)
     {
+        if (!IsUsable(bounds)) return;
+
         try
         {
             Directory.CreateDirectory(Path.Combine(AppContext.BaseDirectory, "Data"));
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(bounds));
+            File.WriteAllText(FilePath, JsonSerializer.Serialize(Finite(bounds)));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

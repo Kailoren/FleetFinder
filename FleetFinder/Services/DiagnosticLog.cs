@@ -39,8 +39,31 @@ public static class DiagnosticLog
         Path.Combine(AppContext.BaseDirectory, "Data", "fleetview-crash.log");
 
     /// <summary>Records an unhandled exception (startup failure or dispatcher exception).</summary>
+    /// <remarks>
+    /// The dump is scrubbed of the user's profile directory first. Every other entry point here
+    /// takes text the caller judged safe to record, precisely so this file can be handed to someone
+    /// else - and this one writes <c>ex.ToString()</c>, which carries whatever paths the exception
+    /// and its stack frames mention. A failed read of ShipLocker.json names it in full, and that
+    /// path contains the Windows account name.
+    /// </remarks>
     public static void Crash(Exception ex) =>
-        Write($"CRASH{Environment.NewLine}{Indent(ex.ToString())}");
+        Write($"CRASH{Environment.NewLine}{Indent(Scrub(ex.ToString()))}");
+
+    /// <summary>
+    /// Replaces the user's profile directory with <c>%USERPROFILE%</c> wherever it appears.
+    /// </summary>
+    /// <remarks>
+    /// Not a general redactor, and not claimed to be one: it removes the identifier that this app's
+    /// own paths reliably contain - the account name, via Saved Games, AppData and the desktop -
+    /// and leaves everything else as written. A stack trace is still a stack trace.
+    /// </remarks>
+    private static string Scrub(string text)
+    {
+        var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return string.IsNullOrEmpty(profile)
+            ? text
+            : text.Replace(profile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     /// Records a condition that was handled and deliberately not shown to the user: a file that
@@ -70,14 +93,48 @@ public static class DiagnosticLog
     /// </remarks>
     public static void Note(string message)
     {
+        message = SafeText.SingleLine(message);
+
         lock (Gate)
         {
             var now = DateTime.UtcNow;
             if (Noted.TryGetValue(message, out var last) && now - last < NoteRepeatWindow)
                 return;
+
+            ForgetExpiredNotes(now);
             Noted[message] = now;
         }
         Write($"NOTE  {message}");
+    }
+
+    /// <summary>
+    /// Most distinct messages the repeat-suppression table will hold. Caller holds
+    /// <see cref="Gate"/>.
+    /// </summary>
+    /// <remarks>
+    /// The table is keyed by the caller's own text, and several callers interpolate a value into
+    /// it - a filename, a byte count, a URL. Nothing ever removed an entry, so a message carrying
+    /// something that varies (a ShipLocker.json whose size changes every time it is written, on a
+    /// once-per-second poll) added a new key each time and the table grew for as long as the app
+    /// stayed open. Expired entries are dropped first, since an entry past its window has no effect
+    /// on anything; the cap is what covers the case where they are all still live.
+    /// </remarks>
+    private const int MaxNotedMessages = 500;
+
+    private static void ForgetExpiredNotes(DateTime now)
+    {
+        if (Noted.Count < MaxNotedMessages) return;
+
+        foreach (var key in Noted.Where(kv => now - kv.Value >= NoteRepeatWindow)
+                                 .Select(kv => kv.Key).ToList())
+        {
+            Noted.Remove(key);
+        }
+
+        // Every entry is still inside its window. Suppression is a courtesy rather than a
+        // guarantee, so the table is emptied rather than allowed past the cap - the worst outcome
+        // is that a handful of messages are recorded once more than they would have been.
+        if (Noted.Count >= MaxNotedMessages) Noted.Clear();
     }
 
     /// <summary>How long an identical <see cref="Note"/> is suppressed for after being recorded.
@@ -100,7 +157,7 @@ public static class DiagnosticLog
     {
         var sb = new StringBuilder();
         sb.AppendLine($"FETCH FAILED  {direction}  {componentCount} component(s)  {elapsed.TotalSeconds:0.0}s");
-        sb.AppendLine($"  source : {source}");
+        sb.AppendLine($"  source : {SafeText.SingleLine(source)}");
         sb.AppendLine($"  status : {DescribeStatus(ex)}");
         sb.AppendLine($"  error  : {Describe(ex)}");
         foreach (var inner in InnerChain(ex))
@@ -117,7 +174,7 @@ public static class DiagnosticLog
     {
         var sb = new StringBuilder();
         sb.AppendLine($"FETCH OK, 0 rows  {direction}  {componentCount} component(s)  {elapsed.TotalSeconds:0.0}s");
-        sb.AppendLine($"  source : {source}");
+        sb.AppendLine($"  source : {SafeText.SingleLine(source)}");
         Write(sb.ToString().TrimEnd());
     }
 
@@ -141,10 +198,18 @@ public static class DiagnosticLog
     /// <summary>Type name plus message, with the socket error code spelled out where there is one
     /// - HostNotFound, ConnectionRefused and TimedOut all surface as the same generic
     /// HttpRequestException message otherwise.</summary>
+    /// <remarks>
+    /// The message is flattened to one line first. This file is line-oriented - one timestamped
+    /// entry per line - and an exception message is not always this app's own text: a JsonException
+    /// quotes what it failed to parse, which for a market fetch is a server's response body. A
+    /// newline in there would end the entry and let the rest of it pose as further ones, in the
+    /// file a user is invited to send on when reporting a problem.
+    /// </remarks>
     private static string Describe(Exception ex) => ex switch
     {
-        SocketException se => $"{se.GetType().Name} ({se.SocketErrorCode}): {se.Message}",
-        _ => $"{ex.GetType().Name}: {ex.Message}"
+        SocketException se =>
+            $"{se.GetType().Name} ({se.SocketErrorCode}): {SafeText.SingleLine(se.Message)}",
+        _ => $"{ex.GetType().Name}: {SafeText.SingleLine(ex.Message)}"
     };
 
     private static IEnumerable<string> InnerChain(Exception ex)
@@ -192,17 +257,30 @@ public static class DiagnosticLog
                $"| session started {DateTime.Now:s} ===={Environment.NewLine}";
     }
 
-    /// <summary>Caller holds <see cref="Gate"/>.</summary>
+    /// <summary>
+    /// Caller holds <see cref="Gate"/>. Swallows its own failures.
+    /// </summary>
+    /// <remarks>
+    /// Its own try/catch, rather than sharing <see cref="Write"/>'s. Trimming and appending sat in
+    /// one block, so a trim that threw - the file locked by a text editor the user opened to read
+    /// it, most plausibly - skipped the append underneath it and discarded the entry that had
+    /// prompted the write. Housekeeping failing is not a reason to lose the thing being recorded;
+    /// the file grows past its ceiling until a later trim succeeds, which is the lesser problem.
+    /// </remarks>
     private static void TrimIfOversize()
     {
-        var info = new FileInfo(FilePath);
-        if (!info.Exists || info.Length <= MaxBytes) return;
+        try
+        {
+            var info = new FileInfo(FilePath);
+            if (!info.Exists || info.Length <= MaxBytes) return;
 
-        var text = File.ReadAllText(FilePath);
-        File.WriteAllText(FilePath,
-            $"(older entries trimmed){Environment.NewLine}{text[(text.Length / 2)..]}");
-        // The trim may have taken the session header with it; re-stamp on the next write so the
-        // remaining entries still say which build produced them.
-        _headerWritten = false;
+            var text = File.ReadAllText(FilePath);
+            File.WriteAllText(FilePath,
+                $"(older entries trimmed){Environment.NewLine}{text[(text.Length / 2)..]}");
+            // The trim may have taken the session header with it; re-stamp on the next write so the
+            // remaining entries still say which build produced them.
+            _headerWritten = false;
+        }
+        catch { /* trimming is maintenance; the entry still has to be written */ }
     }
 }
