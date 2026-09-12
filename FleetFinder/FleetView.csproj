@@ -13,6 +13,29 @@
     <Version>2.2.8</Version>
   </PropertyGroup>
 
+  <!--
+    How this app is published, stated here rather than left to whoever types the command.
+
+    These only take effect on publish, so a normal build is unaffected. They live here because
+    forgetting one of them does not fail: it produces an exe that looks finished and is not.
+    IncludeNativeLibrariesForSelfExtract was missed on a rebuild in September 2026, which left
+    WPF's five native DLLs (PresentationNative_cor3, wpfgfx_cor3, D3DCompiler_47_cor3, PenImc_cor3,
+    vcruntime140_cor3) sitting beside the exe instead of inside it. The publish step copies the exe
+    and the Data folder and nothing else, so those DLLs never reached the install and the app died
+    with DllNotFoundException the moment WPF created its first window - eight megabytes smaller and
+    no crash log, because the failure is inside a native window procedure where nothing managed can
+    catch it.
+
+    RuntimeIdentifier is deliberately NOT set here. SelfContained without one fails the publish
+    loudly, which is the right outcome; pinning it would also make every ordinary build
+    RID-specific for no benefit.
+  -->
+  <PropertyGroup>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <!-- No .pdb in a published build. Symbols carry the build machine's source paths, local
          variable names and line numbers, none of which a downloaded release needs. Debug builds
@@ -64,5 +87,21 @@
          item (for runtime use) and an ApplicationIcon (for the file itself). -->
     <Resource Include="Assets\FleetFinderIcon.ico"/>
   </ItemGroup>
+
+  <!--
+    Fails the publish if WPF's native libraries ended up beside the exe rather than inside it.
+
+    This is the check that would have caught the September 2026 breakage at build time. It looks at
+    the actual output rather than at the property above, so an override on the command line is
+    caught too. The app cannot report this itself: the failure happens in a native window
+    procedure, so it never reaches the handler that writes the crash log.
+  -->
+  <Target Name="EnsureSingleFileIsSelfContained" AfterTargets="Publish">
+    <ItemGroup>
+      <StrayNativeLibrary Include="$(PublishDir)*_cor3.dll" />
+    </ItemGroup>
+    <Error Condition="'@(StrayNativeLibrary)' != ''"
+           Text="Publish left native libraries beside the exe (@(StrayNativeLibrary->'%(Filename)%(Extension)', ', ')). The exe is not self-contained, and publishing copies only the exe and Data, so the app would fail at startup with DllNotFoundException. Publish with IncludeNativeLibrariesForSelfExtract=true." />
+  </Target>
 
 </Project>
