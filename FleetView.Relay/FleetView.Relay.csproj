@@ -17,12 +17,12 @@
 
   <ItemGroup>
     <PackageReference Include="NetMQ" Version="4.0.4.2" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.10" />
-    <!-- Microsoft.Data.Sqlite 10.0.10 still transitively pins SQLitePCLRaw.lib.e_sqlite3 2.1.11,
-         which bundles a SQLite build affected by CVE-2025-6965 (GHSA-2m69-gcr7-jv3q, memory
-         corruption when aggregate terms exceed available columns, fixed upstream in SQLite
-         3.50.2). Pinned directly here to the current build until Microsoft.Data.Sqlite's own
-         transitive reference catches up. -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <!-- Pinned directly because Microsoft.Data.Sqlite 10.0.10 pulled SQLitePCLRaw.lib.e_sqlite3
+         2.1.11, which bundles a SQLite build affected by CVE-2025-6965 (GHSA-2m69-gcr7-jv3q,
+         memory corruption when aggregate terms exceed available columns, fixed upstream in SQLite
+         3.50.2). 10.0.12 pulls 2.1.12 instead, which is not flagged, but the pin stays: 3.53.3 is
+         newer still and is the native build the live relay has run since July. -->
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
   </ItemGroup>
 
