@@ -36,6 +36,8 @@ public static class ListingsEndpoint
             if (keyList.Length == 0) return Results.Ok(Array.Empty<ListingRow>());
 
             return Results.Ok(db.QueryListings(keyList, dir));
-        }).RequireRateLimiting("listings");
+        });
+        // Rate limited by the global limiter in Api/RateLimiting.cs (per client, then the old
+        // global window), which applies to this path only. It replaced the "listings" policy.
     }
 }

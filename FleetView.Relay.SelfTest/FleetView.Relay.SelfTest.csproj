@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RootNamespace>FleetView.Relay.SelfTest</RootNamespace>
+  </PropertyGroup>
+
+  <!-- No packages of its own. The rate-limit checks start the real relay binary and talk to it
+       over loopback, because an in-process test host would need a NuGet package. -->
+  <ItemGroup>
+    <ProjectReference Include="..\FleetView.Relay\FleetView.Relay.csproj" />
+    <!-- The relay already brings ASP.NET Core in at run time. Naming it here as well lets NuGet
+         prune the packages that framework ships, like the System.Security.Cryptography.Xml NetMQ
+         asks for, which would otherwise resolve as a flagged package in this project only. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+</Project>
