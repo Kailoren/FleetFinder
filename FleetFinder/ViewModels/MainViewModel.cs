@@ -984,18 +984,37 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Whether the relay refused the request for being over its rate limit (HTTP 429).
+    /// </summary>
+    /// <remarks>
+    /// Told apart from the other transient failures because the right advice differs: the relay
+    /// is up and answering, it just will not take more from this address until its one-minute
+    /// window reopens, so "try again shortly" undersells the wait and "unreachable" is wrong.
+    /// </remarks>
+    private static bool IsRelayBusy(Exception ex)
+    {
+        for (Exception? e = ex; e != null; e = e.InnerException)
+        {
+            if (e is HttpRequestException { StatusCode: { } code } && (int)code == 429)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Fetches listings for one market direction, resolves distances, optionally stamps the
     /// "Needed" or "Have" figure (mutually exclusive, Needed only makes sense buy-side, Have only
     /// sell-side), and groups them into one row per carrier/station. Shared by both halves of
     /// <see cref="SearchSelectedAsync"/> so "where to buy" and "where to sell" run the exact same
     /// pipeline, just with a different component set / direction / which figure applies.
     /// </summary>
-    private async Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)> FetchGroupedListingsAsync(
+    private async Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited, bool Busy)> FetchGroupedListingsAsync(
         List<Component> components, MarketDirection direction, bool stampNeeded, bool stampHave)
     {
         List<CarrierListing> collected = new();
         bool failed = false;
         bool rateLimited = false;
+        bool busy = false;
         // Both branches below log to Data\fleetview-crash.log. The on-screen wording is the same
         // for every cause ("couldn't fetch prices"), which makes a user's report unactionable on
         // its own, so the actual cause is recorded for them to send on.
@@ -1016,6 +1035,7 @@ public sealed class MainViewModel : ObservableObject
             timer.Stop();
             failed = true;
             rateLimited = IsTransient(ex);
+            busy = IsRelayBusy(ex);
             DiagnosticLog.FetchFailed(verb, components.Count, _market.SourceDescription, timer.Elapsed, ex);
         }
 
@@ -1058,7 +1078,7 @@ public sealed class MainViewModel : ObservableObject
             .OrderBy(g => g.MinAge)
             .ToList();
 
-        return (groups, failed, rateLimited);
+        return (groups, failed, rateLimited, busy);
     }
 
     /// <summary>
@@ -1080,8 +1100,8 @@ public sealed class MainViewModel : ObservableObject
         NoResultsFound = false;
         NoSellResultsFound = false;
 
-        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)>? buyTask = null;
-        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)>? sellTask = null;
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited, bool Busy)>? buyTask = null;
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited, bool Busy)>? sellTask = null;
 
         // Both fetches are started here (before either is awaited below), so they run concurrently
         // against the relay rather than one waiting on the other.
@@ -1120,18 +1140,20 @@ public sealed class MainViewModel : ObservableObject
     /// halves of <see cref="SearchSelectedAsync"/> so "where to buy" and "where to sell" report
     /// identically.</summary>
     private static async Task<string> CollectSearchResultsAsync(
-        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited)> task,
+        Task<(List<CarrierGroupRow> Groups, bool Failed, bool RateLimited, bool Busy)> task,
         ObservableCollection<CarrierGroupRow> target, ICollectionView view, string verb, int requestedCount,
         Action clearBusy, Action<bool> setNoResults)
     {
         try
         {
-            var (groups, failed, rateLimited) = await task;
+            var (groups, failed, rateLimited, busy) = await task;
             foreach (var g in groups) target.Add(g);
             int carriers = target.Count(g => g.IsFleetCarrier);
             string label = char.ToUpperInvariant(verb[0]) + verb[1..];
             string status = failed
-                ? (rateLimited ? $"{label}: relay unreachable, try again shortly." : $"{label}: couldn't fetch prices.")
+                ? (busy ? $"{label}: the relay is busy, try again in a minute."
+                    : rateLimited ? $"{label}: relay unreachable, try again shortly."
+                    : $"{label}: couldn't fetch prices.")
                 : $"{target.Count} place(s) to {verb} ({carriers} fleet carriers) across {requestedCount} component(s).";
             setNoResults(!failed && target.Count == 0);
             return status;

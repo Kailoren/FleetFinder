@@ -1,4 +1,5 @@
-﻿using System.Net.Http;
+﻿using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using FleetView.Models;
 
@@ -81,9 +82,21 @@ public sealed class RelayMarketSource : ICarrierMarketSource
 
     public string SourceDescription => _baseUrl;
 
+    /// <remarks>
+    /// Asks for gzip: Caddy in front of the relay compresses when asked, and a catalog-wide answer
+    /// is mostly repeated field names and system names. The handler undoes the compression before
+    /// anything here reads the body, so <see cref="MaxResponseBytes"/> and
+    /// <see cref="BoundedHttp.Limit"/> count decompressed bytes, which is what bounds the parse and
+    /// what stops a small compressed reply that inflates to something huge. The declared
+    /// Content-Length is dropped along with Content-Encoding when the handler decompresses, so the
+    /// early check in <see cref="BoundedHttp.RejectUnusable"/> only applies to uncompressed
+    /// replies; the limit while reading still applies to both.
+    /// </remarks>
     private static HttpClient CreateClient()
     {
-        var c = new HttpClient(BoundedHttp.CreateHandler()) { Timeout = TimeSpan.FromSeconds(15) };
+        var handler = BoundedHttp.CreateHandler();
+        handler.AutomaticDecompression = DecompressionMethods.GZip;
+        var c = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         c.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         return c;
     }
