@@ -8,7 +8,6 @@
 [![License](https://img.shields.io/github/license/kailoren/fleetfinder?style=plastic)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows-blue?style=plastic)
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T3N624MRS4)
 
 A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carriers trading the engineering components you still need, tracks what you already hold, and lets you plan suit and weapon builds without doing the searching yourself.
 
@@ -73,3 +72,5 @@ FleetFinder relies on Frontier's unofficial, undocumented Companion API (cAPI) a
 I do not condone or support any use of FleetFinder for malicious, abusive, or harassing purposes, or for any activity that violates Frontier's Terms of Service or End User License Agreement. Users are solely responsible for ensuring their use of this tool complies with all applicable terms and laws.
 
 This software is provided "as is," without warranty of any kind, express or implied. Use at your own risk.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T3N624MRS4)
