@@ -50,7 +50,9 @@ Components only get updated to EDDN **when a cmdr opens the bartender commodity 
 
 ## Installing
 
-Download the latest release, then run `FleetFinder.exe`. Keep the `Data` folder that comes with it in the same place as the exe. No installer and nothing else to set up, it's a single self-contained program.
+Download the [latest release](https://github.com/Kailoren/FleetFinder/releases/latest). Grab the FleetFinder zip under **Assets**, not the "Source code" links, which are just the code and don't include the program.
+
+Unzip it anywhere, then run `FleetFinder.exe`. Keep the `Data` folder that comes with it in the same place as the exe. No installer and nothing else to set up, it's a single self-contained program.
 
 FleetFinder checks this repo's releases on launch and lets you know in the title bar when a newer version is available.
 
