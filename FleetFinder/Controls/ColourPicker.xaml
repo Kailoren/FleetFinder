@@ -1,0 +1,221 @@
+<UserControl x:Class="FleetView.Controls.ColourPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:FleetView.Controls"
+             MinWidth="460" UseLayoutRounding="True">
+
+    <!-- The colour picker: swatch, saturation and brightness square, hue strip, then HEX and the
+         RGB, CMYK, HSV and HSL fields, laid out like the Google picker Ali drew it from. No OK or
+         Cancel in here; whoever hosts it adds those.
+
+         The colours of the picker itself (field fill, text, borders, labels) are theme roles,
+         looked up with DynamicResource, so it recolours with the app. The colours of the picking
+         surface are not roles and never should be: white, black and the six hue primaries in the
+         gradients ARE the colour model (the square is only right if its corner really is white),
+         and the handles' white ring and soft dark shadow are there to stay visible over any
+         colour the gradients can show. The self-test allows literal colours in this file in
+         exactly those places and nowhere else.
+
+         The control draws no background of its own, so it sits on whatever its host draws. -->
+
+    <UserControl.Resources>
+        <local:OutlineGapConverter x:Key="OutlineGap"/>
+
+        <!-- One field: a rounded outline with its label sitting in a gap in the top edge. The gap
+             is cut by clipping the outline (OutlineGapConverter) rather than by painting a patch
+             of background behind the label, because the control does not know what colour is
+             behind it. -->
+        <Style x:Key="Field" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InputText}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource InputText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,7"/>
+            <Setter Property="MaxLength" Value="40"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Grid>
+                            <Border x:Name="fill" Margin="0,7,0,0" CornerRadius="4"
+                                    Background="{TemplateBinding Background}"/>
+                            <Border x:Name="outline" Margin="0,7,0,0" CornerRadius="4"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <Border.Clip>
+                                    <MultiBinding Converter="{StaticResource OutlineGap}">
+                                        <Binding ElementName="outline" Path="ActualWidth"/>
+                                        <Binding ElementName="outline" Path="ActualHeight"/>
+                                        <Binding ElementName="label"/>
+                                        <Binding ElementName="label" Path="ActualWidth"/>
+                                        <Binding ElementName="label" Path="HorizontalAlignment"/>
+                                    </MultiBinding>
+                                </Border.Clip>
+                            </Border>
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0,7,0,0" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                            <TextBlock x:Name="label" Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                       FontSize="11" Padding="4,0" Margin="8,0" IsHitTestVisible="False"
+                                       VerticalAlignment="Top" HorizontalAlignment="Left"
+                                       Foreground="{DynamicResource MutedText}"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="TextAlignment" Value="Center">
+                                <Setter TargetName="label" Property="HorizontalAlignment" Value="Center"/>
+                            </Trigger>
+                            <!-- The same hover and focus roles as every other text box in the app. -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="outline" Property="BorderBrush" Value="{DynamicResource InputHoverBorder}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="outline" Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The copy button inside the HEX field: just the icon, a shade brighter under the mouse.
+             Not focusable, so clicking it leaves the keyboard where it was. -->
+        <Style x:Key="CopyButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent" Width="30" Height="28">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource InputText}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <!-- 12 all round so a handle at the very edge of the square or strip is never cut off. -->
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Swatch and square, side by side, the swatch a little under a third of the width as
+             in the reference. -->
+        <Grid Height="200">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.46*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border x:Name="Swatch"/>
+
+            <!-- Two layers make the square: white to the pure hue left to right, then clear to
+                 black top to bottom over it. That is exactly HSV: the top layer multiplies the
+                 colour underneath by the value, so the pixel under the handle is the colour the
+                 handle picks. -->
+            <Grid x:Name="Square" Grid.Column="1" Cursor="Cross"
+                  MouseLeftButtonDown="Square_MouseLeftButtonDown" MouseMove="Square_MouseMove"
+                  MouseLeftButtonUp="Square_MouseLeftButtonUp">
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Offset="0" Color="White"/>
+                            <GradientStop x:Name="HueStop" Offset="1" Color="Red"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <!-- Clear black, not Transparent: Transparent is clear WHITE, and
+                                 fading from it to black would wash the middle out grey. -->
+                            <GradientStop Offset="0" Color="#00000000"/>
+                            <GradientStop Offset="1" Color="Black"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Canvas>
+                    <Ellipse x:Name="SquareHandle" Width="22" Height="22" Stroke="White" StrokeThickness="2.5">
+                        <Ellipse.Effect>
+                            <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="0" Opacity="0.55"/>
+                        </Ellipse.Effect>
+                    </Ellipse>
+                </Canvas>
+            </Grid>
+        </Grid>
+
+        <!-- Hue strip: a thin rainbow bar in a taller band, so it is easy to hit. Red to red
+             through yellow, green, cyan, blue and magenta, one sixth of the way each. -->
+        <Grid x:Name="Strip" Grid.Row="1" Height="22" Margin="11,16,11,0" Background="Transparent" Cursor="Hand"
+              MouseLeftButtonDown="Strip_MouseLeftButtonDown" MouseMove="Strip_MouseMove"
+              MouseLeftButtonUp="Strip_MouseLeftButtonUp">
+            <Border Height="8" CornerRadius="4" VerticalAlignment="Center">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Offset="0" Color="#FF0000"/>
+                        <GradientStop Offset="0.16666666666666667" Color="#FFFF00"/>
+                        <GradientStop Offset="0.33333333333333333" Color="#00FF00"/>
+                        <GradientStop Offset="0.5" Color="#00FFFF"/>
+                        <GradientStop Offset="0.66666666666666667" Color="#0000FF"/>
+                        <GradientStop Offset="0.83333333333333333" Color="#FF00FF"/>
+                        <GradientStop Offset="1" Color="#FF0000"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+            <Canvas>
+                <Ellipse x:Name="StripHandle" Width="22" Height="22" Stroke="White" StrokeThickness="2.5">
+                    <Ellipse.Effect>
+                        <DropShadowEffect Color="Black" BlurRadius="5" ShadowDepth="0" Opacity="0.55"/>
+                    </Ellipse.Effect>
+                </Ellipse>
+            </Canvas>
+        </Grid>
+
+        <!-- HEX, with the copy button over the right end of the field. The text keeps clear of
+             the button on both sides so it stays centred. -->
+        <Grid Grid.Row="2" Margin="0,14,0,0">
+            <TextBox x:Name="HexBox" Style="{StaticResource Field}" Tag="HEX" TextAlignment="Center"
+                     Padding="36,7" AutomationProperties.Name="Hex"/>
+            <Button x:Name="CopyButton" Style="{StaticResource CopyButton}" Click="Copy_Click"
+                    HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,7,4,0"
+                    ToolTip="Copy" AutomationProperties.Name="Copy hex">
+                <Grid Width="16" Height="16">
+                    <Path x:Name="CopyIcon" StrokeThickness="1.5" StrokeLineJoin="Round"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M5.5,4.75 H12.75 A0.75,0.75 0 0 1 13.5,5.5 V14.25 A0.75,0.75 0 0 1 12.75,15 H5.5 A0.75,0.75 0 0 1 4.75,14.25 V5.5 A0.75,0.75 0 0 1 5.5,4.75 Z M2.25,12 V2.25 A0.75,0.75 0 0 1 3,1.5 H10.5"/>
+                    <Path x:Name="CopiedIcon" StrokeThickness="1.8" StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" Visibility="Collapsed"
+                          Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Data="M2.5,8.5 L6.25,12.25 L13.5,4.25"/>
+                </Grid>
+            </Button>
+        </Grid>
+
+        <!-- RGB, CMYK, HSV, HSL. CMYK gets a little more room: it has four numbers and the
+             others three. -->
+        <Grid Grid.Row="3" Margin="0,8,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="0.9*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="RgbBox" Grid.Column="0" Style="{StaticResource Field}" Tag="RGB" AutomationProperties.Name="RGB"/>
+            <TextBox x:Name="CmykBox" Grid.Column="2" Style="{StaticResource Field}" Tag="CMYK" AutomationProperties.Name="CMYK"/>
+            <TextBox x:Name="HsvBox" Grid.Column="4" Style="{StaticResource Field}" Tag="HSV" AutomationProperties.Name="HSV"/>
+            <TextBox x:Name="HslBox" Grid.Column="6" Style="{StaticResource Field}" Tag="HSL" AutomationProperties.Name="HSL"/>
+        </Grid>
+    </Grid>
+</UserControl>

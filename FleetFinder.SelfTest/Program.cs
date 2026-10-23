@@ -1,17 +1,23 @@
+using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Linq;
+using FleetView.Controls;
 using FleetView.Services;
 using FleetView.Theming;
 
 // Self-test for FleetFinder's theme layer (the colour changer, 2026-10): the colour maths in both
 // directions and its text forms, theme.json loading and saving, the brushes the theme service
-// hands out, and a scan of MainWindow.xaml that fails if a colour literal comes back or a
-// DynamicResource names something that is not a role. Prints one PASS or FAIL line per check and a
-// final SUMMARY line; exit code 1 if anything failed.
+// hands out, a scan of MainWindow.xaml that fails if a colour literal comes back or a
+// DynamicResource names something that is not a role, and the colour picker (its state on its
+// own, then the real control driven through its public methods). Prints one PASS or FAIL line per
+// check and a final SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It never creates a window.
 var suite = new SelfTest();
@@ -46,6 +52,9 @@ internal sealed class SelfTest
             Section("theme service", ServiceTests);
             Section("MainWindow.xaml", XamlTests);
             Section("no colours in the C#", CodeTests);
+            Section("colour picker state", PickerStateTests);
+            Section("colour picker control", PickerControlTests);
+            Section("ColourPicker.xaml", PickerXamlTests);
         }
         finally
         {
@@ -514,5 +523,329 @@ internal sealed class SelfTest
             }
         }
         Check("no colour literals in the C# outside ThemeRoles.cs", hits.Count == 0, string.Join(", ", hits));
+    }
+
+    // ---- colour picker state ----------------------------------------------------------------------
+
+    private static readonly Color Orange = Color.FromRgb(0xFF, 0x75, 0x00);
+    private static readonly Color Black = Color.FromRgb(0, 0, 0);
+    private static Color Grey(byte v) => Color.FromRgb(v, v, v);
+
+    private static (double H, double S, double V) Hsv3(ColourPickerState s) => (s.Hue, s.Saturation, s.Value);
+
+    /// <summary>
+    /// The picker's state on its own. The headline cases are the classic picker bug: dragging to
+    /// black or the grey edge and back, and typing a grey, must not lose the hue.
+    /// </summary>
+    private void PickerStateTests()
+    {
+        const ColourPickerState.Field Hex = ColourPickerState.Field.Hex, Rgb = ColourPickerState.Field.Rgb,
+            Cmyk = ColourPickerState.Field.Cmyk, Hsv = ColourPickerState.Field.Hsv, Hsl = ColourPickerState.Field.Hsl;
+
+        var s = new ColourPickerState();
+        Equal("a new picker is opaque black", Black, s.Colour);
+
+        // The reference picker's own numbers for its own colour.
+        s.SetColour(Reference);
+        Equal("reference HEX field", "#fcba03", s.Text(Hex));
+        Equal("reference RGB field", "252, 186, 3", s.Text(Rgb));
+        Equal("reference CMYK field", "0%, 26%, 99%, 1%", s.Text(Cmyk));
+        Equal("reference HSV field", "44°, 99%, 99%", s.Text(Hsv));
+        Equal("reference HSL field", "44°, 98%, 50%", s.Text(Hsl));
+        Near("reference square handle across (saturation 249/252)", 249.0 / 252, s.SquareX);
+        Near("reference square handle down (1 - 252/255)", 1 - 252.0 / 255, s.SquareY);
+        Near("reference strip handle (hue 44.1 of 360)", (183.0 / 249 * 60) / 360, s.StripX);
+        Equal("the pure hue for the square's corner", Color.FromRgb(0xFF, 0xBB, 0x00), s.PureHue);
+
+        // Drag to black and back.
+        s.SetColour(Orange);
+        var (hue, sat, _) = Hsv3(s);
+        Near("orange's hue is 27.5", 117.0 / 255 * 60, hue);
+        s.SetSquare(s.SquareX, 1);
+        Equal("square dragged to the bottom is black", Black, s.Colour);
+        Equal("black keeps the hue", hue, s.Hue);
+        Equal("black keeps the saturation", sat, s.Saturation);
+        Equal("black shows the kept hue and saturation in HSV", "28°, 100%, 0%", s.Text(Hsv));
+        s.SetSquare(s.SquareX, 0);
+        Equal("dragged back up it is exactly orange again", Orange, s.Colour);
+
+        // Drag to the grey edge and back.
+        s.SetSquare(0, 0.5);
+        var edge = s.Colour;
+        Check("the left edge is grey", edge.R == edge.G && edge.G == edge.B, edge.ToString());
+        Equal("the grey edge keeps the hue", hue, s.Hue);
+        s.SetSquare(1, 0);
+        Equal("dragged back to the corner it is orange again", Orange, s.Colour);
+
+        // Typing greys, black and white.
+        Check("HEX takes #808080", s.Commit(Hex, "#808080"));
+        Equal("the grey typed is the grey picked", Grey(128), s.Colour);
+        Equal("typing a grey into HEX does not snap the hue to red", hue, s.Hue);
+        Equal("a grey's saturation is 0, so its handle is on the left edge", 0.0, s.SquareX);
+        Equal("HSV shows the strip's hue for a grey", "28°, 0%, 50%", s.Text(Hsv));
+        Equal("and so does HSL", "28°, 0%, 50%", s.Text(Hsl));
+        Check("HEX takes #000", s.Commit(Hex, "#000"));
+        Equal("typing black keeps the hue", hue, s.Hue);
+        Check("HEX takes #fff", s.Commit(Hex, "#fff"));
+        Equal("typing white keeps the hue", hue, s.Hue);
+        Check("RGB takes a grey", s.Commit(Rgb, "77, 77, 77"));
+        Equal("a grey typed into RGB keeps the hue", hue, s.Hue);
+        Check("CMYK takes a grey", s.Commit(Cmyk, "0%, 0%, 0%, 50%"));
+        Equal("a grey typed into CMYK keeps the hue", hue, s.Hue);
+        s.SetSquare(1, 0);
+        Equal("after all of that the corner is still orange", Orange, s.Colour);
+        s.SetColour(Grey(60));
+        Equal("a grey from the host keeps the hue as well", hue, s.Hue);
+
+        // The host echoing the picker's own colour back (a two-way binding does this on every
+        // drag step) must not re-derive anything from the rounded bytes.
+        s.SetStrip(123.4 / 360);
+        s.SetSquare(0.37, 0.42);
+        var before = Hsv3(s);
+        s.SetColour(s.Colour);
+        Equal("its own colour echoed back moves nothing", before, Hsv3(s));
+        s.SetSquare(0.37, 1);
+        before = Hsv3(s);
+        s.SetColour(s.Colour);
+        Equal("nor when that colour is black", before, Hsv3(s));
+
+        // Tabbing through the fields commits each one unchanged; that must not nudge anything.
+        s.SetStrip(201.7 / 360);
+        s.SetSquare(0.613, 0.287);
+        before = Hsv3(s);
+        foreach (var f in Enum.GetValues<ColourPickerState.Field>())
+            Check($"{f} field committed as shown is accepted", s.Commit(f, s.Text(f)));
+        Equal("and changes nothing at all", before, Hsv3(s));
+
+        // HSV and HSL say what hue they want, even for a grey.
+        Check("HSV takes 200, 0, 50", s.Commit(Hsv, "200, 0, 50"));
+        Equal("a typed HSV grey is that grey", Grey(128), s.Colour);
+        Equal("and moves the strip to the typed hue", 200.0, s.Hue);
+        Check("HSL takes 300°, 0%, 25%", s.Commit(Hsl, "300°, 0%, 25%"));
+        Equal("a typed HSL grey is that grey", Grey(64), s.Colour);
+        Equal("and moves the strip to its hue", 300.0, s.Hue);
+        s.SetSquare(0.4, 0.5);
+        double keptSat = s.Saturation;
+        Check("HSL takes lightness 0", s.Commit(Hsl, "120, 50, 0"));
+        Equal("HSL lightness 0 is black", Black, s.Colour);
+        Equal("with the typed hue", 120.0, s.Hue);
+        Equal("and the square's own saturation", keptSat, s.Saturation);
+        Check("HSL takes the reference text", s.Commit(Hsl, "44°, 98%, 50%"));
+        Check("which lands within 4 of the reference", Distance(s.Colour, Reference) <= 4, s.Colour.ToString());
+
+        // Bad input is refused and changes nothing.
+        s.SetColour(Orange);
+        foreach (var (f, bad) in new (ColourPickerState.Field, string?)[]
+                 {
+                     (Hex, "zz"), (Hex, ""), (Hex, "#12345"), (Rgb, "300, 0, 0"), (Rgb, "1, 2"), (Cmyk, "1, 2, 3"),
+                     (Hsv, "abc"), (Hsv, "400, 0, 0"), (Hsl, "10, 200, 50"), (Hsl, null),
+                 })
+        {
+            Check($"{f} \"{bad ?? "null"}\" is refused", !s.Commit(f, bad));
+        }
+        Equal("and the colour is untouched", Orange, s.Colour);
+        Equal("and so is the hue", hue, s.Hue);
+
+        // Alpha comes in, goes out, and is never edited.
+        s.SetColour(Color.FromArgb(0xCC, 0x11, 0x22, 0x33));
+        Equal("alpha from the host is kept", (byte)0xCC, s.Alpha);
+        s.SetSquare(0.5, 0.5);
+        Equal("a drag keeps it", (byte)0xCC, s.Colour.A);
+        Check("HEX takes eight digits", s.Commit(Hex, "#80ff0000"));
+        Equal("eight-digit HEX: the colour is taken, the alpha is not", Color.FromArgb(0xCC, 0xFF, 0, 0), s.Colour);
+        Equal("HEX never shows alpha", "#ff0000", s.Text(Hex));
+        s.SetColour(Color.FromArgb(0x40, 0xFF, 0, 0));
+        Equal("the same colour with a new alpha takes the alpha", (byte)0x40, s.Colour.A);
+
+        // The ends of the strip and the edges of the square.
+        s.SetColour(Orange);
+        s.SetStrip(1);
+        Equal("the right end of the strip is red", Color.FromRgb(0xFF, 0, 0), s.Colour);
+        Equal("and its handle stays at the right end", 1.0, s.StripX);
+        Equal("shown as 0°", "0°, 100%, 100%", s.Text(Hsv));
+        s.SetStrip(-0.5);
+        Equal("left of the strip is 0", 0.0, s.Hue);
+        s.SetStrip(2);
+        Equal("right of the strip is 360", 360.0, s.Hue);
+        s.SetStrip(double.NaN);
+        Equal("NaN on the strip is 0, not NaN", 0.0, s.Hue);
+        s.SetSquare(-1, 2);
+        Check("below left of the square pins to its bottom left corner", s.Saturation == 0 && s.Value == 0);
+        s.SetSquare(5, -3);
+        Check("above right pins to the top right corner", s.Saturation == 1 && s.Value == 1);
+
+        s.SetStrip(240.0 / 360);
+        s.SetSquare(0, 0);
+        Equal("top left of the square is white", Color.FromRgb(255, 255, 255), s.Colour);
+        s.SetSquare(1, 0);
+        Equal("top right is the pure hue", Color.FromRgb(0, 0, 255), s.Colour);
+        s.SetSquare(0.3, 1);
+        Equal("the bottom is black", Black, s.Colour);
+    }
+
+    // ---- colour picker control ------------------------------------------------------------------
+
+    private sealed class ColourSource : INotifyPropertyChanged
+    {
+        private Color _colour;
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public Color Colour
+        {
+            get => _colour;
+            set { _colour = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Colour))); }
+        }
+    }
+
+    private static T Named<T>(FrameworkElement scope, string name) where T : class =>
+        scope.FindName(name) as T ?? throw new InvalidOperationException($"no {typeof(T).Name} named {name}");
+
+    /// <summary>What leaving a field does, without a window to move focus in.</summary>
+    private static void Leave(TextBox box) =>
+        box.RaiseEvent(new KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, 0, box, null)
+            { RoutedEvent = Keyboard.LostKeyboardFocusEvent });
+
+    /// <summary>
+    /// The real control, laid out at 600 wide with no window, driven through the same methods its
+    /// mouse handlers call.
+    /// </summary>
+    private void PickerControlTests()
+    {
+        var picker = new ColourPicker();
+        picker.Measure(new Size(600, double.PositiveInfinity));
+        picker.Arrange(new Rect(picker.DesiredSize));
+        picker.UpdateLayout();
+        var square = Named<FrameworkElement>(picker, "Square");
+        var strip = Named<FrameworkElement>(picker, "Strip");
+        Check($"it lays out ({square.ActualWidth:F0}x{square.ActualHeight:F0} square, {strip.ActualWidth:F0} strip)",
+            square.ActualWidth > 100 && square.ActualHeight > 100 && strip.ActualWidth > 100);
+        Equal("an unbound picker starts opaque", (byte)255, picker.SelectedColor.A);
+
+        var source = new ColourSource { Colour = Orange };
+        picker.SetBinding(ColourPicker.SelectedColorProperty, new Binding(nameof(ColourSource.Colour)) { Source = source });
+        var hex = Named<TextBox>(picker, "HexBox");
+        Equal("a bound colour reaches the picker", Orange, picker.SelectedColor);
+        Equal("and its HEX field", "#ff7500", hex.Text);
+        double orangeHue = picker.Hue;
+
+        int raised = 0;
+        picker.SelectedColorChanged += (_, _) => raised++;
+        picker.PickSquareAt(new Point(square.ActualWidth / 2, square.ActualHeight / 2));
+        var firstStep = source.Colour;
+        Check("pressing on the square changes the bound source at once", firstStep != Orange && firstStep == picker.SelectedColor,
+            firstStep.ToString());
+        picker.PickSquareAt(new Point(square.ActualWidth / 4, square.ActualHeight / 3));
+        Check("and so does each drag step", source.Colour != firstStep && source.Colour == picker.SelectedColor);
+        Equal("SelectedColorChanged was raised for each", 2, raised);
+
+        picker.PickSquareAt(new Point(square.ActualWidth / 4, square.ActualHeight * 3));
+        Equal("dragging past the bottom pins to black", Black, source.Colour);
+        Equal("and keeps the hue", orangeHue, picker.Hue);
+        picker.PickSquareAt(new Point(square.ActualWidth * 2, -40));
+        Equal("dragging out past the top right is orange again", Orange, source.Colour);
+
+        var squareHandle = Named<FrameworkElement>(picker, "SquareHandle");
+        var stripHandle = Named<FrameworkElement>(picker, "StripHandle");
+        Near("the square handle is centred on the top right corner",
+            square.ActualWidth, Canvas.GetLeft(squareHandle) + squareHandle.Width / 2, 1e-6);
+        Near("and on the top edge", 0, Canvas.GetTop(squareHandle) + squareHandle.Height / 2, 1e-6);
+        Near("the strip handle is at orange's hue",
+            orangeHue / 360 * strip.ActualWidth, Canvas.GetLeft(stripHandle) + stripHandle.Width / 2, 1e-6);
+        Equal("the swatch shows the colour",
+            Orange, (Named<Border>(picker, "Swatch").Background as SolidColorBrush)?.Color ?? default);
+
+        picker.PickHueAt(new Point(strip.ActualWidth * 300 / 360, 5));
+        Equal("the strip at 300° gives magenta", Color.FromRgb(0xFF, 0, 0xFF), source.Colour);
+
+        // Typing.
+        hex.Text = "#808080";
+        Leave(hex);
+        Equal("a grey typed into HEX reaches the source when the field is left", Grey(128), source.Colour);
+        Near("and the strip stays at 300°", 300, picker.Hue);
+        Near("its handle with it", 300.0 / 360 * strip.ActualWidth, Canvas.GetLeft(stripHandle) + stripHandle.Width / 2, 1e-6);
+        var rgb = Named<TextBox>(picker, "RgbBox");
+        rgb.Text = "999, 0, 0";
+        Leave(rgb);
+        Equal("bad RGB puts the field back", "128, 128, 128", rgb.Text);
+        Equal("and changes nothing", Grey(128), source.Colour);
+        var hsv = Named<TextBox>(picker, "HsvBox");
+        hsv.Text = "200 50 100";
+        Leave(hsv);
+        var expected = ColourMaths.FromHsv(new Hsv(200, 0.5, 1));
+        Equal("HSV typed reaches the source", expected, source.Colour);
+        Equal("and tidies itself into the display form", "200°, 50%, 100%", hsv.Text);
+        Equal("and every other field follows", ColourMaths.FormatHex(expected), hex.Text);
+        Equal("CMYK too", ColourMaths.FormatCmyk(ColourMaths.ToCmyk(expected)), Named<TextBox>(picker, "CmykBox").Text);
+
+        // Typed but not entered: the host applies it before taking the colour.
+        var hsl = Named<TextBox>(picker, "HslBox");
+        hsl.Text = "60, 100, 50";
+        Equal("text typed and not yet entered changes nothing yet", expected, source.Colour);
+        picker.CommitPendingEdits();
+        Equal("CommitPendingEdits applies it", Color.FromRgb(0xFF, 0xFF, 0), source.Colour);
+        hsl.Text = "nonsense";
+        picker.CommitPendingEdits();
+        Equal("and puts back what it cannot read", "60°, 100%, 50%", hsl.Text);
+        Equal("leaving the colour alone", Color.FromRgb(0xFF, 0xFF, 0), source.Colour);
+
+        // Alpha in, alpha out.
+        source.Colour = Color.FromArgb(0xCC, 0, 0, 0);
+        picker.PickSquareAt(new Point(square.ActualWidth / 2, 10));
+        Equal("a drag on a colour with alpha hands the alpha back", (byte)0xCC, source.Colour.A);
+        Equal("the fields never show it", 7, hex.Text.Length);
+
+        // The host setting a grey keeps the strip where it was.
+        picker.PickHueAt(new Point(strip.ActualWidth / 3, 5));
+        source.Colour = Grey(90);
+        Near("a grey from the host keeps the strip at 120°", 120, picker.Hue);
+    }
+
+    // ---- ColourPicker.xaml ---------------------------------------------------------------------
+
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    /// <summary>
+    /// The picker's own XAML: its themed parts use known roles, and its only literal colours are
+    /// the colour model's (gradient stops) and the handles' white ring and shadow.
+    /// </summary>
+    private void PickerXamlTests()
+    {
+        var doc = XDocument.Load(RepoFile("FleetFinder", "Controls", "ColourPicker.xaml"), LoadOptions.SetLineInfo);
+        var problems = new List<string>();
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        int allowed = 0;
+
+        foreach (var el in doc.Descendants())
+        {
+            int line = ((System.Xml.IXmlLineInfo)el).LineNumber;
+            string elName = el.Name.LocalName;
+            bool colourModel = elName is "GradientStop" or "DropShadowEffect"
+                || (elName == "Ellipse" && (el.Attribute(Xaml + "Name")?.Value.EndsWith("Handle", StringComparison.Ordinal) ?? false));
+
+            foreach (var attr in el.Attributes())
+            {
+                foreach (Match m in DynamicKey.Matches(attr.Value))
+                    used.Add(m.Groups[1].Value);
+                bool literal = HexLiteral.IsMatch(attr.Value)
+                    || (IsColourProperty(attr.Name.LocalName) && !IsAllowedColourValue(attr.Value));
+                if (!literal) continue;
+                if (colourModel) allowed++;
+                else problems.Add($"line {line}: {elName} {attr.Name.LocalName}=\"{attr.Value}\"");
+            }
+
+            if (elName == "Setter" && el.Attribute("Property")?.Value is { } prop && IsColourProperty(prop)
+                && el.Attribute("Value")?.Value is { } value && !IsAllowedColourValue(value))
+            {
+                problems.Add($"line {line}: Setter {prop} Value=\"{value}\"");
+            }
+            if (elName == "SolidColorBrush")
+                problems.Add($"line {line}: a SolidColorBrush written out");
+        }
+
+        Check($"literal colours only in the gradients and handles ({allowed} there)", problems.Count == 0 && allowed > 0,
+            string.Join("; ", problems));
+        var unknown = used.Where(k => ThemeRoles.Find(k) is null).ToList();
+        Check("every DynamicResource key in the picker is a role", unknown.Count == 0, string.Join(", ", unknown));
+        Check("its fields use the text box hover and focus roles",
+            used.Contains("InputHoverBorder") && used.Contains("InputFocusBorder"));
     }
 }
