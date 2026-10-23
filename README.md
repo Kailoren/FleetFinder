@@ -16,7 +16,6 @@ A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carrier
 ---
 
 ### What it does:
-The app has four tabs:
 
 - **Find Carriers:** Pick the individual items you're after and see how much you currently hold. Tick the ones you're short on and hit search. Results are grouped one row per carrier, showing what they sell, the price, the distance from your current system, and how recently the listing was updated. Click a system name to copy it to the clipboard for easy pasting into the in-game galaxy map. If you are looking to offload your components instead of buying more, however, tick the **Sell** column on anything you're holding and hit search to find carriers that are *buying* it, so you can offload materials you no longer need at a good price. Both panels populate from a single search and resize independently, and components will automatically uncheck themselves from the list once you sell out of them!
 
@@ -54,12 +53,6 @@ Components only get updated to EDDN **when a cmdr opens the bartender commodity 
 Download the latest release, then run `FleetFinder.exe`. Keep the `Data` folder that comes with it in the same place as the exe. No installer and nothing else to set up, it's a single self-contained program.
 
 FleetFinder checks this repo's releases on launch and lets you know in the title bar when a newer version is available.
-
-## Known limitations
-
-- Carrier docking access may show as "Unknown" if that hasn't been reported yet. This fills in over time as more players visit carriers, and like any shared community data it can occasionally be out of date by the time you arrive. Since this is a new release there will likely be more "unknown" than "yes" currently, but this will improve as people continue to dock at carriers and my server gets that info from EDDN.
-
-- The component catalogue is curated for suit and weapon engineering, upgrades, and engineer unlocks, not every Odyssey component that exists. If an EDOMH import shows an item it doesn't recognize, that's flagged in the Import tab as "false" so you can see exactly what wasn't matched. If this happens, please let me know so it can be added.
 
 ---
 
