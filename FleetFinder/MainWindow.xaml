@@ -8,7 +8,7 @@
         Title="FleetFinder - Odyssey Engineering Material Finder"
         Icon="Assets/FleetFinderIcon.ico"
         Height="740" Width="1300" MinHeight="480" MinWidth="960"
-        Background="#0A0705" TextElement.Foreground="#EAE4DA"
+        Background="{DynamicResource WindowBackground}" TextElement.Foreground="{DynamicResource MainText}"
         FontFamily="Segoe UI" FontSize="13"
         WindowStyle="None" ResizeMode="CanResize" AllowsTransparency="False">
 
@@ -23,21 +23,23 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
-        <SolidColorBrush x:Key="Panel" Color="#120E08"/>
-        <SolidColorBrush x:Key="Accent" Color="#FF7500"/>
-        <SolidColorBrush x:Key="Muted" Color="#9C7A55"/>
+        <!-- Every colour in this file is {DynamicResource <role>}. The roles, their labels and
+             their default colours are in Theming\ThemeRoles.cs, and ThemeService puts one brush
+             per role into the application's resources at startup, which is what lets Settings
+             recolour the app live. Transparent stays literal. FleetFinder.SelfTest fails if a
+             colour literal or an unknown role key turns up here. -->
 
         <!-- Carries the view model to DataGrid columns (not in the visual tree). -->
         <local:BindingProxy x:Key="VmProxy" Data="{Binding}"/>
 
         <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="{StaticResource Panel}"/>
-            <Setter Property="RowBackground" Value="#120E08"/>
-            <Setter Property="AlternatingRowBackground" Value="#241809"/>
-            <Setter Property="Foreground" Value="#EAE4DA"/>
-            <Setter Property="BorderBrush" Value="#5A3A15"/>
+            <Setter Property="Background" Value="{DynamicResource GridBackground}"/>
+            <Setter Property="RowBackground" Value="{DynamicResource GridRow}"/>
+            <Setter Property="AlternatingRowBackground" Value="{DynamicResource GridAlternateRow}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GridText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource GridBorder}"/>
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#3A2410"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource GridLines}"/>
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="AutoGenerateColumns" Value="False"/>
@@ -47,22 +49,24 @@
             <Setter Property="EnableRowVirtualization" Value="True"/>
         </Style>
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#3A2410"/>
-            <Setter Property="Foreground" Value="#B89470"/>
+            <Setter Property="Background" Value="{DynamicResource GridHeaderBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GridHeaderText}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="BorderBrush" Value="#5A3A15"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource GridHeaderLines}"/>
             <Setter Property="BorderThickness" Value="0,0,1,1"/>
         </Style>
 
         <!-- No visual feedback for row selection anywhere: clicking a row (e.g. a modification)
              still updates SelectedItem bindings, it just shouldn't look different afterward.
              Overriding the SystemColors brushes (rather than DataGridRow/Cell styles directly)
-             avoids disturbing the default template's alternating-row-background wiring. -->
+             avoids disturbing the default template's alternating-row-background wiring.
+             The two selected-text keys (HighlightTextBrushKey and
+             InactiveSelectionHighlightTextBrushKey) used to be set here too. They now follow
+             the GridText role and come from ThemeService (ThemeRoles.SystemAliases), because a
+             brush defined in this file could not follow a role when it changes. -->
         <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
-        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#EAE4DA"/>
         <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Transparent"/>
-        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#EAE4DA"/>
         <SolidColorBrush x:Key="{x:Static SystemColors.ControlBrushKey}" Color="Transparent"/>
 
         <!-- Reusable centering for numeric/short columns (defined after the base header style).
@@ -96,7 +100,7 @@
 
         <!-- Themed, rounded scrollbar: track is transparent, thumb rounds and lights up orange on hover. -->
         <Style x:Key="RoundedScrollBarThumb" TargetType="Thumb">
-            <Setter Property="Background" Value="#5A3A15"/>
+            <Setter Property="Background" Value="{DynamicResource ScrollbarThumb}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
@@ -104,7 +108,7 @@
                                 CornerRadius="5" Margin="2"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource ScrollbarThumbHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -166,7 +170,7 @@
              with the accent color and a dark checkmark when ticked, replacing the native
              Windows checkbox glyph, same spirit as the hand-built buttons/scrollbar/title bar. -->
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#EAE4DA"/>
+            <Setter Property="Foreground" Value="{DynamicResource MainText}"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -174,17 +178,17 @@
                     <ControlTemplate TargetType="CheckBox">
                         <StackPanel Orientation="Horizontal">
                             <Border x:Name="box" Width="16" Height="16" CornerRadius="3"
-                                    BorderBrush="#5A3A15" BorderThickness="1.5" Background="#120E08"/>
+                                    BorderBrush="{DynamicResource CheckboxBorder}" BorderThickness="1.5" Background="{DynamicResource CheckboxBackground}"/>
                             <ContentPresenter Margin="6,0,0,0" VerticalAlignment="Center"
                                                RecognizesAccessKey="True"/>
                         </StackPanel>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="box" Property="Background" Value="{StaticResource Accent}"/>
-                                <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="box" Property="Background" Value="{DynamicResource CheckboxTicked}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource CheckboxTicked}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="box" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="box" Property="BorderBrush" Value="{DynamicResource CheckboxHoverBorder}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -192,8 +196,8 @@
             </Setter>
         </Style>
         <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource Accent}"/>
-            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ButtonText}"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="12,7"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -210,8 +214,8 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Background" Value="#4A3316"/>
-                    <Setter Property="Foreground" Value="#9C7A55"/>
+                    <Setter Property="Background" Value="{DynamicResource ButtonDisabledBackground}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource ButtonDisabledText}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -226,7 +230,7 @@
             <Setter Property="Width" Value="46"/>
             <Setter Property="Height" Value="36"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CaptionButtonGlyph}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Arrow"/>
             <Setter Property="Template">
@@ -240,8 +244,8 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#3A2410"/>
-                    <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                    <Setter Property="Background" Value="{DynamicResource CaptionButtonHover}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource CaptionButtonHoverGlyph}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -249,8 +253,8 @@
         <Style x:Key="CloseCaptionButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#E81123"/>
-                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="Background" Value="{DynamicResource CloseButtonHover}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource CloseButtonHoverGlyph}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -258,7 +262,7 @@
         <!-- Text/link-style button used for the click-to-copy system name. -->
         <Style x:Key="LinkButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#FFB066"/>
+            <Setter Property="Foreground" Value="{DynamicResource LinkText}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="0"/>
@@ -273,7 +277,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="txt" Property="TextDecorations" Value="Underline"/>
-                                <Setter TargetName="txt" Property="Foreground" Value="#FFCE9E"/>
+                                <Setter TargetName="txt" Property="Foreground" Value="{DynamicResource LinkHoverText}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -283,8 +287,8 @@
 
         <!-- Small square +/- stepper button. -->
         <Style x:Key="StepperButton" TargetType="Button">
-            <Setter Property="Background" Value="#5A3A15"/>
-            <Setter Property="Foreground" Value="#EAE4DA"/>
+            <Setter Property="Background" Value="{DynamicResource StepperBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource StepperText}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Width" Value="22"/>
             <Setter Property="Height" Value="22"/>
@@ -297,7 +301,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#6B4A1E"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource StepperHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -311,7 +315,7 @@
             <Setter Property="BorderThickness" Value="0"/>
         </Style>
         <Style TargetType="TabItem">
-            <Setter Property="Foreground" Value="#B89470"/>
+            <Setter Property="Foreground" Value="{DynamicResource TabText}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -327,10 +331,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#120E08"/>
-                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource SelectedTabBackground}"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource SelectedTabOutline}"/>
                                 <Setter TargetName="bd" Property="BorderThickness" Value="1,1,1,0"/>
-                                <Setter Property="Foreground" Value="#FF7500"/>
+                                <Setter Property="Foreground" Value="{DynamicResource SelectedTabText}"/>
                                 <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
                             <!-- Bound to "bd"'s own IsMouseOver (not the TabItem's ambient one):
@@ -342,7 +346,7 @@
                                  covers the actual header chip) keeps the hover highlight limited to
                                  hovering the tab label, regardless of that ambient bleed. -->
                             <DataTrigger Binding="{Binding IsMouseOver, ElementName=bd}" Value="True">
-                                <Setter TargetName="bd" Property="Background" Value="#241809"/>
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource TabHoverBackground}"/>
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -355,14 +359,14 @@
         <!-- Title bar: fills WindowChrome's CaptionHeight strip. Everything in here except the
              three buttons is drag-to-move / double-click-to-maximize for free, since only the
              buttons are marked IsHitTestVisibleInChrome. -->
-        <Border DockPanel.Dock="Top" Height="36" Background="#0A0705">
+        <Border DockPanel.Dock="Top" Height="36" Background="{DynamicResource TitleBarBackground}">
             <Grid>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                     <Image Source="Assets/FleetFinderIcon.ico" Width="16" Height="16"/>
                     <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12"
-                               Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource TitleBarText}" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding CurrentVersionText}" Margin="6,0,0,0" FontSize="10"
-                               Foreground="#5A3A15" VerticalAlignment="Center"/>
+                               Foreground="{DynamicResource TitleBarVersion}" VerticalAlignment="Center"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="MinimizeButton" Style="{StaticResource CaptionButton}"
@@ -408,26 +412,26 @@
         <!-- Update banner: dismissible, non-blocking (unlike the resume-search overlay below,
              this never covers the tabs), shown when UpdateChecker finds a newer GitHub release
              than the one currently running. -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Accent}" Padding="12,6"
+        <Border DockPanel.Dock="Top" Background="{DynamicResource BannerBackground}" Padding="12,6"
                 Visibility="{Binding HasUpdateAvailable, Converter={x:Static local:BoolToVis.Instance}}">
             <Grid>
-                <TextBlock VerticalAlignment="Center" Foreground="#0A0705" FontWeight="SemiBold">
+                <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource BannerText}" FontWeight="SemiBold">
                     <Run Text="A new version ("/><Run Text="{Binding UpdateVersionText, Mode=OneWay}"/><Run Text=") is available."/>
                 </TextBlock>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="Download" Command="{Binding OpenUpdateCommand}"
-                            Background="#0A0705" Foreground="#EAE4DA" Padding="12,4" Margin="0,0,8,0"/>
+                            Background="{DynamicResource BannerButtonBackground}" Foreground="{DynamicResource BannerButtonText}" Padding="12,4" Margin="0,0,8,0"/>
                     <Button Content="Dismiss" Command="{Binding DismissUpdateCommand}"
-                            Background="Transparent" Foreground="#0A0705" BorderThickness="0" Padding="8,4"/>
+                            Background="Transparent" Foreground="{DynamicResource BannerText}" BorderThickness="0" Padding="8,4"/>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- Status bar -->
-        <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="16,8">
+        <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackground}" Padding="16,8">
             <Grid>
-                <TextBlock Text="{Binding Status}" Foreground="#B89470" VerticalAlignment="Center"/>
-                <TextBlock Text="{Binding InventoryStatus}" Foreground="{StaticResource Muted}"
+                <TextBlock Text="{Binding Status}" Foreground="{DynamicResource StatusText}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding InventoryStatus}" Foreground="{DynamicResource StatusDetailText}"
                            HorizontalAlignment="Right" VerticalAlignment="Center"/>
             </Grid>
         </Border>
@@ -437,8 +441,11 @@
         <Grid>
         <TabControl Margin="12,8,12,12" Background="Transparent">
         <TabItem Header="Find Carriers">
-        <!-- Main split -->
-        <Grid>
+        <!-- Main split. TextElement.Foreground here (and on each tab's root Grid below) is there
+             for the colour changer: a tab's content inherits its text colour from the TabItem,
+             so every heading in these panels was orange only because the selected tab's label
+             is. Setting PanelText on the root keeps the two separate. Same colour by default. -->
+        <Grid TextElement.Foreground="{DynamicResource PanelText}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="FindCarriersLeftColumn" Width="380" MinWidth="300"/>
                 <ColumnDefinition Width="6"/>
@@ -446,8 +453,8 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: components / shopping list -->
-            <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+            <Border Grid.Column="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <StackPanel>
@@ -458,20 +465,20 @@
 
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <Button Content="Refresh inventory" Command="{Binding RefreshInventoryCommand}"
-                                Background="#5A3A15" Foreground="#EAE4DA"/>
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
                         <Button Content="Clear Buy" Command="{Binding ClearBuySelectionCommand}"
-                                Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="8,4" Margin="8,0,0,0"/>
                         <Button Content="Clear Sell" Command="{Binding ClearSellSelectionCommand}"
-                                Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" Margin="8,0,0,0"/>
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="8,4" Margin="8,0,0,0"/>
                     </StackPanel>
 
                     <!-- Jump-to-match search box: typing scrolls the list to and highlights the
                          first matching component, it does not filter the list - mirrors EDCF's
                          own search box exactly (same property/event names, same behavior). -->
                     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                        <TextBlock Text="Search" Foreground="{StaticResource Muted}" FontSize="11" Margin="2,0,0,2"/>
+                        <TextBlock Text="Search" Foreground="{DynamicResource MutedText}" FontSize="11" Margin="2,0,0,2"/>
                         <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 Background="#0A0705" Foreground="#EAE4DA" BorderBrush="#5A3A15"
+                                 Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
                                  BorderThickness="1" Padding="8,6"/>
                     </StackPanel>
 
@@ -498,7 +505,7 @@
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
-                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource RowOutline}"/>
                                         <Setter Property="BorderThickness" Value="2"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -510,7 +517,7 @@
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Name}" FontWeight="Bold"
-                                                   Foreground="{StaticResource Accent}"
+                                                   Foreground="{DynamicResource GroupHeaderText}"
                                                    Margin="4,8,0,4"/>
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
@@ -522,7 +529,7 @@
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12"
-                                                   Foreground="{StaticResource Accent}"
+                                                   Foreground="{DynamicResource GroupHeaderText}"
                                                    Margin="16,4,0,2">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
@@ -601,10 +608,10 @@
                                 </DataGridTextColumn.ElementStyle>
                                 <DataGridTextColumn.EditingElementStyle>
                                     <Style TargetType="TextBox">
-                                        <Setter Property="Background" Value="#0A0705"/>
-                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                        <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
-                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource CellEditorBorder}"/>
                                         <Setter Property="BorderThickness" Value="1"/>
                                         <Setter Property="TextAlignment" Value="Center"/>
                                         <Setter Property="Margin" Value="0,0,20,0"/>
@@ -614,7 +621,7 @@
                                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsShort}" Value="True">
-                                                <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                                 <Setter Property="FontWeight" Value="Bold"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -662,19 +669,19 @@
                     <RowDefinition Height="*" MinHeight="120"/>
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                        BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Row="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14"
                                    VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
+                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{DynamicResource MutedText}"
                                    HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
 
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <ProgressBar IsIndeterminate="{Binding IsBuyBusy}" Width="140" Height="6"
-                                     Margin="16,0,0,0" Background="#3A2410" Foreground="{StaticResource Accent}"
+                                     Margin="16,0,0,0" Background="{DynamicResource ProgressTrack}" Foreground="{DynamicResource ProgressFill}"
                                      BorderThickness="0"
                                      Visibility="{Binding IsBuyBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </StackPanel>
@@ -686,7 +693,7 @@
                               CanUserSortColumns="True"
                               VirtualizingPanel.ScrollUnit="Item"
                               GridLinesVisibility="All"
-                              VerticalGridLinesBrush="#3A2410">
+                              VerticalGridLinesBrush="{DynamicResource GridLines}">
                         <!-- Vertical row breathing room only - horizontal spacing from the column
                              dividers is handled per-column via content Margin instead of Padding
                              here (see CenterTextPadded/VCenterTextPadded above for why). -->
@@ -716,7 +723,7 @@
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource RowOutline}"/>
                                         <Setter Property="BorderThickness" Value="2"/>
                                     </Trigger>
                                 </Style.Triggers>
@@ -765,7 +772,7 @@
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding Needed}" Margin="7,3"
                                                                HorizontalAlignment="Center"
-                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                               Foreground="{DynamicResource NeededCount}" FontWeight="Bold"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -801,13 +808,13 @@
                                         <Setter Property="Padding" Value="0,4"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="Yes">
-                                                <Setter Property="Foreground" Value="#6EE7A0"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource GoodValue}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="No">
-                                                <Setter Property="Foreground" Value="#F87171"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource BadValue}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="Unknown">
-                                                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource UnknownValue}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -875,7 +882,7 @@
                     </DataGrid>
                     <TextBlock Text="No fleet carriers are selling these components."
                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="{StaticResource Muted}" FontSize="14" IsHitTestVisible="False"
+                               Foreground="{DynamicResource MutedText}" FontSize="14" IsHitTestVisible="False"
                                Visibility="{Binding NoResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </Grid>
                 </DockPanel>
@@ -884,19 +891,19 @@
                 <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch"
                               Background="Transparent"/>
 
-                <Border Grid.Row="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                        BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                 <DockPanel>
                     <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
                         <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14"
                                    VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{StaticResource Muted}"
+                        <TextBlock Text="{Binding CurrentSystemLabel}" Foreground="{DynamicResource MutedText}"
                                    HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
 
                     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                         <ProgressBar IsIndeterminate="{Binding IsSellBusy}" Width="140" Height="6"
-                                     Margin="16,0,0,0" Background="#3A2410" Foreground="{StaticResource Accent}"
+                                     Margin="16,0,0,0" Background="{DynamicResource ProgressTrack}" Foreground="{DynamicResource ProgressFill}"
                                      BorderThickness="0"
                                      Visibility="{Binding IsSellBusy, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </StackPanel>
@@ -908,7 +915,7 @@
                               CanUserSortColumns="True"
                               VirtualizingPanel.ScrollUnit="Item"
                               GridLinesVisibility="All"
-                              VerticalGridLinesBrush="#3A2410">
+                              VerticalGridLinesBrush="{DynamicResource GridLines}">
                         <DataGrid.CellStyle>
                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                 <Setter Property="Padding" Value="0,4"/>
@@ -921,7 +928,7 @@
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource RowOutline}"/>
                                         <Setter Property="BorderThickness" Value="2"/>
                                     </Trigger>
                                 </Style.Triggers>
@@ -957,7 +964,7 @@
                                                 <DataTemplate>
                                                     <TextBlock Text="{Binding Have}" Margin="7,3"
                                                                HorizontalAlignment="Center"
-                                                               Foreground="{StaticResource Accent}" FontWeight="Bold"/>
+                                                               Foreground="{DynamicResource HaveCount}" FontWeight="Bold"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
@@ -990,13 +997,13 @@
                                         <Setter Property="Padding" Value="0,4"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="Yes">
-                                                <Setter Property="Foreground" Value="#6EE7A0"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource GoodValue}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="No">
-                                                <Setter Property="Foreground" Value="#F87171"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource BadValue}"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding DockingAccess}" Value="Unknown">
-                                                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                                <Setter Property="Foreground" Value="{DynamicResource UnknownValue}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1063,7 +1070,7 @@
                     </DataGrid>
                     <TextBlock Text="No fleet carriers are buying these components."
                                HorizontalAlignment="Center" VerticalAlignment="Center"
-                               Foreground="{StaticResource Muted}" FontSize="14" IsHitTestVisible="False"
+                               Foreground="{DynamicResource MutedText}" FontSize="14" IsHitTestVisible="False"
                                Visibility="{Binding NoSellResultsFound, Converter={x:Static local:BoolToVis.Instance}}"/>
                     </Grid>
                 </DockPanel>
@@ -1073,7 +1080,7 @@
         </TabItem>
 
         <TabItem Header="Modifications">
-            <Grid>
+            <Grid TextElement.Foreground="{DynamicResource PanelText}">
                 <Grid.ColumnDefinitions>
                     <!-- Sized generously by default so full modification names show untruncated,
                          but resizable (drag the splitter) same as the Find Carriers tab. -->
@@ -1083,20 +1090,20 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- LEFT: modification picker -->
-                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                             <TextBlock Text="Suit &amp; weapon modifications" FontWeight="SemiBold" FontSize="14"/>
-                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0"
+                            <TextBlock Foreground="{DynamicResource MutedText}" Margin="0,2,0,0"
                                        Text="Tick the mods you want."/>
-                            <TextBlock Text="{Binding ModSelectionSummary}" Foreground="{StaticResource Accent}"
+                            <TextBlock Text="{Binding ModSelectionSummary}" Foreground="{DynamicResource SummaryText}"
                                        Margin="0,4,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
                             <Button Content="Clear selection" Command="{Binding ClearModSelectionCommand}"
-                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4"/>
+                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="8,4"/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
@@ -1111,7 +1118,7 @@
                                     <GroupStyle.HeaderTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding Name}" FontWeight="Bold"
-                                                       Foreground="{StaticResource Accent}" Margin="4,8,0,4"/>
+                                                       Foreground="{DynamicResource GroupHeaderText}" Margin="4,8,0,4"/>
                                         </DataTemplate>
                                     </GroupStyle.HeaderTemplate>
                                 </GroupStyle>
@@ -1163,8 +1170,8 @@
                               Background="Transparent"/>
 
                 <!-- RIGHT: clicked mod (top, fixed to 5 rows, the max a mod ever needs) + pinned totals (bottom) -->
-                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -1193,7 +1200,7 @@
                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Owned}" Value="False">
-                                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                                         <Setter Property="FontWeight" Value="Bold"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -1205,7 +1212,7 @@
                         </DockPanel>
 
                         <!-- Static divider (no longer a draggable splitter, both panes are fixed/auto sized). -->
-                        <Border Grid.Row="1" Height="1" Background="#5A3A15" Margin="0,10"/>
+                        <Border Grid.Row="1" Height="1" Background="{DynamicResource Divider}" Margin="0,10"/>
 
                         <!-- BOTTOM: total of every commodity needed across all checked modifications. -->
                         <DockPanel Grid.Row="2">
@@ -1228,7 +1235,7 @@
                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Owned}" Value="False">
-                                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                                         <Setter Property="FontWeight" Value="Bold"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
@@ -1244,7 +1251,7 @@
         </TabItem>
 
         <TabItem Header="Barter">
-            <Grid>
+            <Grid TextElement.Foreground="{DynamicResource PanelText}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="BarterLeftColumn" Width="340" MinWidth="300"/>
                     <ColumnDefinition Width="6"/>
@@ -1252,41 +1259,41 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- LEFT: running totals -->
-                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                             <TextBlock Text="Bartender calculator" FontWeight="SemiBold" FontSize="15"/>
-                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap" FontSize="14"
+                            <TextBlock Foreground="{DynamicResource MutedText}" Margin="0,2,0,0" TextWrapping="Wrap" FontSize="14"
                                        Text="Only Chemicals, Circuits and Tech can be bartered - trading only happens within one of these three groups at a time. Click an item on the right to set it as what you want, then set how many of the others to trade in. Picking a want item from a different group clears any amounts set in the previous one, since those points couldn't actually be spent on it."/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
                             <Button Content="Clear amounts" Command="{Binding ClearBarterCommand}"
-                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4" FontSize="14"/>
+                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="8,4" FontSize="14"/>
                         </StackPanel>
 
                         <!-- Running totals for whatever's currently ticked in the grid on the right. -->
-                        <Border Background="#0A0705" BorderBrush="#5A3A15" BorderThickness="1"
+                        <Border Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}" BorderThickness="1"
                                 CornerRadius="6" Padding="14">
                             <StackPanel>
-                                <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Text="YOU WANT"/>
+                                <TextBlock Foreground="{DynamicResource MutedText}" FontSize="12" Text="YOU WANT"/>
                                 <TextBlock Margin="0,2,0,14" FontSize="16" FontWeight="SemiBold">
                                     <Run Text="{Binding SelectedBarterWant.Row.Name, Mode=OneWay, FallbackValue='(click an item)'}"/>
                                     <Run Text=" (value "/><Run Text="{Binding BarterWantValue, Mode=OneWay}"/><Run Text=")"/>
                                 </TextBlock>
 
-                                <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Text="TOTAL POINTS OFFERED"/>
+                                <TextBlock Foreground="{DynamicResource MutedText}" FontSize="12" Text="TOTAL POINTS OFFERED"/>
                                 <TextBlock Margin="0,2,0,14" FontSize="16" FontWeight="SemiBold"
                                            Text="{Binding BarterTotalPoints, Mode=OneWay}"/>
 
-                                <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Text="YOU COULD ACQUIRE"/>
+                                <TextBlock Foreground="{DynamicResource MutedText}" FontSize="12" Text="YOU COULD ACQUIRE"/>
                                 <TextBlock Margin="0,2,0,14" FontSize="26" FontWeight="Bold"
-                                           Foreground="{StaticResource Accent}">
+                                           Foreground="{DynamicResource BarterResult}">
                                     <Run Text="{Binding BarterAcquirableUnits, Mode=OneWay}"/><Run Text=" unit(s)"/>
                                 </TextBlock>
 
-                                <TextBlock Foreground="{StaticResource Muted}" FontSize="12" Text="POINTS WASTED IF YOU TRADE NOW"/>
+                                <TextBlock Foreground="{DynamicResource MutedText}" FontSize="12" Text="POINTS WASTED IF YOU TRADE NOW"/>
                                 <TextBlock Margin="0,2,0,0" FontSize="16"
                                            Text="{Binding BarterLeftoverPoints, Mode=OneWay}"/>
                             </StackPanel>
@@ -1303,8 +1310,8 @@
                      in. FontSize is bumped a step above the app default (13) for readability -
                      cascades to the column headers and group headers too since neither sets its
                      own size. -->
-                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <DataGrid ItemsSource="{Binding BarterGiveRowsView}"
                               SelectedItem="{Binding SelectedBarterWant}"
                               VirtualizingPanel.ScrollUnit="Item"
@@ -1316,7 +1323,7 @@
                                 <GroupStyle.HeaderTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding Name}" FontWeight="Bold"
-                                                   Foreground="{StaticResource Accent}"
+                                                   Foreground="{DynamicResource GroupHeaderText}"
                                                    Margin="4,8,0,4"/>
                                     </DataTemplate>
                                 </GroupStyle.HeaderTemplate>
@@ -1329,7 +1336,7 @@
                             <Style TargetType="DataGridRow">
                                 <Style.Triggers>
                                     <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource RowOutline}"/>
                                         <Setter Property="BorderThickness" Value="2"/>
                                     </Trigger>
                                 </Style.Triggers>
@@ -1384,7 +1391,7 @@
                                                 HeaderStyle="{StaticResource CenterHeader}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
-                                        <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                        <Setter Property="Foreground" Value="{DynamicResource BarterPoints}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
                                     </Style>
                                 </DataGridTextColumn.CellStyle>
@@ -1396,7 +1403,7 @@
         </TabItem>
 
         <TabItem Header="Import">
-            <Grid>
+            <Grid TextElement.Foreground="{DynamicResource PanelText}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="ImportLeftColumn" Width="520" MinWidth="300"/>
                     <ColumnDefinition Width="6"/>
@@ -1404,12 +1411,12 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- LEFT: paste or load an EDOMH wishlist export -->
-                <Border Grid.Column="0" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
                             <TextBlock Text="Import EDOMH wishlist" FontWeight="SemiBold" FontSize="14"/>
-                            <TextBlock Foreground="{StaticResource Muted}" Margin="0,2,0,0" TextWrapping="Wrap"
+                            <TextBlock Foreground="{DynamicResource MutedText}" Margin="0,2,0,0" TextWrapping="Wrap"
                                        Text="Export a wishlist from Elite Dangerous Odyssey Materials Helper, then paste it below or load the .txt file."/>
                         </StackPanel>
 
@@ -1417,7 +1424,7 @@
                             <Button Content="Load .txt file…" Command="{Binding BrowseImportFileCommand}"
                                     Margin="0,0,8,0"/>
                             <Button Content="Clear" Command="{Binding ClearImportCommand}"
-                                    Background="#5A3A15" Foreground="#EAE4DA" Padding="8,4"/>
+                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="8,4"/>
                         </StackPanel>
 
                         <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
@@ -1427,7 +1434,7 @@
 
                         <TextBox Text="{Binding ImportText, UpdateSourceTrigger=PropertyChanged}"
                                  FontFamily="Consolas" FontSize="12"
-                                 Background="#0A0705" Foreground="#EAE4DA" BorderBrush="#5A3A15"
+                                 Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
                                  BorderThickness="1" Padding="6"
                                  AcceptsReturn="True" TextWrapping="NoWrap"
                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
@@ -1438,8 +1445,8 @@
                               Background="Transparent"/>
 
                 <!-- RIGHT: what got parsed, so an unmatched/mistyped material name is easy to spot -->
-                <Border Grid.Column="2" Background="{StaticResource Panel}" CornerRadius="6" Padding="10"
-                    BorderBrush="{StaticResource Accent}" BorderThickness="1">
+                <Border Grid.Column="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14"
                                    Text="Parsed items"/>
@@ -1459,7 +1466,7 @@
                                         <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Matched}" Value="False">
-                                                    <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+                                                    <Setter Property="Foreground" Value="{DynamicResource UnmatchedText}"/>
                                                     <Setter Property="FontWeight" Value="Bold"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -1478,21 +1485,21 @@
              was left with components still short at the app's last close. Background is a real
              (semi-transparent) brush, not Transparent, so it also blocks clicks to the tabs
              underneath while up. -->
-        <Border Background="#CC000000"
+        <Border Background="{DynamicResource OverlayDim}"
                 Visibility="{Binding HasPendingSearchPrompt, Converter={x:Static local:BoolToVis.Instance}}">
-            <Border Background="{StaticResource Panel}" BorderBrush="{StaticResource Accent}"
+            <Border Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
                     BorderThickness="1" CornerRadius="8" Padding="24" MaxWidth="420"
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <StackPanel>
                     <TextBlock Text="Unfinished search" FontWeight="SemiBold" FontSize="16"
-                               Foreground="{StaticResource Accent}" Margin="0,0,0,8"/>
+                               Foreground="{DynamicResource DialogTitle}" Margin="0,0,0,8"/>
                     <TextBlock TextWrapping="Wrap" Margin="0,0,0,16"
                                Text="You didn't complete your last search. Would you like to continue or start a new search?"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                         <Button Content="Continue" Command="{Binding ContinuePendingSearchCommand}"
                                 Padding="16,8" Margin="0,0,8,0"/>
                         <Button Content="Start New" Command="{Binding StartNewSearchCommand}"
-                                Background="#5A3A15" Foreground="#EAE4DA" Padding="16,8"/>
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}" Padding="16,8"/>
                     </StackPanel>
                 </StackPanel>
             </Border>

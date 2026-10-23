@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using FleetView.Services;
+using FleetView.Theming;
 using FleetView.ViewModels;
 
 namespace FleetView;
@@ -26,6 +27,10 @@ public partial class App : Application
 
         try
         {
+            // Before the window exists, so its first layout already has the saved colours rather
+            // than flashing the defaults. A broken or missing theme.json just means defaults.
+            ThemeService.ApplySaved();
+
             var catalog = CatalogLoader.Load();
             var modifications = ModificationLoader.Load();
             var locker = new ShipLockerReader();

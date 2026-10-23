@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The theme code works in WPF's Color and brush types, so this needs WPF loaded, but it never
+         creates a window: it is a console app and stays one. -->
+    <UseWPF>true</UseWPF>
+    <RootNamespace>FleetFinder.SelfTest</RootNamespace>
+    <!-- FleetFinder is published self-contained; this only ever runs from its own bin. -->
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+
+  <!-- No packages of its own, same as FleetFinder. -->
+  <ItemGroup>
+    <ProjectReference Include="..\FleetFinder\FleetView.csproj" />
+  </ItemGroup>
+
+</Project>
