@@ -309,6 +309,42 @@
             </Setter>
         </Style>
 
+        <!-- Text boxes: WPF's own Aero2 template, copied element for element, so that the blue
+             border under the mouse and while typing can follow a role like everything else. In
+             the stock template those two blues are fixed brushes nothing outside can reach.
+             Only the two brushes differ from the original, and their defaults are the stock
+             values, so a text box looks exactly as it always did. Every other setting (focus
+             visual, selection colours, scrolling) still comes from the stock style underneath;
+             this one only swaps the template. The Needed cell editor further down is based on
+             this style, because it is a text box too and showed the same blue while editing. -->
+        <Style TargetType="TextBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="border" BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                          HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Opacity" Value="0.56"/>
+                            </Trigger>
+                            <!-- Same order as the original: focus is listed last, so it wins while
+                                 the mouse is also over a box being typed in. -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputHoverBorder}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Dark-theme tabs. -->
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="Transparent"/>
@@ -607,7 +643,12 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                                 <DataGridTextColumn.EditingElementStyle>
-                                    <Style TargetType="TextBox">
+                                    <!-- Based on the window's text box style for its template, so
+                                         its hover and focus border follow the text box roles too.
+                                         Note the focus border is what shows while editing: the
+                                         editor has keyboard focus, and the template's focus
+                                         trigger draws over the BorderBrush set here. -->
+                                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                         <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>

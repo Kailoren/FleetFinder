@@ -127,6 +127,13 @@ public static class ThemeRoles
         Role("InputBackground", Inputs, "Text box background", "#0A0705"),
         Role("InputText", Inputs, "Text box text", "#EAE4DA"),
         Role("InputBorder", Inputs, "Text box border", "#5A3A15"),
+        // The two blues every text box has always shown under the mouse and while typing. They
+        // used to come from WPF's own Aero2 TextBox template, out of reach of any role; the
+        // window now carries a copy of that template with these in its triggers. The defaults
+        // are the values read off the live template's triggers in the running app, so nothing
+        // looks different until someone picks a colour.
+        Role("InputHoverBorder", Inputs, "Text box hover border", "#7EB4EA"),
+        Role("InputFocusBorder", Inputs, "Text box focus border", "#569DE5"),
         Role("CellEditorBorder", Inputs, "Needed cell editor border", "#FF7500"),
         Role("CheckboxBackground", Inputs, "Checkbox background", "#120E08"),
         Role("CheckboxBorder", Inputs, "Checkbox border", "#5A3A15"),
