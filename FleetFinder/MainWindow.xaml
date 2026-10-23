@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FleetView"
+        xmlns:settings="clr-namespace:FleetView.Settings"
         xmlns:aero2="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
         mc:Ignorable="d"
         Title="FleetFinder - Odyssey Engineering Material Finder"
@@ -257,6 +258,19 @@
                     <Setter Property="Background" Value="{DynamicResource CloseButtonHover}"/>
                     <Setter Property="Foreground" Value="{DynamicResource CloseButtonHoverGlyph}"/>
                 </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- The settings cog: drawn like the window buttons above it (same size, same thin line,
+             same hover), and lit in the selected tab's text colour while Settings is open, since
+             it stands in for the Settings tab's own header. The glyph is shared with the Settings
+             preview, which draws the same cog. -->
+        <Geometry x:Key="CogGlyph">M5.57,2.31 L5.85,0.50 A6.6,6.6 0 0 1 8.15,0.50 L8.43,2.31 A4.9,4.9 0 0 1 9.30,2.67 L10.79,1.59 A6.6,6.6 0 0 1 12.41,3.21 L11.33,4.70 A4.9,4.9 0 0 1 11.69,5.57 L13.50,5.85 A6.6,6.6 0 0 1 13.50,8.15 L11.69,8.43 A4.9,4.9 0 0 1 11.33,9.30 L12.41,10.79 A6.6,6.6 0 0 1 10.79,12.41 L9.30,11.33 A4.9,4.9 0 0 1 8.43,11.69 L8.15,13.50 A6.6,6.6 0 0 1 5.85,13.50 L5.57,11.69 A4.9,4.9 0 0 1 4.70,11.33 L3.21,12.41 A6.6,6.6 0 0 1 1.59,10.79 L2.67,9.30 A4.9,4.9 0 0 1 2.31,8.43 L0.50,8.15 A6.6,6.6 0 0 1 0.50,5.85 L2.31,5.57 A4.9,4.9 0 0 1 2.67,4.70 L1.59,3.21 A6.6,6.6 0 0 1 3.21,1.59 L4.70,2.67 A4.9,4.9 0 0 1 5.57,2.31 Z M9.20,7.00 A2.2,2.2 0 1 1 4.80,7.00 A2.2,2.2 0 1 1 9.20,7.00 Z</Geometry>
+        <Style x:Key="SettingsCogButton" TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSelected, ElementName=SettingsTab}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource SelectedTabText}"/>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
 
@@ -616,7 +630,7 @@
         <!-- Tabs, plus the "resume last search" overlay stacked on top of just this area (title
              bar / status bar stay usable while it's up). -->
         <Grid>
-        <TabControl Margin="12,8,12,12" Background="Transparent">
+        <TabControl x:Name="MainTabs" Margin="12,8,12,12" Background="Transparent">
         <TabItem Header="Find Carriers">
         <!-- Main split. TextElement.Foreground here (and on each tab's root Grid below) is there
              for the colour changer: a tab's content inherits its text colour from the TabItem,
@@ -786,14 +800,16 @@
                                 <DataGridTextColumn.EditingElementStyle>
                                     <!-- Based on the window's text box style for its template, so
                                          its hover and focus border follow the text box roles too.
-                                         Note the focus border is what shows while editing: the
-                                         editor has keyboard focus, and the template's focus
-                                         trigger draws over the BorderBrush set here. -->
+                                         The border is the focus role because that is all it ever
+                                         shows: the editor has keyboard focus the whole time it is
+                                         open, and the template's focus trigger draws that colour
+                                         over whatever BorderBrush says. It had a role of its own
+                                         once, which recoloured nothing anyone could see. -->
                                     <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                         <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
                                         <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
                                         <Setter Property="FontWeight" Value="Bold"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource CellEditorBorder}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
                                         <Setter Property="BorderThickness" Value="1"/>
                                         <Setter Property="TextAlignment" Value="Center"/>
                                         <Setter Property="Margin" Value="0,0,20,0"/>
@@ -1661,7 +1677,26 @@
                 </Border>
             </Grid>
         </TabItem>
+
+        <!-- Settings: a tab with no header of its own. The cog below selects it, and clicking any
+             other tab leaves it, the same as switching between the others. Collapsed, so the strip
+             lays out the four tabs exactly as before and Ctrl+Tab passes over it. Its page sets
+             PanelText on its own root, as the tabs above do. -->
+        <TabItem x:Name="SettingsTab" Header="Settings" Visibility="Collapsed">
+            <settings:SettingsPage x:Name="SettingsView"/>
+        </TabItem>
         </TabControl>
+
+        <!-- The settings cog, at the right end of the tab strip, level with the tabs and just
+             above the panels' right edge (12 of the tab control's margin and 2 of its padding).
+             It sits over the tab control rather than in it, so the four tabs are untouched, and
+             under the resume prompt below, which covers it like everything else. -->
+        <Button x:Name="SettingsCogButton" Style="{StaticResource SettingsCogButton}"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,11,14,0"
+                Click="SettingsCogButton_Click" ToolTip="Settings" AutomationProperties.Name="Settings">
+            <Path Width="14" Height="14" Stretch="None" StrokeThickness="1" Data="{StaticResource CogGlyph}"
+                  Stroke="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
+        </Button>
 
         <!-- "Resume last search" overlay: shown when a targeted search (Modifications/Import)
              was left with components still short at the app's last close. Background is a real

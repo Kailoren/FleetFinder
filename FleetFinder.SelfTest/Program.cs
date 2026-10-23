@@ -5,9 +5,11 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Xml.Linq;
+using FleetView;
 using FleetView.Controls;
 using FleetView.Services;
 using FleetView.Theming;
@@ -15,11 +17,13 @@ using FleetView.Theming;
 // Self-test for FleetFinder's theme layer (the colour changer, 2026-10): the colour maths in both
 // directions and its text forms, theme.json loading and saving, the brushes the theme service
 // hands out, a scan of MainWindow.xaml that fails if a colour literal comes back or a
-// DynamicResource names something that is not a role, and the colour picker (its state on its
-// own, then the real control driven through its public methods). Prints one PASS or FAIL line per
-// check and a final SUMMARY line; exit code 1 if anything failed.
+// DynamicResource names something that is not a role, the colour picker (its state on its own,
+// then the real control driven through its public methods), the Settings draft (save, revert,
+// reset, the picker's edits), and the Settings page and its preview. Prints one PASS or FAIL line
+// per check and a final SUMMARY line; exit code 1 if anything failed.
 //
-// Runs on an STA thread because WPF brushes are dispatcher objects. It never creates a window.
+// Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
+// object tree to check the Settings page in it, but never shows it, so nothing appears on screen.
 var suite = new SelfTest();
 var thread = new Thread(suite.Run);
 thread.SetApartmentState(ApartmentState.STA);
@@ -55,6 +59,9 @@ internal sealed class SelfTest
             Section("colour picker state", PickerStateTests);
             Section("colour picker control", PickerControlTests);
             Section("ColourPicker.xaml", PickerXamlTests);
+            Section("theme draft", DraftTests);
+            Section("Settings XAML", SettingsXamlTests);
+            Section("Settings page and preview", SettingsPageTests);
         }
         finally
         {
@@ -521,6 +528,14 @@ internal sealed class SelfTest
         var raw = File.ReadAllText(path);
         Check("no StaticResource left for the old Panel, Accent or Muted brushes",
             !Regex.IsMatch(raw, @"StaticResource\s+(Panel|Accent|Muted)\}"));
+
+        // The Needed cell editor's border never showed in a colour of its own: the editor has the
+        // keyboard while open and the focus trigger drew over it. It is the focus role now, and
+        // the role that did nothing is gone.
+        var editorBorder = doc.Descendants().Where(e => e.Name.LocalName == "DataGridTextColumn.EditingElementStyle")
+            .SelectMany(e => e.Descendants()).FirstOrDefault(e => e.Name.LocalName == "Setter" && e.Attribute("Property")?.Value == "BorderBrush");
+        Equal("the Needed cell editor's border is the typing role", "{DynamicResource InputFocusBorder}", editorBorder?.Attribute("Value")?.Value);
+        Check("the old cell editor role is gone", ThemeRoles.Find("CellEditorBorder") == null && !raw.Contains("CellEditorBorder"));
     }
 
     /// <summary>
@@ -874,5 +889,352 @@ internal sealed class SelfTest
             used.Contains("TextSelection") && used.Contains("TextBoxMenu"));
         Check("its fields use the text box hover and focus roles",
             used.Contains("InputHoverBorder") && used.Contains("InputFocusBorder"));
+    }
+
+    // ---- theme draft ----------------------------------------------------------------------------
+
+    private static bool SameColours(IReadOnlyDictionary<string, Color> a, IReadOnlyDictionary<string, Color> b) =>
+        ThemeRoles.All.All(r => a.TryGetValue(r.Key, out var x) && b.TryGetValue(r.Key, out var y) && x == y);
+
+    /// <summary>
+    /// The Settings page's draft on its own: dirty tracking, Save, Revert, Reset to defaults and
+    /// the picker's edit calls. Writes only into this run's temp folder.
+    /// </summary>
+    private void DraftTests()
+    {
+        var defaults = ThemeRoles.Defaults();
+        var path = Path.Combine(_dir, "draft", "Data", "theme.json");
+        var saved = ThemeRoles.Defaults();
+        saved["PanelBackground"] = Color.FromRgb(0x10, 0x20, 0x30);
+        var applied = new List<IReadOnlyDictionary<string, Color>>();
+        var draft = new ThemeDraft(saved, path, c => applied.Add(c));
+        var changes = new List<string?>();
+        var raised = new List<string?>();
+        draft.ColourChanged += k => changes.Add(k);
+        draft.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        Check("a new draft holds the saved colours", SameColours(draft.Colours, saved));
+        Check("and is not dirty", !draft.IsDirty);
+        Check("saved colours that are not the shipped ones are not default", !draft.IsDefault);
+        Check("nothing is written before Save", !File.Exists(path));
+
+        // Changing one role.
+        var teal = Color.FromRgb(0x00, 0x80, 0x80);
+        Check("Set says it changed something", draft.Set("GridRow", teal));
+        Equal("the draft has the new colour", teal, draft["GridRow"]);
+        Check("the draft is dirty", draft.IsDirty);
+        Equal("the saved colours are untouched", saved["GridRow"], draft.Saved["GridRow"]);
+        Equal("ColourChanged names the role", "GridRow", changes.LastOrDefault());
+        Equal("IsDirty was announced once", 1, raised.Count(n => n == nameof(ThemeDraft.IsDirty)));
+        int before = changes.Count;
+        Check("the same colour again is not a change", !draft.Set("GridRow", teal) && changes.Count == before);
+        draft.Set("GridRow", saved["GridRow"]);
+        Check("setting it back to the saved colour clears dirty", !draft.IsDirty);
+        Equal("and that was announced too", 2, raised.Count(n => n == nameof(ThemeDraft.IsDirty)));
+
+        // Alpha.
+        draft.Set("GridText", Color.FromArgb(0x80, 0x11, 0x22, 0x33));
+        Equal("a role without alpha is kept opaque", Color.FromRgb(0x11, 0x22, 0x33), draft["GridText"]);
+        draft.Set("OverlayDim", Color.FromArgb(0x40, 0x11, 0x22, 0x33));
+        Equal("a role with alpha keeps the alpha it is given", Color.FromArgb(0x40, 0x11, 0x22, 0x33), draft["OverlayDim"]);
+        bool threw = false;
+        try { draft.Set("NotARole", teal); } catch (ArgumentException) { threw = true; }
+        Check("an unknown role is refused", threw);
+
+        // Revert.
+        changes.Clear();
+        draft.Revert();
+        Check("Revert goes back to the saved colours", SameColours(draft.Colours, saved));
+        Check("and is not dirty", !draft.IsDirty);
+        Check("and says everything may have changed", changes.SequenceEqual(new string?[] { null }));
+        changes.Clear();
+        draft.Revert();
+        Check("Revert with nothing to undo says nothing", changes.Count == 0);
+
+        // Reset to defaults: the draft only.
+        draft.ResetToDefaults();
+        Check("Reset to defaults makes the draft the shipped palette", SameColours(draft.Colours, defaults) && draft.IsDefault);
+        Check("which differs from what is saved", draft.IsDirty);
+        Check("and is neither applied nor written", applied.Count == 0 && !File.Exists(path));
+
+        // Save.
+        draft.Set("ButtonBackground", teal);
+        raised.Clear();
+        Check("Save reports the file was written", draft.Save());
+        Equal("Save put the colours on the app once", 1, applied.Count);
+        Check("the colours it applied are the draft", SameColours(applied[0], draft.Colours));
+        Check("theme.json was written where it was told, folder and all", File.Exists(path));
+        var loaded = ThemeStore.Load(path);
+        Check("the file loads back as the draft", SameColours(loaded, draft.Colours));
+        Check("what is saved is now the draft", SameColours(draft.Saved, draft.Colours));
+        Check("so nothing is unsaved", !draft.IsDirty && raised.Contains(nameof(ThemeDraft.IsDirty)));
+        draft.Set("ButtonBackground", Color.FromRgb(1, 2, 3));
+        draft.Revert();
+        Equal("Revert after a save goes back to that save, not the start", teal, draft["ButtonBackground"]);
+
+        // Reset to defaults then Save: the file is the shipped palette.
+        draft.ResetToDefaults();
+        draft.Save();
+        Check("after Reset and Save the file is all defaults", SameColours(ThemeStore.Load(path), defaults));
+        using (var doc = JsonDocument.Parse(File.ReadAllText(path)))
+            Equal("and still lists every role", ThemeRoles.All.Count, doc.RootElement.GetProperty("colours").EnumerateObject().Count());
+
+        // An unsaved change does not outlive the draft: the next start reads the file.
+        draft.Set("PanelBackground", teal);
+        var nextStart = new ThemeDraft(ThemeStore.Load(path), path, _ => { });
+        Check("a draft made from the file has the saved colours, not the unsaved one",
+            nextStart["PanelBackground"] == defaults["PanelBackground"] && !nextStart.IsDirty);
+        draft.Revert();
+
+        // The picker's edits: a drag, then Cancel.
+        draft.Set("GridLines", teal);
+        draft.BeginEdit("PanelBackground");
+        Equal("the picker's role is remembered", "PanelBackground", draft.EditingKey);
+        foreach (var step in new[] { Color.FromRgb(9, 9, 9), Color.FromRgb(40, 40, 90), Color.FromRgb(80, 20, 200) })
+            draft.Set("PanelBackground", step);
+        draft.CancelEdit();
+        Equal("Cancel puts the role back as it was when the picker opened", defaults["PanelBackground"], draft["PanelBackground"]);
+        Equal("and leaves other changes alone", teal, draft["GridLines"]);
+        Check("and closes the edit", draft.EditingKey == null);
+        draft.CancelEdit();
+        Equal("Cancel with no picker open does nothing", teal, draft["GridLines"]);
+
+        // OK (or a click outside) keeps it.
+        draft.BeginEdit("PanelBackground");
+        draft.Set("PanelBackground", Color.FromRgb(80, 20, 200));
+        draft.EndEdit();
+        draft.CancelEdit();
+        Equal("OK keeps the colour, and a Cancel afterwards cannot undo it", Color.FromRgb(80, 20, 200), draft["PanelBackground"]);
+
+        // Opening the picker on a second role keeps the first one's edit.
+        draft.BeginEdit("GridRow");
+        draft.Set("GridRow", Color.FromRgb(5, 5, 5));
+        draft.BeginEdit("GridText");
+        draft.Set("GridText", Color.FromRgb(6, 6, 6));
+        draft.CancelEdit();
+        Check("a second edit cancelled restores only its own role",
+            draft["GridRow"] == Color.FromRgb(5, 5, 5) && draft["GridText"] == defaults["GridText"]);
+
+        // Revert or Save part way through an edit ends it.
+        draft.BeginEdit("GridRow");
+        draft.Revert();
+        draft.Set("GridRow", Color.FromRgb(7, 7, 7));
+        draft.CancelEdit();
+        Equal("Revert ends an open edit, so a later Cancel touches nothing", Color.FromRgb(7, 7, 7), draft["GridRow"]);
+        draft.BeginEdit("GridRow");
+        draft.Set("GridRow", Color.FromRgb(8, 8, 8));
+        draft.Save();
+        draft.CancelEdit();
+        Equal("Save keeps an open edit", Color.FromRgb(8, 8, 8), draft["GridRow"]);
+
+        // A save that cannot be written: the colours are on the app all the same.
+        var folder = Path.Combine(_dir, "draft", "a folder");
+        Directory.CreateDirectory(folder);
+        applied.Clear();
+        var stuck = new ThemeDraft(defaults, folder, c => applied.Add(c));
+        stuck.Set("GridRow", teal);
+        Check("a save that cannot write says so", !stuck.Save());
+        Check("but still applied the colours", applied.Count == 1 && applied[0]["GridRow"] == teal);
+        Check("and counts them as saved", !stuck.IsDirty);
+
+        Check("the app's own draft starts from what the app shows", SameColours(ThemeDraft.ForApp().Colours, ThemeService.Current));
+    }
+
+    // ---- Settings XAML --------------------------------------------------------------------------
+
+    /// <summary>Keyed styles and the cog drawing, which the Settings files take from the window.</summary>
+    private static readonly HashSet<string> WindowKeys = new(StringComparer.Ordinal)
+        { "CaptionButton", "CloseCaptionButton", "LinkButton", "StepperButton", "CogGlyph" };
+
+    /// <summary>
+    /// The Settings page and its preview follow the same rules as the window: no colour literals,
+    /// every DynamicResource a role, or one of the window's own styles they borrow.
+    /// </summary>
+    private void SettingsXamlTests()
+    {
+        var windowDoc = XDocument.Load(RepoFile("FleetFinder", "MainWindow.xaml"));
+        var windowKeys = windowDoc.Descendants().Select(e => e.Attribute(Xaml + "Key")?.Value).OfType<string>().ToHashSet();
+        Check("the styles they borrow are in the window", WindowKeys.All(windowKeys.Contains),
+            string.Join(", ", WindowKeys.Where(k => !windowKeys.Contains(k))));
+
+        foreach (var file in new[] { "SettingsPage.xaml", "ThemePreview.xaml" })
+        {
+            var doc = XDocument.Load(RepoFile("FleetFinder", "Settings", file), LoadOptions.SetLineInfo);
+            var problems = new List<string>();
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var el in doc.Descendants())
+            {
+                int line = ((System.Xml.IXmlLineInfo)el).LineNumber;
+                string elName = el.Name.LocalName;
+                foreach (var attr in el.Attributes())
+                {
+                    foreach (Match m in DynamicKey.Matches(attr.Value)) used.Add(m.Groups[1].Value);
+                    if (HexLiteral.IsMatch(attr.Value)
+                        || (IsColourProperty(attr.Name.LocalName) && !IsAllowedColourValue(attr.Value)))
+                    {
+                        problems.Add($"line {line}: {elName} {attr.Name.LocalName}=\"{attr.Value}\"");
+                    }
+                }
+                if (elName == "Setter" && el.Attribute("Property")?.Value is { } prop && IsColourProperty(prop)
+                    && el.Attribute("Value")?.Value is { } value && !IsAllowedColourValue(value))
+                {
+                    problems.Add($"line {line}: Setter {prop} Value=\"{value}\"");
+                }
+                if (elName is "SolidColorBrush" or "LinearGradientBrush" or "RadialGradientBrush" or "GradientStop" or "Color")
+                    problems.Add($"line {line}: {elName} written out");
+            }
+            Check($"{file}: no colour literals", problems.Count == 0, string.Join("; ", problems));
+            var unknown = used.Where(k => ThemeRoles.Find(k) is null && !WindowKeys.Contains(k)).ToList();
+            Check($"{file}: every DynamicResource is a role or a window style", unknown.Count == 0, string.Join(", ", unknown));
+            // StaticResource with a type key would find WPF's own light style here, not the window's,
+            // because these files are read before they are put in the window. The DataGridCell one
+            // is allowed: the window has no DataGridCell style either, so both find the same one.
+            var typeStatics = Regex.Matches(File.ReadAllText(RepoFile("FleetFinder", "Settings", file)),
+                    @"StaticResource\s+\{x:Type\s+(\w+)\}").Select(m => m.Groups[1].Value)
+                .Where(t => t != "DataGridCell").Distinct().ToList();
+            Check($"{file}: borrows no window style by type", typeStatics.Count == 0, string.Join(", ", typeStatics));
+        }
+    }
+
+    // ---- Settings page and preview ------------------------------------------------------------
+
+    private static void Pump()
+    {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
+            new Action(() => frame.Continue = false));
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+    }
+
+    private static readonly Dictionary<Type, DependencyProperty[]> BrushProperties = [];
+
+    /// <summary>Every brush-typed dependency property a type has, its own and inherited.</summary>
+    private static DependencyProperty[] BrushPropertiesOf(Type type)
+    {
+        if (BrushProperties.TryGetValue(type, out var known)) return known;
+        var found = type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static
+                                   | System.Reflection.BindingFlags.FlattenHierarchy)
+            .Where(f => f.FieldType == typeof(DependencyProperty))
+            .Select(f => (DependencyProperty)f.GetValue(null)!)
+            .Where(dp => typeof(Brush).IsAssignableFrom(dp.PropertyType))
+            .Append(TextElement.ForegroundProperty)
+            .Distinct()
+            .ToArray();
+        return BrushProperties[type] = found;
+    }
+
+    /// <summary>
+    /// Every brush object any element under <paramref name="root"/> is drawing with right now: its
+    /// backgrounds, borders, text, fills and strokes, from styles, templates, triggers or set
+    /// directly. Compared by reference, which tells two roles of the same colour apart.
+    /// </summary>
+    private static HashSet<object> BrushesIn(DependencyObject root)
+    {
+        var found = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        void Walk(DependencyObject d)
+        {
+            if (d is UIElement { Visibility: not Visibility.Visible }) return;
+            foreach (var dp in BrushPropertiesOf(d.GetType()))
+                if (d.GetValue(dp) is Brush b) found.Add(b);
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(d); i++)
+                Walk(VisualTreeHelper.GetChild(d, i));
+        }
+        Walk(root);
+        return found;
+    }
+
+    /// <summary>
+    /// The Settings page inside the real main window (built, never shown): the cog and the hidden
+    /// tab, the colour list, and the preview, which has to draw with every role.
+    /// </summary>
+    private void SettingsPageTests()
+    {
+        ThemeService.Apply(ThemeRoles.Defaults());
+        var window = new MainWindow();
+        var tabs = (TabControl)window.FindName("MainTabs");
+        var tab = (TabItem)window.FindName("SettingsTab");
+        var page = (FleetView.Settings.SettingsPage)window.FindName("SettingsView");
+        var cog = (Button)window.FindName("SettingsCogButton");
+
+        Equal("the four tabs are the ones there always were", "Find Carriers,Modifications,Barter,Import",
+            string.Join(",", tabs.Items.OfType<TabItem>().Where(t => t.Visibility == Visibility.Visible).Select(t => t.Header)));
+        Check("Settings is a tab with no header in the strip", tab.Visibility == Visibility.Collapsed && tabs.Items.Contains(tab));
+        Check("after the others, so they keep their places", tabs.Items.IndexOf(tab) == tabs.Items.Count - 1);
+        Check("Settings holds the page", ReferenceEquals(tab.Content, page));
+        Equal("the cog's tooltip", "Settings", cog.ToolTip as string);
+        Equal("and its name for screen readers", "Settings", System.Windows.Automation.AutomationProperties.GetName(cog));
+        cog.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Check("clicking the cog opens Settings", ReferenceEquals(tabs.SelectedItem, tab));
+        tabs.SelectedIndex = 1;
+        Check("and choosing a tab leaves it", !tab.IsSelected);
+        tabs.SelectedIndex = 0;
+
+        // The list.
+        var rows = page.Groups.SelectMany(g => g.Rows).ToList();
+        Equal("the list has every role, in order", string.Join(",", ThemeRoles.All.Select(r => r.Key)), string.Join(",", rows.Select(r => r.Key)));
+        Equal("under its group headings, in order", string.Join(",", ThemeRoles.Groups), string.Join(",", page.Groups.Select(g => g.Name)));
+        Equal("text selection says how it shows", "Shows at 40% over the box", rows.Single(r => r.Key == "TextSelection").Note);
+        Equal("a see-through role says how see-through", "Shows at 80% over what is behind it", rows.Single(r => r.Key == "OverlayDim").Note);
+        Check("other roles have no note", rows.Where(r => !r.Role.HasAlpha && r.Key != "TextSelection").All(r => r.Note == null));
+        Check("labels say 'under the mouse' and 'while typing', not hover and focus",
+            ThemeRoles.All.All(r => !Regex.IsMatch(r.Label, "hover|focus", RegexOptions.IgnoreCase)));
+        Equal("the hex beside a box is written as the picker writes it", "#120e08", rows.Single(r => r.Key == "PanelBackground").Hex);
+        Check("the page starts with nothing unsaved", !page.Draft.IsDirty);
+
+        // The preview, laid out at about the size it gets in Ali's window.
+        page.Measure(new Size(1692, 1306));
+        page.Arrange(new Rect(0, 0, 1692, 1306));
+        page.UpdateLayout();
+        Pump();
+        page.UpdateLayout();
+        var preview = page.PreviewControl;
+        Check($"the preview lays out ({preview.ActualWidth:F0}x{preview.ActualHeight:F0})", preview.ActualWidth > 500 && preview.ActualHeight > 500);
+        object Draft(string key) => preview.Resources[key];
+        Equal("the preview has a brush of its own for each role", ThemeRoles.All.Count,
+            ThemeRoles.All.Select(r => Draft(r.Key)).Distinct(ReferenceEqualityComparer.Instance).Count());
+        var used = BrushesIn(preview);
+        var missing = ThemeRoles.All.Where(r => !used.Contains(Draft(r.Key))).Select(r => r.Key).ToList();
+        Check($"every role is drawn somewhere in the preview ({ThemeRoles.All.Count - missing.Count} of {ThemeRoles.All.Count})",
+            missing.Count == 0, "never drawn: " + string.Join(", ", missing));
+
+        // Inherited colours resolve where they are set, so the preview has to set the window's
+        // own ones again inside its scope, or it shows the app's.
+        var root = (Border)preview.FindName("PreviewRoot");
+        Check("the preview sets the window background itself", ReferenceEquals(root.Background, Draft("WindowBackground")));
+        Check("and the main text colour", ReferenceEquals(TextElement.GetForeground(root), Draft("MainText")));
+        var tabContent = Logical<TabItem>(preview).First(t => t.IsSelected).Content as FrameworkElement;
+        Check("and gives its tab content the panel text colour",
+            tabContent != null && ReferenceEquals(TextElement.GetForeground(tabContent), Draft("PanelText")));
+
+        // A draft change moves the preview and the list, not the app.
+        var odd = Color.FromRgb(0x12, 0xAB, 0x34);
+        page.Draft.Set("PanelBackground", odd);
+        Equal("a draft colour reaches the preview", odd, (Draft("PanelBackground") as SolidColorBrush)?.Color ?? default);
+        Equal("and its row's box", odd, (rows.Single(r => r.Key == "PanelBackground").Swatch as SolidColorBrush)?.Color ?? default);
+        Equal("and its row's hex", "#12ab34", rows.Single(r => r.Key == "PanelBackground").Hex);
+        Equal("but not the app", ThemeRoles.Find("PanelBackground")!.Default, ThemeService.Current["PanelBackground"]);
+        Check("the page now has something unsaved", page.Draft.IsDirty);
+        page.Draft.Revert();
+        Equal("Revert puts the preview back", ThemeRoles.Find("PanelBackground")!.Default,
+            (Draft("PanelBackground") as SolidColorBrush)?.Color ?? default);
+
+        // The picker keeps the app's colours: it must not sit inside the preview.
+        DependencyObject? up = page.PickerControl;
+        bool inside = false;
+        while (up != null)
+        {
+            inside |= ReferenceEquals(up, preview);
+            up = LogicalTreeHelper.GetParent(up) ?? VisualTreeHelper.GetParent(up);
+        }
+        Check("the picker is outside the preview's colours", !inside);
+    }
+
+    private static IEnumerable<T> Logical<T>(DependencyObject root) where T : DependencyObject
+    {
+        foreach (var child in LogicalTreeHelper.GetChildren(root).OfType<DependencyObject>())
+        {
+            if (child is T t) yield return t;
+            foreach (var deeper in Logical<T>(child)) yield return deeper;
+        }
     }
 }

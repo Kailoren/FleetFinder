@@ -1,0 +1,708 @@
+<UserControl x:Class="FleetView.Settings.ThemePreview"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             IsHitTestVisible="False" Focusable="False" IsTabStop="False"
+             KeyboardNavigation.TabNavigation="None" KeyboardNavigation.DirectionalNavigation="None"
+             KeyboardNavigation.ControlTabNavigation="None"
+             AutomationProperties.Name="Preview of the colours being edited"
+             UseLayoutRounding="True" SnapsToDevicePixels="True">
+
+    <!-- The Settings preview: a small copy of the Find Carriers tab, then samples of everything
+         Find Carriers does not show on its own (things under the mouse, typing, a tooltip, the
+         right-click menu, the resume prompt, bits of the other tabs). Every colour role shows
+         somewhere in here; the self-test fails if one does not.
+
+         It recolours on its own because ThemePreview.xaml.cs puts a dictionary of draft brushes
+         in this control's Resources, under the role keys. Every colour below is a DynamicResource,
+         so it finds the draft before it reaches the app's own brushes. The controls are the real
+         ones (DataGrid, TabControl, Button, CheckBox, TextBox, ScrollBar), so the window's own
+         styles draw them, templates and triggers included. The keyed styles live in the window
+         too, and this file is read before it is put in the window, so they are looked up with
+         DynamicResource rather than StaticResource.
+
+         States a still picture cannot show by itself (under the mouse, typing, a menu or tooltip
+         open) are drawn as samples: either a real control given that state's colour, or plain
+         shapes laid out like the real template. Nothing in here can be clicked or tabbed into. -->
+
+    <Border x:Name="PreviewRoot" Width="1100"
+            Background="{DynamicResource WindowBackground}" TextElement.Foreground="{DynamicResource MainText}"
+            TextElement.FontFamily="Segoe UI" TextElement.FontSize="13" TextElement.FontWeight="Normal">
+        <Border.Resources>
+            <!-- A sample tile looks like one of the app's panels. -->
+            <Style x:Key="Tile" TargetType="Border">
+                <Setter Property="Background" Value="{DynamicResource PanelBackground}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="CornerRadius" Value="6"/>
+                <Setter Property="Padding" Value="10"/>
+            </Style>
+            <Style x:Key="TileHeading" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource PanelText}"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="14"/>
+                <Setter Property="Margin" Value="0,0,0,10"/>
+            </Style>
+            <Style x:Key="SampleLabel" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="Margin" Value="0,0,0,3"/>
+            </Style>
+            <Style x:Key="Centred" TargetType="TextBlock">
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="7,0"/>
+            </Style>
+            <Style x:Key="Padded" TargetType="TextBlock">
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Margin" Value="7,0"/>
+            </Style>
+            <!-- One line of the right-click menu, laid out like WPF's menu item: icon column,
+                 header, shortcut at 70%, each line 22 high. -->
+            <Style x:Key="MenuLine" TargetType="Border">
+                <Setter Property="Height" Value="22"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+            </Style>
+            <Style x:Key="MenuHeader" TargetType="TextBlock">
+                <Setter Property="Margin" Value="36,0,0,0"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+            </Style>
+            <Style x:Key="MenuGesture" TargetType="TextBlock">
+                <Setter Property="Margin" Value="0,0,22,0"/>
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="VerticalAlignment" Value="Center"/>
+                <Setter Property="Opacity" Value="0.7"/>
+            </Style>
+        </Border.Resources>
+
+        <StackPanel>
+            <!-- ======== The window ======== -->
+            <DockPanel Height="700">
+                <!-- Title bar, window buttons at rest. -->
+                <Border DockPanel.Dock="Top" Height="36" Background="{DynamicResource TitleBarBackground}">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <Image Source="/FleetFinder;component/Assets/FleetFinderIcon.ico" Width="16" Height="16"/>
+                            <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12"
+                                       Foreground="{DynamicResource TitleBarText}" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="VersionText" Margin="6,0,0,0" FontSize="10"
+                                       Foreground="{DynamicResource TitleBarVersion}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Style="{DynamicResource CaptionButton}">
+                                <Path Width="10" Height="10" Stretch="None" Data="M0,5.5 H10" StrokeThickness="1"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            </Button>
+                            <Button Style="{DynamicResource CaptionButton}">
+                                <Path Width="10" Height="10" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" StrokeThickness="1"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            </Button>
+                            <Button Style="{DynamicResource CloseCaptionButton}">
+                                <Path Width="10" Height="10" Stretch="None" Data="M0,0 L10,10 M0,10 L10,0" StrokeThickness="1.2"
+                                      Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Update banner. -->
+                <Border DockPanel.Dock="Top" Background="{DynamicResource BannerBackground}" Padding="12,6">
+                    <Grid>
+                        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource BannerText}" FontWeight="SemiBold"
+                                   Text="A new version (v2.3.0) is available."/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button Content="Download" Padding="12,4" Margin="0,0,8,0"
+                                    Background="{DynamicResource BannerButtonBackground}" Foreground="{DynamicResource BannerButtonText}"/>
+                            <Button Content="Dismiss" Padding="8,4"
+                                    Background="Transparent" Foreground="{DynamicResource BannerText}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Status bar. -->
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackground}" Padding="16,8">
+                    <Grid>
+                        <TextBlock Text="9 place(s) to buy (9 fleet carriers) across 4 component(s)."
+                                   Foreground="{DynamicResource StatusText}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Inventory: ShipLocker.json  (updated 01/10/2026 14:00)"
+                                   Foreground="{DynamicResource StatusDetailText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Tabs, Find Carriers selected, and the settings cog where the window has it. -->
+                <Grid>
+                    <TabControl Margin="12,8,12,12">
+                        <TabItem Header="Find Carriers" IsSelected="True">
+                            <!-- PanelText here for the same reason as on the window's tabs: tab
+                                 content inherits the selected tab's text colour otherwise. -->
+                            <Grid TextElement.Foreground="{DynamicResource PanelText}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="385"/>
+                                    <ColumnDefinition Width="6"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- LEFT: the component picker. -->
+                                <Border Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"
+                                                   Text="Select components to price, or choose a modification in the Modifications tab"/>
+                                        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <Button Content="Refresh inventory"
+                                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                            <Button Content="Clear Buy" Padding="8,4" Margin="8,0,0,0"
+                                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                            <Button Content="Clear Sell" Padding="8,4" Margin="8,0,0,0"
+                                                    Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                        </StackPanel>
+                                        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                            <TextBlock Text="Search" Foreground="{DynamicResource MutedText}" FontSize="11" Margin="2,0,0,2"/>
+                                            <TextBox Text="Memory" BorderThickness="1" Padding="8,6"
+                                                     Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}"
+                                                     BorderBrush="{DynamicResource InputBorder}"/>
+                                        </StackPanel>
+                                        <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" Content="Search prices (4 buy, 2 sell)"
+                                                FontSize="14" Padding="12,9"/>
+
+                                        <DataGrid x:Name="ComponentGrid">
+                                            <DataGrid.GroupStyle>
+                                                <GroupStyle>
+                                                    <GroupStyle.HeaderTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="4,8,0,4"
+                                                                       Foreground="{DynamicResource GroupHeaderText}"/>
+                                                        </DataTemplate>
+                                                    </GroupStyle.HeaderTemplate>
+                                                </GroupStyle>
+                                                <GroupStyle>
+                                                    <GroupStyle.HeaderTemplate>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" Margin="16,4,0,2"
+                                                                       Foreground="{DynamicResource GroupHeaderText}">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Name}" Value="">
+                                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </DataTemplate>
+                                                    </GroupStyle.HeaderTemplate>
+                                                </GroupStyle>
+                                            </DataGrid.GroupStyle>
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Width="34">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <CheckBox IsChecked="{Binding Ticked, Mode=OneWay}" HorizontalAlignment="Center"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*"/>
+                                                <DataGridTextColumn Header="Amount" Binding="{Binding Have}" Width="Auto"
+                                                                    ElementStyle="{StaticResource Centred}"/>
+                                                <DataGridTextColumn Header="Needed" Binding="{Binding Needed}" Width="Auto"
+                                                                    ElementStyle="{StaticResource Centred}">
+                                                    <DataGridTextColumn.CellStyle>
+                                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsShort}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource NeededCount}"/>
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </DataGridTextColumn.CellStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTemplateColumn Header="Sell" Width="Auto">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <CheckBox IsChecked="{Binding SellTicked, Mode=OneWay}" HorizontalAlignment="Center" Margin="6,0"/>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </DockPanel>
+                                </Border>
+
+                                <!-- RIGHT: Where to Buy over Where to Sell. -->
+                                <Grid Grid.Column="2">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="*"/>
+                                        <RowDefinition Height="6"/>
+                                        <RowDefinition Height="0.75*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Border Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                        <DockPanel>
+                                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                                <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Current location: Sol" Foreground="{DynamicResource MutedText}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <DataGrid x:Name="BuyGrid" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
+                                                      HorizontalScrollBarVisibility="Disabled">
+                                                <DataGrid.CellStyle>
+                                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                        <Setter Property="Padding" Value="0,4"/>
+                                                    </Style>
+                                                </DataGrid.CellStyle>
+                                                <!-- No BasedOn, as on the window's grids, so the row keeps
+                                                     the grid's own colours. -->
+                                                <DataGrid.RowStyle>
+                                                    <Style TargetType="DataGridRow">
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsSelected" Value="True">
+                                                                <Setter Property="BorderBrush" Value="{DynamicResource RowOutline}"/>
+                                                                <Setter Property="BorderThickness" Value="2"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGrid.RowStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Components" Binding="{Binding Component}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Padded}"/>
+                                                    <DataGridTemplateColumn Header="Needed" Width="Auto">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Count}" Margin="7,0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource NeededCount}" FontWeight="Bold"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Carrier Name" Binding="{Binding Carrier}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Padded}"/>
+                                                    <DataGridTextColumn Header="Access" Binding="{Binding Access}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}">
+                                                        <DataGridTextColumn.CellStyle>
+                                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                <Setter Property="Padding" Value="0,4"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="Yes">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource GoodValue}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="No">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource BadValue}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="Unknown">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource UnknownValue}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </DataGridTextColumn.CellStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTemplateColumn Header="System" Width="Auto">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}"/>
+                                                    <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat={}{0:N0} Cr}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </DockPanel>
+                                    </Border>
+
+                                    <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                        <DockPanel>
+                                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                                <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Current location: Sol" Foreground="{DynamicResource MutedText}"
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                            </Grid>
+                                            <!-- Searching: the real bar runs back and forth; this one
+                                                 stands still part way so both of its colours show. -->
+                                            <ProgressBar DockPanel.Dock="Top" Value="45" Width="140" Height="6" Margin="16,0,0,8"
+                                                         HorizontalAlignment="Left" BorderThickness="0"
+                                                         Background="{DynamicResource ProgressTrack}" Foreground="{DynamicResource ProgressFill}"/>
+                                            <DataGrid x:Name="SellGrid" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
+                                                      HorizontalScrollBarVisibility="Disabled">
+                                                <DataGrid.CellStyle>
+                                                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                        <Setter Property="Padding" Value="0,4"/>
+                                                    </Style>
+                                                </DataGrid.CellStyle>
+                                                <DataGrid.Columns>
+                                                    <DataGridTextColumn Header="Components" Binding="{Binding Component}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Padded}"/>
+                                                    <DataGridTemplateColumn Header="Have" Width="Auto">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Count}" Margin="7,0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                                           Foreground="{DynamicResource HaveCount}" FontWeight="Bold"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Carrier Name" Binding="{Binding Carrier}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Padded}"/>
+                                                    <DataGridTextColumn Header="Access" Binding="{Binding Access}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}">
+                                                        <DataGridTextColumn.CellStyle>
+                                                            <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                <Setter Property="Padding" Value="0,4"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="Yes">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource GoodValue}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="No">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource BadValue}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Access}" Value="Unknown">
+                                                                        <Setter Property="Foreground" Value="{DynamicResource UnknownValue}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </DataGridTextColumn.CellStyle>
+                                                    </DataGridTextColumn>
+                                                    <DataGridTemplateColumn Header="System" Width="Auto">
+                                                        <DataGridTemplateColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0"/>
+                                                            </DataTemplate>
+                                                        </DataGridTemplateColumn.CellTemplate>
+                                                    </DataGridTemplateColumn>
+                                                    <DataGridTextColumn Header="Demand" Binding="{Binding Qty}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}"/>
+                                                    <DataGridTextColumn Header="Price" Binding="{Binding Price, StringFormat={}{0:N0} Cr}" Width="Auto"
+                                                                        ElementStyle="{StaticResource Centred}"/>
+                                                </DataGrid.Columns>
+                                            </DataGrid>
+                                        </DockPanel>
+                                    </Border>
+                                </Grid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Header="Modifications"/>
+                        <TabItem Header="Barter"/>
+                        <TabItem Header="Import"/>
+                    </TabControl>
+
+                    <!-- Same place and drawing as the window's own cog. -->
+                    <Button Style="{DynamicResource CaptionButton}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,11,14,0">
+                        <Path Width="14" Height="14" Stretch="None" StrokeThickness="1" Data="{DynamicResource CogGlyph}"
+                              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                </Grid>
+            </DockPanel>
+
+            <!-- ======== Samples of what Find Carriers does not show by itself ======== -->
+            <StackPanel Margin="12,4,12,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="470"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Under the mouse. -->
+                <Border Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Under the mouse"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="12"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Window buttons on a strip of title bar: minimise at rest, then
+                                 maximise and close as they look under the mouse. -->
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Window buttons"/>
+                                <Border Background="{DynamicResource TitleBarBackground}" HorizontalAlignment="Left">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="46" Height="36">
+                                            <Path Width="10" Height="10" Stretch="None" Data="M0,5.5 H10" StrokeThickness="1"
+                                                  Stroke="{DynamicResource CaptionButtonGlyph}"/>
+                                        </Border>
+                                        <Border Width="46" Height="36" Background="{DynamicResource CaptionButtonHover}">
+                                            <Path Width="10" Height="10" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" StrokeThickness="1"
+                                                  Stroke="{DynamicResource CaptionButtonHoverGlyph}"/>
+                                        </Border>
+                                        <Border Width="46" Height="36" Background="{DynamicResource CloseButtonHover}">
+                                            <Path Width="10" Height="10" Stretch="None" Data="M0,0 L10,10 M0,10 L10,0" StrokeThickness="1.2"
+                                                  Stroke="{DynamicResource CloseButtonHoverGlyph}"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- A tab, drawn as the tab template draws it. -->
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Tab"/>
+                                <Border Background="{DynamicResource TabHoverBackground}" Padding="16,9" CornerRadius="6,6,0,0"
+                                        HorizontalAlignment="Left">
+                                    <TextBlock Text="Modifications" FontSize="14" Foreground="{DynamicResource TabText}"/>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Scrollbars: at rest, then under the mouse. -->
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Scrollbar"/>
+                                <StackPanel Orientation="Horizontal" Height="38">
+                                    <Border Width="8" Margin="2" CornerRadius="5" Background="{DynamicResource ScrollbarThumb}"/>
+                                    <Border Width="8" Margin="8,2,2,2" CornerRadius="5" Background="{DynamicResource ScrollbarThumbHover}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- A system name link. -->
+                            <StackPanel Grid.Row="2">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="System name and text box"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Shinrarta Dezhra" Foreground="{DynamicResource LinkHoverText}" TextDecorations="Underline"
+                                               VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                    <!-- A real text box, given the border the mouse brings. -->
+                                    <TextBox Text="Graphene" Width="100" BorderThickness="1" Padding="8,6"
+                                             Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}"
+                                             BorderBrush="{DynamicResource InputHoverBorder}"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Plus and minus: minus at rest, plus under the mouse. -->
+                            <StackPanel Grid.Row="2" Grid.Column="2">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Plus and minus"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <Button Content="−" Style="{DynamicResource StepperButton}"/>
+                                    <TextBlock Text="2" MinWidth="26" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                    <Border Width="22" Height="22" CornerRadius="3" Background="{DynamicResource StepperHover}">
+                                        <TextBlock Text="+" FontWeight="Bold" Foreground="{DynamicResource StepperText}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- A checkbox under the mouse, as the checkbox template draws it. -->
+                            <StackPanel Grid.Row="2" Grid.Column="4">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Checkbox"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <Border Width="16" Height="16" CornerRadius="3" BorderThickness="1.5"
+                                            BorderBrush="{DynamicResource CheckboxHoverBorder}" Background="{DynamicResource CheckboxBackground}"/>
+                                    <TextBlock Text="Sell" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Typing: the focus border and selected text, laid over the text at 40% as
+                     WPF draws it. -->
+                <Border Grid.Column="2" Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Typing"/>
+                        <TextBlock Style="{StaticResource SampleLabel}" Text="Text box with text selected"/>
+                        <Border Background="{DynamicResource InputBackground}" BorderBrush="{DynamicResource InputFocusBorder}"
+                                BorderThickness="1" Padding="10,6">
+                            <StackPanel Orientation="Horizontal">
+                                <Grid>
+                                    <TextBlock Text="Memory" Foreground="{DynamicResource InputText}"/>
+                                    <Border Background="{DynamicResource TextSelection}" Opacity="0.4"/>
+                                </Grid>
+                                <TextBlock Text=" Chip" Foreground="{DynamicResource InputText}"/>
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Style="{StaticResource SampleLabel}" Margin="0,14,0,3" Text="Button you cannot use yet"/>
+                        <Button Content="Apply selected" IsEnabled="False" HorizontalAlignment="Left" Padding="12,7"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- A tooltip, as WPF's tooltip draws it. -->
+                <Border Grid.Column="4" Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Tooltip"/>
+                        <Button Content="HIP 50515" Style="{DynamicResource LinkButton}" HorizontalAlignment="Left" Margin="0,0,0,4"/>
+                        <Border Background="{DynamicResource ToolTipBackground}" BorderBrush="{DynamicResource ToolTipBorder}"
+                                BorderThickness="1" Padding="6,4" HorizontalAlignment="Left" Margin="30,0,0,0">
+                            <TextBlock Text="Click to copy system name" FontSize="12" Foreground="{DynamicResource ToolTipText}"/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+            </Grid>
+            <Grid Margin="0,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="380"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="280"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- The text box right-click menu, twice: with text selected and the mouse on
+                     Cut, then with nothing selected and the mouse on Cut, which cannot be used. -->
+                <Border Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Right-click menu"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Margin="0,0,30,0">
+                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}">
+                                    <Border.Effect>
+                                        <BlurEffect Radius="6"/>
+                                    </Border.Effect>
+                                </Border>
+                                <Border Width="156" Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource MenuBorder}"
+                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12">
+                                    <Grid Margin="1,0">
+                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"/>
+                                        <StackPanel Margin="0,2">
+                                            <Border Style="{StaticResource MenuLine}" Background="{DynamicResource MenuHighlight}"
+                                                    BorderBrush="{DynamicResource MenuHighlightBorder}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Style="{StaticResource MenuLine}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Style="{StaticResource MenuLine}" TextElement.Foreground="{DynamicResource MenuDisabledText}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V"/>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                            <Grid>
+                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}">
+                                    <Border.Effect>
+                                        <BlurEffect Radius="6"/>
+                                    </Border.Effect>
+                                </Border>
+                                <Border Width="156" Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource MenuBorder}"
+                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12">
+                                    <Grid Margin="1,0">
+                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"/>
+                                        <StackPanel Margin="0,2">
+                                            <Border Style="{StaticResource MenuLine}" Background="{DynamicResource MenuDisabledHighlight}"
+                                                    BorderBrush="{DynamicResource MenuDisabledHighlightBorder}"
+                                                    TextElement.Foreground="{DynamicResource MenuDisabledText}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Style="{StaticResource MenuLine}" TextElement.Foreground="{DynamicResource MenuDisabledText}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Style="{StaticResource MenuLine}">
+                                                <Grid>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V"/>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- The resume prompt over a dimmed bit of the window. -->
+                <Border Grid.Column="2" Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Resume prompt"/>
+                        <Grid Height="150" ClipToBounds="True">
+                            <StackPanel TextElement.Foreground="{DynamicResource GridText}">
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Chemical Inventory" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Electrical Fuse" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Epoxy Adhesive" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Micro Transformer" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Titanium Plating" VerticalAlignment="Center"/>
+                                </Border>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
+                                    <TextBlock Text="Weapon Schematic" VerticalAlignment="Center"/>
+                                </Border>
+                            </StackPanel>
+                            <Border Background="{DynamicResource OverlayDim}"/>
+                            <Border Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
+                                    BorderThickness="1" CornerRadius="8" Padding="14,10" Width="250"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <StackPanel>
+                                    <TextBlock Text="Unfinished search" FontWeight="SemiBold" FontSize="14"
+                                               Foreground="{DynamicResource DialogTitle}" Margin="0,0,0,4"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"
+                                               Text="You didn't complete your last search. Continue it or start a new one?"/>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="Continue" Padding="12,4" Margin="0,0,8,0"/>
+                                        <Button Content="Start New" Padding="12,4"
+                                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Colours that only the other tabs use. -->
+                <Border Grid.Column="4" Style="{StaticResource Tile}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource TileHeading}" Text="Other tabs"/>
+                        <TextBlock Foreground="{DynamicResource SummaryText}" TextWrapping="Wrap"
+                                   Text="3 mod(s) selected, buy 15 component units from carriers."/>
+                        <Border Height="1" Background="{DynamicResource Divider}" Margin="0,8"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Border Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}"
+                                    BorderThickness="1" CornerRadius="6" Padding="10,6">
+                                <StackPanel>
+                                    <TextBlock Foreground="{DynamicResource MutedText}" FontSize="11" Text="YOU COULD ACQUIRE"/>
+                                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BarterResult}" Text="3 unit(s)"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource SampleLabel}" Text="Barter points"/>
+                                <TextBlock FontWeight="Bold" Foreground="{DynamicResource BarterPoints}" Text="40"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource SampleLabel}" Margin="0,10,0,2" Text="Import item not recognised"/>
+                        <TextBlock FontWeight="Bold" Foreground="{DynamicResource UnmatchedText}" Text="Unobtainium Widget"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

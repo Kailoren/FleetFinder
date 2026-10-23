@@ -131,6 +131,10 @@ public partial class MainWindow : Window
         AutomationProperties.SetName(MaximizeRestoreButton, label);
     }
 
+    /// <summary>The cog opens Settings, a tab with no header of its own; any tab takes it away.</summary>
+    private void SettingsCogButton_Click(object sender, RoutedEventArgs e) =>
+        MainTabs.SelectedItem = SettingsTab;
+
     private void MinimizeButton_Click(object sender, RoutedEventArgs e) =>
         SystemCommands.MinimizeWindow(this);
 

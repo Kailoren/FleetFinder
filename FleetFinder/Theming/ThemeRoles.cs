@@ -5,9 +5,10 @@ namespace FleetView.Theming;
 
 /// <summary>
 /// One kind of element the user can recolour: its resource key, the heading it sits under in
-/// Settings, the label beside its colour box, and the colour the app ships with.
+/// Settings, the label beside its colour box, the colour the app ships with, and an optional note
+/// shown under the label when the colour picked is not quite what appears on screen.
 /// </summary>
-public sealed record ThemeRole(string Key, string Group, string Label, Color Default)
+public sealed record ThemeRole(string Key, string Group, string Label, Color Default, string? Note = null)
 {
     /// <summary>
     /// Whether the role carries transparency: the overlay dim, the menu's highlight washes and its
@@ -58,16 +59,16 @@ public static class ThemeRoles
         // resume-search dialog's message and anything added later that does not.
         Role("MainText", Window, "Main text", "#EAE4DA"),
         // Small grey-brown helper text: field captions, hints, "no results", the location line.
-        Role("MutedText", Window, "Muted text", "#9C7A55"),
+        Role("MutedText", Window, "Hints and captions", "#9C7A55"),
 
         Role("TitleBarBackground", TitleBar, "Title bar background", "#0A0705"),
         Role("TitleBarText", TitleBar, "App name", "#9C7A55"),
         Role("TitleBarVersion", TitleBar, "Version number", "#5A3A15"),
         Role("CaptionButtonGlyph", TitleBar, "Window buttons", "#9C7A55"),
-        Role("CaptionButtonHover", TitleBar, "Window button hover", "#3A2410"),
-        Role("CaptionButtonHoverGlyph", TitleBar, "Window button hover icon", "#FF7500"),
-        Role("CloseButtonHover", TitleBar, "Close button hover", "#E81123"),
-        Role("CloseButtonHoverGlyph", TitleBar, "Close button hover icon", "#FFFFFF"),
+        Role("CaptionButtonHover", TitleBar, "Window button under the mouse", "#3A2410"),
+        Role("CaptionButtonHoverGlyph", TitleBar, "Window button icon under the mouse", "#FF7500"),
+        Role("CloseButtonHover", TitleBar, "Close button under the mouse", "#E81123"),
+        Role("CloseButtonHoverGlyph", TitleBar, "Close button icon under the mouse", "#FFFFFF"),
 
         Role("BannerBackground", Banner, "Banner background", "#FF7500"),
         Role("BannerText", Banner, "Banner text", "#0A0705"),
@@ -75,7 +76,7 @@ public static class ThemeRoles
         Role("BannerButtonText", Banner, "Download button text", "#EAE4DA"),
 
         Role("TabText", Tabs, "Tab text", "#B89470"),
-        Role("TabHoverBackground", Tabs, "Tab hover", "#241809"),
+        Role("TabHoverBackground", Tabs, "Tab under the mouse", "#241809"),
         Role("SelectedTabBackground", Tabs, "Selected tab background", "#120E08"),
         Role("SelectedTabOutline", Tabs, "Selected tab outline", "#FF7500"),
         Role("SelectedTabText", Tabs, "Selected tab text", "#FF7500"),
@@ -108,9 +109,9 @@ public static class ThemeRoles
         Role("HaveCount", Values, "Have count (Where to Sell)", "#FF7500"),
         Role("GoodValue", Values, "Good value (docking Yes)", "#6EE7A0"),
         Role("BadValue", Values, "Bad value (docking No)", "#F87171"),
-        Role("UnknownValue", Values, "Unknown value", "#9C7A55"),
+        Role("UnknownValue", Values, "Unknown value (docking Unknown)", "#9C7A55"),
         Role("LinkText", Values, "System name link", "#FFB066"),
-        Role("LinkHoverText", Values, "System name link hover", "#FFCE9E"),
+        Role("LinkHoverText", Values, "System name link under the mouse", "#FFCE9E"),
         Role("SummaryText", Values, "Modification summary", "#FF7500"),
         Role("UnmatchedText", Values, "Unmatched import item", "#FF7500"),
         Role("BarterResult", Values, "Barter units you could acquire", "#FF7500"),
@@ -124,7 +125,7 @@ public static class ThemeRoles
         Role("SecondaryButtonText", Buttons, "Secondary button text", "#EAE4DA"),
         Role("StepperBackground", Buttons, "Plus and minus buttons", "#5A3A15"),
         Role("StepperText", Buttons, "Plus and minus button text", "#EAE4DA"),
-        Role("StepperHover", Buttons, "Plus and minus button hover", "#6B4A1E"),
+        Role("StepperHover", Buttons, "Plus and minus button under the mouse", "#6B4A1E"),
 
         Role("InputBackground", Inputs, "Text box background", "#0A0705"),
         Role("InputText", Inputs, "Text box text", "#EAE4DA"),
@@ -133,18 +134,20 @@ public static class ThemeRoles
         // used to come from WPF's own Aero2 TextBox template, out of reach of any role; the
         // window now carries a copy of that template with these in its triggers. The defaults
         // are the values read off the live template's triggers in the running app, so nothing
-        // looks different until someone picks a colour.
-        Role("InputHoverBorder", Inputs, "Text box hover border", "#7EB4EA"),
-        Role("InputFocusBorder", Inputs, "Text box focus border", "#569DE5"),
-        Role("CellEditorBorder", Inputs, "Needed cell editor border", "#FF7500"),
+        // looks different until someone picks a colour. The Needed cell editor on Find Carriers
+        // had a border role of its own at first, but the editor always has the keyboard while it
+        // is open, so the focus border drew over it and that role never showed; the editor now
+        // uses the focus border, which is what it always looked like.
+        Role("InputHoverBorder", Inputs, "Text box border under the mouse", "#7EB4EA"),
+        Role("InputFocusBorder", Inputs, "Text box border while typing", "#569DE5"),
         Role("CheckboxBackground", Inputs, "Checkbox background", "#120E08"),
         Role("CheckboxBorder", Inputs, "Checkbox border", "#5A3A15"),
-        Role("CheckboxHoverBorder", Inputs, "Checkbox hover border", "#FF7500"),
+        Role("CheckboxHoverBorder", Inputs, "Checkbox border under the mouse", "#FF7500"),
         Role("CheckboxTicked", Inputs, "Ticked checkbox", "#FF7500"),
         // Selected text in a text box. WPF lays it over the text at 40% (the text box's
         // SelectionOpacity, left as it was), so what shows is this blended with the box behind.
         // The default is the system highlight colour WPF used before this role existed.
-        Role("TextSelection", Inputs, "Text selection", "#0078D4"),
+        Role("TextSelection", Inputs, "Text selection", "#0078D4", "Shows at 40% over the box"),
 
         // Tooltips and the text box right-click menu. All of these were WPF's own Aero2 look,
         // pale grey and black on a dark app, and the defaults keep that look exactly; the
@@ -169,16 +172,16 @@ public static class ThemeRoles
         Role("MenuShadow", Popups, "Menu shadow", "#71000000"),
 
         Role("ScrollbarThumb", Scrolling, "Scrollbar", "#5A3A15"),
-        Role("ScrollbarThumbHover", Scrolling, "Scrollbar hover", "#FF7500"),
-        Role("ProgressTrack", Scrolling, "Progress bar track", "#3A2410"),
-        Role("ProgressFill", Scrolling, "Progress bar", "#FF7500"),
+        Role("ScrollbarThumbHover", Scrolling, "Scrollbar under the mouse", "#FF7500"),
+        Role("ProgressTrack", Scrolling, "Progress bar background", "#3A2410"),
+        Role("ProgressFill", Scrolling, "Progress bar fill", "#FF7500"),
 
         Role("StatusBarBackground", StatusBar, "Status bar background", "#120E08"),
         Role("StatusText", StatusBar, "Status text", "#B89470"),
         Role("StatusDetailText", StatusBar, "Inventory status", "#9C7A55"),
 
         // The one role with alpha: it dims the tabs behind the resume-search dialog.
-        Role("OverlayDim", Dialog, "Overlay dim", "#CC000000"),
+        Role("OverlayDim", Dialog, "Dimming behind the dialog", "#CC000000"),
         Role("DialogBackground", Dialog, "Dialog background", "#120E08"),
         Role("DialogBorder", Dialog, "Dialog border", "#FF7500"),
         Role("DialogTitle", Dialog, "Dialog title", "#FF7500"),
@@ -213,8 +216,8 @@ public static class ThemeRoles
         (SystemColors.InactiveSelectionHighlightTextBrushKey, "GridText"),
     ];
 
-    private static ThemeRole Role(string key, string group, string label, string hex) =>
+    private static ThemeRole Role(string key, string group, string label, string hex, string? note = null) =>
         ColourMaths.TryParseHex(hex, out var colour)
-            ? new ThemeRole(key, group, label, colour)
+            ? new ThemeRole(key, group, label, colour, note)
             : throw new InvalidOperationException($"Theme role {key} has an unreadable default {hex}.");
 }
