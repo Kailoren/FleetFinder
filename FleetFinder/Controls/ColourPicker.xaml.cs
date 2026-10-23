@@ -31,7 +31,9 @@ namespace FleetView.Controls;
 /// also holds OutlineGapConverter, its XAML and the state class) plus Theming\ColourMaths.cs,
 /// fix up the namespaces, and make sure the app has brushes
 /// under the role keys the XAML uses: InputBackground, InputText, InputBorder, InputHoverBorder,
-/// InputFocusBorder and MutedText. Without them the fields simply draw without those colours.
+/// InputFocusBorder, TextSelection and MutedText. Without them the fields simply draw without
+/// those colours. A ContextMenu under TextBoxMenu, if the app has one, becomes the fields'
+/// right-click menu; without it they keep WPF's own.
 /// </para>
 /// </remarks>
 public partial class ColourPicker : UserControl

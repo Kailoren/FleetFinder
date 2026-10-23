@@ -100,7 +100,11 @@ internal sealed class SelfTest
             var idx = all.Select((r, i) => (r, i)).Where(x => x.r.Group == g).Select(x => x.i).ToList();
             return idx.Last() - idx.First() == idx.Count - 1;
         }));
-        Equal("only the overlay dim has alpha", "OverlayDim", string.Join(",", all.Where(r => r.HasAlpha).Select(r => r.Key)));
+        // The overlay dim, and the menu's see-through highlight washes and shadow, which were
+        // see-through in WPF's own menu. Anything else with alpha is a mistake.
+        Equal("the roles with alpha are exactly these",
+            "MenuHighlight,MenuDisabledHighlight,MenuDisabledHighlightBorder,MenuShadow,OverlayDim",
+            string.Join(",", all.Where(r => r.HasAlpha).Select(r => r.Key)));
         Equal("overlay dim keeps the original #CC000000", Color.FromArgb(0xCC, 0, 0, 0), ThemeRoles.Find("OverlayDim")!.Default);
         Check("Find is exact and case-sensitive", ThemeRoles.Find("PanelBackground") != null && ThemeRoles.Find("panelbackground") == null);
         Check("every SystemColors alias follows a real role", ThemeRoles.SystemAliases.All(a => ThemeRoles.Find(a.RoleKey) != null));
@@ -423,6 +427,9 @@ internal sealed class SelfTest
         return Path.Combine([dir.FullName, .. parts]);
     }
 
+    /// <summary>Resource keys the XAML may look up that are not colours: the text box menu.</summary>
+    private static readonly HashSet<string> NonColourKeys = new(StringComparer.Ordinal) { "TextBoxMenu" };
+
     private static readonly Regex HexLiteral = new(@"#[0-9A-Fa-f]{3,8}\b");
     private static readonly Regex DynamicKey = new(@"\{DynamicResource\s+([^}\s]+)\s*\}");
 
@@ -487,8 +494,26 @@ internal sealed class SelfTest
 
         Check("no colour literals outside the roles", problems.Count == 0, string.Join("; ", problems));
 
-        var unknown = used.Keys.Where(k => ThemeRoles.Find(k) is null).ToList();
-        Check("every DynamicResource key is a role", unknown.Count == 0, string.Join(", ", unknown));
+        var unknown = used.Keys.Where(k => ThemeRoles.Find(k) is null && !NonColourKeys.Contains(k)).ToList();
+        Check("every DynamicResource key is a role (or the text box menu)", unknown.Count == 0, string.Join(", ", unknown));
+
+        // Text boxes take their selection colour and right-click menu from the window's text box
+        // style; the menu is one per text box (x:Shared).
+        var textBoxStyle = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "Style"
+            && e.Attribute("TargetType")?.Value == "TextBox" && e.Attribute(Xaml + "Key") == null
+            && e.Parent?.Name.LocalName == "Window.Resources");
+        string? Setter(XElement? style, string property) => style?.Elements()
+            .FirstOrDefault(e => e.Name.LocalName == "Setter" && e.Attribute("Property")?.Value == property)?.Attribute("Value")?.Value;
+        Equal("text boxes select in the TextSelection role", "{DynamicResource TextSelection}", Setter(textBoxStyle, "SelectionBrush"));
+        Equal("text boxes get the themed right-click menu", "{DynamicResource TextBoxMenu}", Setter(textBoxStyle, "ContextMenu"));
+        var menu = doc.Descendants().FirstOrDefault(e => e.Name.LocalName == "ContextMenu" && e.Attribute(Xaml + "Key")?.Value == "TextBoxMenu");
+        Check("the text box menu exists and is not shared", menu?.Attribute(Xaml + "Shared")?.Value == "False");
+        Equal("it has Cut, Copy and Paste, the items WPF's own menu has",
+            "Cut,Copy,Paste",
+            string.Join(",", menu?.Elements().Where(e => e.Name.LocalName == "MenuItem")
+                .Select(e => e.Attribute("Command")?.Value.Replace("ApplicationCommands.", "")) ?? []));
+        // Without this the items are never aimed at the text box and open greyed out.
+        Equal("and the handler that aims them at the right-clicked box", "TextBoxMenu_Opened", menu?.Attribute("Opened")?.Value);
         var unused = ThemeRoles.All.Where(r => !used.ContainsKey(r.Key)).Select(r => r.Key).ToList();
         Check("every role is used in the XAML", unused.Count == 0, string.Join(", ", unused));
         Console.WriteLine($"   ({used.Values.Sum()} DynamicResource uses across {used.Count} roles)");
@@ -843,8 +868,10 @@ internal sealed class SelfTest
 
         Check($"literal colours only in the gradients and handles ({allowed} there)", problems.Count == 0 && allowed > 0,
             string.Join("; ", problems));
-        var unknown = used.Where(k => ThemeRoles.Find(k) is null).ToList();
-        Check("every DynamicResource key in the picker is a role", unknown.Count == 0, string.Join(", ", unknown));
+        var unknown = used.Where(k => ThemeRoles.Find(k) is null && !NonColourKeys.Contains(k)).ToList();
+        Check("every DynamicResource key in the picker is a role (or the text box menu)", unknown.Count == 0, string.Join(", ", unknown));
+        Check("its fields use the selection role and the host's text box menu",
+            used.Contains("TextSelection") && used.Contains("TextBoxMenu"));
         Check("its fields use the text box hover and focus roles",
             used.Contains("InputHoverBorder") && used.Contains("InputFocusBorder"));
     }

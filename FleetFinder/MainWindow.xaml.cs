@@ -33,6 +33,30 @@ public partial class MainWindow : Window
     private void OnScrollToRowRequested(ComponentRow row) => ComponentGrid.ScrollIntoView(row);
 
     /// <summary>
+    /// The text box menu (TextBoxMenu in the XAML) has just opened over a text box: point Cut,
+    /// Copy and Paste at that box and have them ask it, there and then, whether they can run.
+    /// </summary>
+    /// <remarks>
+    /// WPF's own text box menu got this for free, because it built new items aimed at the box on
+    /// every right-click. These items are made once, and a menu item only asks its command again
+    /// when the command itself changes, or when WPF next re-checks every command after some input,
+    /// which comes after the menu has already been drawn. So Cut and Copy would open greyed out
+    /// with text selected. Setting the command again is the one public way to make an item ask
+    /// now, and it happens before the menu is first drawn.
+    /// </remarks>
+    private void TextBoxMenu_Opened(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ContextMenu { PlacementTarget: IInputElement box } menu) return;
+        foreach (var item in menu.Items.OfType<MenuItem>())
+        {
+            item.CommandTarget = box;
+            var command = item.Command;
+            item.Command = null;
+            item.Command = command;
+        }
+    }
+
+    /// <summary>
     /// Applies the last-saved position/size (if any and still on-screen) and each tab's
     /// left/right splitter position (independent of whether the window position was valid).
     /// </summary>

@@ -29,6 +29,11 @@
             <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
             <Setter Property="Foreground" Value="{DynamicResource InputText}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource InputText}"/>
+            <Setter Property="SelectionBrush" Value="{DynamicResource TextSelection}"/>
+            <!-- The host's themed right-click menu, if it has one under this key (FleetFinder's
+                 window does). Anywhere without it this resolves to nothing and the field falls
+                 back to WPF's own menu, so the picker still works as is in another app. -->
+            <Setter Property="ContextMenu" Value="{DynamicResource TextBoxMenu}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="8,7"/>

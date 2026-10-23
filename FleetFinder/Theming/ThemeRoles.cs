@@ -10,8 +10,9 @@ namespace FleetView.Theming;
 public sealed record ThemeRole(string Key, string Group, string Label, Color Default)
 {
     /// <summary>
-    /// Whether the role carries transparency. Only the overlay dim does today. The picker edits
-    /// the colour and leaves this alpha alone, and theme.json writes it as <c>#AARRGGBB</c>.
+    /// Whether the role carries transparency: the overlay dim, the menu's highlight washes and its
+    /// shadow. The picker edits the colour and leaves this alpha alone, and theme.json writes it
+    /// as <c>#AARRGGBB</c>.
     /// </summary>
     public bool HasAlpha => Default.A != 255;
 }
@@ -45,6 +46,7 @@ public static class ThemeRoles
     private const string Values = "Values";
     private const string Buttons = "Buttons";
     private const string Inputs = "Inputs";
+    private const string Popups = "Tooltips and menus";
     private const string Scrolling = "Scrollbars and progress";
     private const string StatusBar = "Status bar";
     private const string Dialog = "Dialog";
@@ -139,6 +141,32 @@ public static class ThemeRoles
         Role("CheckboxBorder", Inputs, "Checkbox border", "#5A3A15"),
         Role("CheckboxHoverBorder", Inputs, "Checkbox hover border", "#FF7500"),
         Role("CheckboxTicked", Inputs, "Ticked checkbox", "#FF7500"),
+        // Selected text in a text box. WPF lays it over the text at 40% (the text box's
+        // SelectionOpacity, left as it was), so what shows is this blended with the box behind.
+        // The default is the system highlight colour WPF used before this role existed.
+        Role("TextSelection", Inputs, "Text selection", "#0078D4"),
+
+        // Tooltips and the text box right-click menu. All of these were WPF's own Aero2 look,
+        // pale grey and black on a dark app, and the defaults keep that look exactly; the
+        // values were read off a live tooltip and a live menu in the running window. The menu
+        // ones with alpha are see-through washes in the original, and stay see-through.
+        Role("ToolTipBackground", Popups, "Tooltip background", "#F1F2F7"),
+        Role("ToolTipBorder", Popups, "Tooltip border", "#767676"),
+        Role("ToolTipText", Popups, "Tooltip text", "#575757"),
+        Role("MenuBackground", Popups, "Menu background", "#F5F5F5"),
+        Role("MenuBorder", Popups, "Menu border", "#959595"),
+        Role("MenuText", Popups, "Menu text", "#000000"),
+        Role("MenuDisabledText", Popups, "Menu text, unavailable item", "#707070"),
+        Role("MenuHighlight", Popups, "Menu item under the mouse", "#3D26A0DA"),
+        Role("MenuHighlightBorder", Popups, "Menu item under the mouse, border", "#26A0DA"),
+        Role("MenuDisabledHighlight", Popups, "Unavailable menu item under the mouse", "#0A000000"),
+        Role("MenuDisabledHighlightBorder", Popups, "Unavailable menu item under the mouse, border", "#21000000"),
+        // The strip down the left of the menu where icons would go, and the etched line (a dark
+        // line with a white one beside it) that ends it.
+        Role("MenuGutter", Popups, "Menu icon strip", "#F1F1F1"),
+        Role("MenuGutterLine", Popups, "Menu icon strip line", "#E2E3E3"),
+        Role("MenuGutterLineHighlight", Popups, "Menu icon strip line highlight", "#FFFFFF"),
+        Role("MenuShadow", Popups, "Menu shadow", "#71000000"),
 
         Role("ScrollbarThumb", Scrolling, "Scrollbar", "#5A3A15"),
         Role("ScrollbarThumbHover", Scrolling, "Scrollbar hover", "#FF7500"),

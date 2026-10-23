@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FleetView"
+        xmlns:aero2="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
         mc:Ignorable="d"
         Title="FleetFinder - Odyssey Engineering Material Finder"
         Icon="Assets/FleetFinderIcon.ico"
@@ -316,8 +317,13 @@
              values, so a text box looks exactly as it always did. Every other setting (focus
              visual, selection colours, scrolling) still comes from the stock style underneath;
              this one only swaps the template. The Needed cell editor further down is based on
-             this style, because it is a text box too and showed the same blue while editing. -->
+             this style, because it is a text box too and showed the same blue while editing.
+             It also sets the selection colour (the text box keeps its own 40% opacity, so the
+             role's colour is blended exactly as the stock blue was) and the right-click menu
+             below, in place of the one the text box builds for itself. -->
         <Style TargetType="TextBox">
+            <Setter Property="SelectionBrush" Value="{DynamicResource TextSelection}"/>
+            <Setter Property="ContextMenu" Value="{DynamicResource TextBoxMenu}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
@@ -343,6 +349,141 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- The text box right-click menu. A text box with no menu of its own builds one when
+             right-clicked, but it is an internal WPF type that styles in this window cannot
+             reach, so every text box gets this one instead: the same three items, the same
+             words, the same shortcuts shown beside them, greyed out by the same rules (they ask
+             the text box whether they can run). Not shared (x:Shared), so each text box has its
+             own. TextBoxMenu_Opened aims the items at the box that was right-clicked. The colour
+             picker's fields use it too when they sit in this window. -->
+        <ContextMenu x:Key="TextBoxMenu" x:Shared="False" Opened="TextBoxMenu_Opened">
+            <MenuItem Header="Cu_t" Command="ApplicationCommands.Cut"/>
+            <MenuItem Header="_Copy" Command="ApplicationCommands.Copy"/>
+            <MenuItem Header="_Paste" Command="ApplicationCommands.Paste"/>
+        </ContextMenu>
+
+        <!-- Menus: WPF's Aero2 ContextMenu and menu item templates, copied, with every colour
+             in them a role. Each default is the colour the stock template draws, so the menu
+             looks exactly as it did. The checkmark box of the stock item template is left out
+             (nothing here is ever ticked), but an empty box of the same size stays in its place,
+             because a hidden element still takes room and the item would be shorter without it. -->
+        <Style TargetType="ContextMenu">
+            <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource MenuBorder}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MenuText}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ContextMenu">
+                        <aero2:SystemDropShadowChrome x:Name="Shdw" Color="Transparent" SnapsToDevicePixels="True">
+                            <Border x:Name="ContextMenuBorder" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                                <ScrollViewer x:Name="ContextMenuScrollViewer" Grid.ColumnSpan="2" Margin="1,0"
+                                              Style="{DynamicResource {ComponentResourceKey TypeInTargetAssembly={x:Type FrameworkElement}, ResourceId=MenuScrollViewer}}">
+                                    <Grid RenderOptions.ClearTypeHint="Enabled">
+                                        <Canvas Height="0" Width="0" HorizontalAlignment="Left" VerticalAlignment="Top">
+                                            <Rectangle x:Name="OpaqueRect"
+                                                       Height="{Binding ElementName=ContextMenuBorder, Path=ActualHeight}"
+                                                       Width="{Binding ElementName=ContextMenuBorder, Path=ActualWidth}"
+                                                       Fill="{Binding ElementName=ContextMenuBorder, Path=Background}"/>
+                                        </Canvas>
+                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left"
+                                                   Width="28" Margin="1,2" RadiusX="2" RadiusY="2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left"
+                                                   Width="1" Margin="29,2,0,2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left"
+                                                   Width="1" Margin="30,2,0,2"/>
+                                        <!-- Never drawn: it only carries the shadow role, because the
+                                             shadow takes a Color rather than a brush. -->
+                                        <Rectangle x:Name="ShadowColour" Fill="{DynamicResource MenuShadow}" Visibility="Collapsed"/>
+                                        <ItemsPresenter x:Name="ItemsPresenter" Margin="{TemplateBinding Padding}"
+                                                        KeyboardNavigation.DirectionalNavigation="Cycle"
+                                                        SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    </Grid>
+                                </ScrollViewer>
+                            </Border>
+                        </aero2:SystemDropShadowChrome>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasDropShadow" Value="True">
+                                <Setter TargetName="Shdw" Property="Margin" Value="0,0,5,5"/>
+                                <Setter TargetName="Shdw" Property="Color" Value="{Binding Fill.Color, ElementName=ShadowColour}"/>
+                            </Trigger>
+                            <Trigger SourceName="ContextMenuScrollViewer" Property="ScrollViewer.CanContentScroll" Value="False">
+                                <Setter TargetName="OpaqueRect" Property="Canvas.Top"
+                                        Value="{Binding ElementName=ContextMenuScrollViewer, Path=VerticalOffset}"/>
+                                <Setter TargetName="OpaqueRect" Property="Canvas.Left"
+                                        Value="{Binding ElementName=ContextMenuScrollViewer, Path=HorizontalOffset}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Resources>
+                <Style TargetType="MenuItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Border x:Name="templateRoot" BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                                    <Grid Margin="-1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition MinWidth="22" SharedSizeGroup="MenuItemIconColumnGroup" Width="Auto"/>
+                                            <ColumnDefinition Width="13"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition SharedSizeGroup="MenuItemIGTColumnGroup" Width="Auto"/>
+                                            <ColumnDefinition Width="20"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ContentPresenter x:Name="Icon" ContentSource="Icon" HorizontalAlignment="Center"
+                                                          VerticalAlignment="Center" Height="16" Width="16" Margin="3"
+                                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        <Border x:Name="GlyphPanel" Width="22" Height="22" Margin="-1,0,0,0"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Visibility="Hidden" ClipToBounds="False"/>
+                                        <ContentPresenter x:Name="menuHeaderContainer" ContentSource="Header" Grid.Column="2"
+                                                          HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                          Margin="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                        <TextBlock x:Name="menuGestureText" Grid.Column="4" Margin="{TemplateBinding Padding}"
+                                                   Opacity="0.7" Text="{TemplateBinding InputGestureText}" VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="Icon" Value="{x:Null}">
+                                        <Setter TargetName="Icon" Property="Visibility" Value="Collapsed"/>
+                                    </Trigger>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource MenuHighlight}"/>
+                                        <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource MenuHighlightBorder}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="templateRoot" Property="TextElement.Foreground" Value="{DynamicResource MenuDisabledText}"/>
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsHighlighted" Value="True"/>
+                                            <Condition Property="IsEnabled" Value="False"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="templateRoot" Property="Background" Value="{DynamicResource MenuDisabledHighlight}"/>
+                                        <Setter TargetName="templateRoot" Property="BorderBrush" Value="{DynamicResource MenuDisabledHighlightBorder}"/>
+                                    </MultiTrigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <!-- Tooltips: the stock template already draws from these three properties, so setting
+             them is all it takes. Styles here do reach tooltips, which open in their own little
+             window but look their resources up through the element they belong to. -->
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="{DynamicResource ToolTipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolTipBorder}"/>
+            <Setter Property="Foreground" Value="{DynamicResource ToolTipText}"/>
         </Style>
 
         <!-- Dark-theme tabs. -->
