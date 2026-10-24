@@ -24,8 +24,10 @@ using FleetView.Theming;
 // share code both ways and every way a paste can be wrong, the theme library on disk, and the
 // commander name read from the journal. Then hover copy and paste and click to find (FindTests.cs),
 // and the saved themes on the page: cards, Save as theme, Import code (ShelfTests.cs), and the
-// themes FleetFinder comes with, pinned and checked for readable text (BuiltInTests.cs). Prints one
-// PASS or FAIL line per check and a final SUMMARY line; exit code 1 if anything failed.
+// themes FleetFinder comes with, pinned and checked for readable text (BuiltInTests.cs). Then the
+// Ship Locker tab: its reader on made-up journals and locker files, its words, its view model and
+// the tab in the window (LockerTests.cs). Prints one PASS or FAIL line per check and a final
+// SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
 // object tree to check the Settings page in it, but never shows it, so nothing appears on screen.
@@ -86,6 +88,10 @@ internal sealed partial class SelfTest
             Section("built-in themes can be read", ContrastTests);
             Section("built-in theme cards", BuiltInShelfTests);
             Section("Settings built-in themes", SettingsBuiltInTests);
+            Section("ship locker reader", LockerReaderTests);
+            Section("ship locker words", LockerTextTests);
+            Section("ship locker view model", LockerViewModelTests);
+            Section("Ship Locker tab", LockerTabTests);
         }
         finally
         {
@@ -1182,7 +1188,7 @@ internal sealed partial class SelfTest
         var page = (FleetView.Settings.SettingsPage)window.FindName("SettingsView");
         var cog = (Button)window.FindName("SettingsCogButton");
 
-        Equal("the four tabs are the ones there always were", "Find Carriers,Modifications,Barter,Import",
+        Equal("the tabs in the strip, Ship Locker since T1", "Find Carriers,Modifications,Barter,Ship Locker,Import",
             string.Join(",", tabs.Items.OfType<TabItem>().Where(t => t.Visibility == Visibility.Visible).Select(t => t.Header)));
         Check("Settings is a tab with no header in the strip", tab.Visibility == Visibility.Collapsed && tabs.Items.Contains(tab));
         Check("after the others, so they keep their places", tabs.Items.IndexOf(tab) == tabs.Items.Count - 1);

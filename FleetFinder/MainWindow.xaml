@@ -100,6 +100,22 @@
             <Setter Property="Margin" Value="7,0"/>
         </Style>
 
+        <!-- The Ship Locker cards' two columns. Counts are right-aligned, header and cells alike, so
+             the digits line up the way a column of numbers should; names end in an ellipsis when
+             a card is narrow (a quarter of a 960 wide window) rather than being cut mid-letter. -->
+        <Style x:Key="RightHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="ItemTextPadded" TargetType="TextBlock" BasedOn="{StaticResource VCenterTextPadded}">
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+        <Style x:Key="RightTextPadded" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="7,0"/>
+        </Style>
+
         <!-- Themed, rounded scrollbar: track is transparent, thumb rounds and lights up orange on hover. -->
         <Style x:Key="RoundedScrollBarThumb" TargetType="Thumb">
             <Setter Property="Background" Value="{DynamicResource ScrollbarThumb}"/>
@@ -1600,6 +1616,82 @@
             </Grid>
         </TabItem>
 
+        <!-- Ship Locker: everything the commander of the latest login has in the ship locker, in
+             four cards. The view model reads it off the UI thread and follows the game on the
+             same poll as Find Carriers. No splitter, so nothing for window-state.json. -->
+        <TabItem Header="Ship Locker">
+            <Grid TextElement.Foreground="{DynamicResource PanelText}" DataContext="{Binding ShipLocker}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- TOP: whose locker and when, the filter, and the totals. -->
+                <Border Grid.Row="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock FontSize="14" TextTrimming="CharacterEllipsis"><Run
+                                Text="{Binding CommanderText, Mode=OneWay}" FontWeight="SemiBold"/><Run
+                                Text="{Binding AsOfText, Mode=OneWay}" Foreground="{DynamicResource MutedText}"/></TextBlock>
+                        <DockPanel Margin="0,8,0,0">
+                            <TextBlock DockPanel.Dock="Left" Text="Filter" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Center" Margin="2,0,8,0"/>
+                            <TextBox x:Name="ShipLockerFilter" DockPanel.Dock="Left" Width="260"
+                                     Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Filter the ship locker"
+                                     Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
+                                     BorderThickness="1" Padding="8,6" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- The four cards, equal width and the full height left, 6 apart like the panels
+                     on the other tabs (the -3 and 3 margins make the gaps without an edge gap). -->
+                <ItemsControl x:Name="ShipLockerCards" Grid.Row="2" ItemsSource="{Binding Cards}" Margin="-3,0"
+                              Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Rows="1"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="3,0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                <DockPanel>
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                        <TextBlock DockPanel.Dock="Right" Text="{Binding HeldText}"
+                                                   Foreground="{DynamicResource MutedText}" VerticalAlignment="Bottom" Margin="8,0,2,1"/>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="14"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                    </DockPanel>
+                                    <Grid>
+                                        <DataGrid ItemsSource="{Binding Rows}" AutomationProperties.Name="{Binding Title}">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Item" Binding="{Binding Name}" Width="*"
+                                                                    ElementStyle="{StaticResource ItemTextPadded}"/>
+                                                <DataGridTextColumn Header="Count" Binding="{Binding Count, StringFormat={}{0:N0}}" Width="Auto"
+                                                                    MinWidth="64"
+                                                                    ElementStyle="{StaticResource RightTextPadded}"
+                                                                    HeaderStyle="{StaticResource RightHeader}"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                        <TextBlock Text="{Binding EmptyText}" Foreground="{DynamicResource MutedText}"
+                                                   TextWrapping="Wrap" TextAlignment="Center" Margin="12,48,12,0"
+                                                   VerticalAlignment="Top" IsHitTestVisible="False"
+                                                   Visibility="{Binding IsEmpty, Converter={x:Static local:BoolToVis.Instance}}"/>
+                                    </Grid>
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </TabItem>
+
         <TabItem Header="Import">
             <Grid TextElement.Foreground="{DynamicResource PanelText}">
                 <Grid.ColumnDefinitions>
@@ -1680,7 +1772,7 @@
 
         <!-- Settings: a tab with no header of its own. The cog below selects it, and clicking any
              other tab leaves it, the same as switching between the others. Collapsed, so the strip
-             lays out the four tabs exactly as before and Ctrl+Tab passes over it. Its page sets
+             lays out the other tabs exactly as before and Ctrl+Tab passes over it. Its page sets
              PanelText on its own root, as the tabs above do. -->
         <TabItem x:Name="SettingsTab" Header="Settings" Visibility="Collapsed">
             <settings:SettingsPage x:Name="SettingsView"/>
@@ -1689,7 +1781,7 @@
 
         <!-- The settings cog, at the right end of the tab strip, level with the tabs and just
              above the panels' right edge (12 of the tab control's margin and 2 of its padding).
-             It sits over the tab control rather than in it, so the four tabs are untouched, and
+             It sits over the tab control rather than in it, so the tabs are untouched, and
              under the resume prompt below, which covers it like everything else. -->
         <Button x:Name="SettingsCogButton" Style="{StaticResource SettingsCogButton}"
                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,11,14,0"

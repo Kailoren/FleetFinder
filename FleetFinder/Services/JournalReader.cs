@@ -96,6 +96,12 @@ public sealed partial class JournalReader
     /// tool can set to anything, and ordering by it alone let a stale file be preferred over the
     /// one actually being written. Modified time stays as the tiebreak for names that do not parse.
     /// </remarks>
+    /// <summary>
+    /// The journal files, newest first, as <see cref="NewestFirst"/> orders them. For the ship
+    /// locker reader, which needs the same order and the same refusal of a relative folder.
+    /// </summary>
+    internal IReadOnlyList<string> FilesNewestFirst() => NewestFirst().ToList();
+
     private IEnumerable<string> NewestFirst()
     {
         if (string.IsNullOrWhiteSpace(_dir)) return [];
@@ -261,8 +267,13 @@ public sealed partial class JournalReader
     /// after reading it is a check that happens one allocation too late: by then the string exists
     /// at whatever size the file dictated, and a single unterminated line is enough to make that
     /// unbounded. The bound has to be applied while reading, which is what this does.
+    ///
+    /// <paramref name="maxLength"/> is <see cref="MaxLineLength"/> unless a caller has a reason to
+    /// read longer lines: the ship locker reader does, because a full <c>ShipLocker</c> event lists
+    /// every item held on one line and can run to tens of kilobytes.
     /// </remarks>
-    private static bool ReadBoundedLine(StreamReader reader, out string line, out bool oversize)
+    internal static bool ReadBoundedLine(StreamReader reader, out string line, out bool oversize,
+        int maxLength = MaxLineLength)
     {
         line = "";
         oversize = false;
@@ -275,7 +286,7 @@ public sealed partial class JournalReader
         {
             if (ch != '\r')
             {
-                if (sb.Length < MaxLineLength) sb.Append((char)ch);
+                if (sb.Length < maxLength) sb.Append((char)ch);
                 else oversize = true;
             }
             ch = reader.Read();

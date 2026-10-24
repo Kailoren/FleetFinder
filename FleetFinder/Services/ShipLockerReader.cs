@@ -150,7 +150,7 @@ public sealed class ShipLockerReader
     /// commander was carrying it.
     /// </para>
     /// </remarks>
-    private static bool TryReadJson(string path, out JsonDocument? doc, int attempts = 6)
+    internal static bool TryReadJson(string path, out JsonDocument? doc, int attempts = 6)
     {
         doc = null;
         (long Length, DateTime Written) previous = (-1, DateTime.MinValue);

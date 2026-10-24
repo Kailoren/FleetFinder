@@ -124,6 +124,10 @@ public sealed class MainViewModel : ObservableObject
         DismissUpdateCommand = new RelayCommand(() => HasUpdateAvailable = false);
         ClearBarterCommand = new RelayCommand(ClearBarterGiveAmounts);
 
+        // Before the first RefreshInventory, which starts its first read.
+        var lockerContents = new ShipLockerContentsReader(journal, locker.FilePath, catalog);
+        ShipLocker = new ShipLockerViewModel(lockerContents.Read);
+
         RefreshInventory();
         LoadPendingSearchIfAny();
         SetupWatcher();
@@ -132,6 +136,10 @@ public sealed class MainViewModel : ObservableObject
     }
 
     // ---- Inventory ------------------------------------------------------------------------
+
+    /// <summary>The Ship Locker tab. It reads the locker again whenever the inventory does, so it
+    /// follows the game on the same file watcher and one-second poll as Find Carriers.</summary>
+    public ShipLockerViewModel ShipLocker { get; }
 
     /// <summary>
     /// Rebuilds the inventory-derived state from ShipLocker.json.
@@ -154,6 +162,9 @@ public sealed class MainViewModel : ObservableObject
             DiagnosticLog.Crash(ex);
             Status = "Couldn't read the inventory just then; will try again on the next update.";
         }
+
+        // Off the UI thread: it reads journals as well as the locker file.
+        ShipLocker.Refresh();
     }
 
     private void RefreshInventoryCore()
