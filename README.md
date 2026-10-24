@@ -51,7 +51,7 @@ Click an engineer's name to see everything about them in one place: your progres
 
 If you'd rather not make your own, there are built-in themes for all 12 Powerplay leaders, plus a few extras (yes, there's a Windows 98 one). You can also save your own themes with your CMDR name on them and share them with a code that anyone can import into their FleetFinder, with your name credited on it!
 
-<img width="1337" height="839" alt="Built-in themes" src="docs/screenshots/built-in-themes.png" />
+<img width="1180" height="1362" alt="built-in-themes-forum" src="https://github.com/user-attachments/assets/7c888637-c3ec-4051-a271-ac06f1a97950" />
 
 And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
 
