@@ -23,7 +23,8 @@ using FleetView.Theming;
 // and the logic behind saved and shared themes (ThemeTests.cs): names cleaned for display, the
 // share code both ways and every way a paste can be wrong, the theme library on disk, and the
 // commander name read from the journal. Then hover copy and paste and click to find (FindTests.cs),
-// and the saved themes on the page: cards, Save as theme, Import code (ShelfTests.cs). Prints one
+// and the saved themes on the page: cards, Save as theme, Import code (ShelfTests.cs), and the
+// themes FleetFinder comes with, pinned and checked for readable text (BuiltInTests.cs). Prints one
 // PASS or FAIL line per check and a final SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
@@ -81,6 +82,10 @@ internal sealed partial class SelfTest
             Section("save as theme", SaveThemeFormTests);
             Section("import a theme code", ImportTests);
             Section("Settings themes", SettingsThemesTests);
+            Section("built-in themes", BuiltInThemeTests);
+            Section("built-in themes can be read", ContrastTests);
+            Section("built-in theme cards", BuiltInShelfTests);
+            Section("Settings built-in themes", SettingsBuiltInTests);
         }
         finally
         {
@@ -558,20 +563,21 @@ internal sealed partial class SelfTest
     }
 
     /// <summary>
-    /// The roles' defaults are the only colours the C# may name. Comments are skipped, so the
-    /// examples in doc comments do not count; string literals and the usual constructors do.
+    /// The roles' defaults and the built-in themes are the only colours the C# may name, each in
+    /// its own file. Comments are skipped, so the examples in doc comments do not count; string
+    /// literals and the usual constructors do.
     /// </summary>
     private void CodeTests()
     {
         var root = RepoFile("FleetFinder");
-        var allowed = Path.Combine(root, "Theming", "ThemeRoles.cs");
+        string[] allowed = [Path.Combine(root, "Theming", "ThemeRoles.cs"), Path.Combine(root, "Theming", "BuiltInThemes.cs")];
         var literal = new Regex(@"""#[0-9A-Fa-f]{3,8}""|\bColors\.[A-Z]|Color\.From(Rgb|Argb|ScRgb)\(\s*(0x[0-9A-Fa-f]+|\d)|\bBrushes\.[A-Z]");
         var hits = new List<string>();
         foreach (var file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
         {
             var rel = Path.GetRelativePath(root, file);
             if (rel.StartsWith("bin" + Path.DirectorySeparatorChar) || rel.StartsWith("obj" + Path.DirectorySeparatorChar)) continue;
-            if (string.Equals(file, allowed, StringComparison.OrdinalIgnoreCase)) continue;
+            if (allowed.Any(a => string.Equals(file, a, StringComparison.OrdinalIgnoreCase))) continue;
             int n = 0;
             foreach (var rawLine in File.ReadLines(file))
             {
@@ -581,7 +587,8 @@ internal sealed partial class SelfTest
                 if (literal.IsMatch(code)) hits.Add($"{rel}:{n}");
             }
         }
-        Check("no colour literals in the C# outside ThemeRoles.cs", hits.Count == 0, string.Join(", ", hits));
+        Check("no colour literals in the C# outside ThemeRoles.cs and BuiltInThemes.cs", hits.Count == 0, string.Join(", ", hits));
+        Check("and both of those exist, so the exemption is not for nothing", allowed.All(File.Exists));
     }
 
     // ---- colour picker state ----------------------------------------------------------------------

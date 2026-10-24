@@ -172,7 +172,8 @@ internal sealed partial class SelfTest
         var plain = shelf.Cards[1];
         Check("a card with a picture on disk shows it", orange.Snapshot is BitmapSource { PixelWidth: 160 });
         Check("a card without one has none yet", plain.Snapshot == null);
-        Equal("and is the one that needs drawing", "No credit", string.Join(",", shelf.MissingSnapshots.Select(c => c.Name)));
+        Equal("and is the one of the user's that needs drawing", "No credit",
+            string.Join(",", shelf.MissingSnapshots.Where(c => !c.IsBuiltIn).Select(c => c.Name)));
         Check("the picture was read whole: nothing holds its file open", Unlocked(Path.Combine(folder, "0000000000000001.png")));
 
         // Pictures that are not usable are treated as missing.
@@ -191,7 +192,7 @@ internal sealed partial class SelfTest
         Check("a drawn picture is kept", shelf.StoreSnapshot(plain, drawn));
         Check("shown at once", plain.Snapshot != null);
         Check("and saved beside its theme", File.ReadAllBytes(Path.Combine(folder, "0000000000000002.png")).SequenceEqual(drawn));
-        Equal("so nothing needs drawing now", 0, shelf.MissingSnapshots.Count);
+        Equal("so none of the user's needs drawing now", 0, shelf.MissingSnapshots.Count(c => !c.IsBuiltIn));
 
         // Find, by name.
         Check("a name is found whatever its case", ReferenceEquals(shelf.Find("orange"), orange));
@@ -422,9 +423,11 @@ internal sealed partial class SelfTest
         page.ThemeLibrary = new ThemeLibrary(Path.Combine(_dir, "page-empty"));
         Layout(page);
         var empty = (TextBlock)page.FindName("ThemesEmpty");
-        Check("with no themes the strip says so",
-            empty.Visibility == Visibility.Visible && empty.Text == "No saved themes yet. Save your colours as a theme, or import a code someone shared."
-            && ((FrameworkElement)page.FindName("CardScroll")).Visibility == Visibility.Collapsed);
+        var emptyTile = (FrameworkElement)page.FindName("ThemesEmptyTile");
+        Check("with no themes of the user's the strip says so, in a tile where the first will go",
+            emptyTile.Visibility == Visibility.Visible && empty.Text == "No saved themes yet. Save your colours as a theme, or import a code someone shared.");
+        Check("and the built-in themes still show after it", ((FrameworkElement)page.FindName("CardScroll")).Visibility == Visibility.Visible
+            && page.BuiltInThemeCards.Count == BuiltInThemes.All.Count && page.CardElementOf(page.BuiltInThemeCards[0]) != null);
         double emptyHeight = ((FrameworkElement)page.FindName("ThemesPanel")).ActualHeight;
 
         var folder = Path.Combine(_dir, "page");
@@ -432,7 +435,7 @@ internal sealed partial class SelfTest
         WriteTheme(folder, "0000000000000002", "Teal", "", "2026-10-21T10:00:00Z", Tinted(Teal));
         page.ThemeLibrary = new ThemeLibrary(folder);
         Layout(page);
-        Check("with themes the empty line goes", empty.Visibility == Visibility.Collapsed);
+        Check("with themes the empty tile goes", emptyTile.Visibility == Visibility.Collapsed);
         Near("and the strip is the same height either way, so the preview does not jump", emptyHeight,
             ((FrameworkElement)page.FindName("ThemesPanel")).ActualHeight, 0.5);
         var cards = page.ThemeCards;
@@ -453,7 +456,7 @@ internal sealed partial class SelfTest
 
         // Pictures: one on disk would be read, the missing ones drawn from their own colours.
         Equal("both pictures are missing", 2, cards.Count(c => c.Snapshot == null));
-        Equal("the page draws them", 2, page.DrawMissingSnapshots());
+        Equal("the page draws them, and the built-in ones (none kept in this folder yet)", 2 + BuiltInThemes.All.Count, page.DrawMissingSnapshots());
         double dpi = VisualTreeHelper.GetDpi(page).DpiScaleX;
         var png = File.ReadAllBytes(Path.Combine(folder, "0000000000000002.png"));
         var picture = ThemeShelf.ReadSnapshot(png) as BitmapSource;
@@ -570,8 +573,9 @@ internal sealed partial class SelfTest
         var words = Descendants<TextBlock>(page).Select(t => t.Text)
             .Concat(Descendants<Button>(page).Select(b => b.Content as string ?? ""))
             .Concat(cards.SelectMany(c => new[] { c.Name, c.Author, c.Credit }))
+            .Concat(page.BuiltInThemeCards.SelectMany(c => new[] { c.Name, c.Author, c.Credit }))
             .Concat([SaveThemeForm.NeedsNameMessage, SaveThemeForm.FailedMessage, ThemeImport.AlreadyHaveMessage,
-                ThemeImport.NotAddedMessage, ThemeShelf.CopiedNote, ThemeShelf.NotDeletedNote]);
+                ThemeImport.BuiltInMessage, ThemeImport.NotAddedMessage, ThemeShelf.CopiedNote, ThemeShelf.NotDeletedNote]);
         Check("no em dash anywhere in the themes strip or its dialogs", !words.Any(t => t.Contains('\u2014')));
         Equal("the real clipboard was never used", typeof(FakeClipboard), page.ClipboardText.GetType());
         Check("and the app's own theme.json was never written",

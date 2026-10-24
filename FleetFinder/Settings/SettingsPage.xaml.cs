@@ -77,6 +77,7 @@ public partial class SettingsPage : UserControl
         _rows = Groups.SelectMany(g => g.Rows).ToDictionary(r => r.Key, StringComparer.Ordinal);
         ColourList.ItemsSource = Groups;
         CardList.ItemsSource = _shelf.Cards;
+        BuiltInList.ItemsSource = _shelf.BuiltIns;
         _shelf.Cards.CollectionChanged += (_, _) => UpdateThemesEmpty();
         UpdateThemesEmpty();
         // The name's cap is the share code's; the CMDR box leaves room for a typed "CMDR ", which
@@ -166,13 +167,17 @@ public partial class SettingsPage : UserControl
         get => _shelf.Library;
         set
         {
+            _shelf.DpiScale = DpiScale();
             _shelf.UseLibrary(value);
             _themesLoaded = true;
         }
     }
 
-    /// <summary>The theme cards as shown, oldest first.</summary>
+    /// <summary>The user's own theme cards as shown, oldest first.</summary>
     public IReadOnlyList<ThemeCard> ThemeCards => _shelf.Cards;
+
+    /// <summary>The built-in themes' cards, after the user's own.</summary>
+    public IReadOnlyList<ThemeCard> BuiltInThemeCards => _shelf.BuiltIns;
 
     /// <summary>
     /// Finds the commander to credit when saving a theme: the main window hands in the journal's
@@ -578,15 +583,14 @@ public partial class SettingsPage : UserControl
     private void LoadThemes()
     {
         _themesLoaded = true;
+        _shelf.DpiScale = DpiScale();
         _shelf.Reload();
     }
 
-    private void UpdateThemesEmpty()
-    {
-        bool none = _shelf.Cards.Count == 0;
-        ThemesEmpty.Visibility = none ? Visibility.Visible : Visibility.Collapsed;
-        CardScroll.Visibility = none ? Visibility.Collapsed : Visibility.Visible;
-    }
+    /// <summary>Until the user has a theme of their own, a card-sized tile says how to get one, in
+    /// front of the built-in ones.</summary>
+    private void UpdateThemesEmpty() =>
+        ThemesEmptyTile.Visibility = _shelf.Cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// The strip keeps its own size and the preview shrinks into what is left, unless the window is
@@ -622,9 +626,10 @@ public partial class SettingsPage : UserControl
         _ => null,
     };
 
-    /// <summary>The element that holds a card in the strip.</summary>
+    /// <summary>The element that holds a card in the strip, the user's or a built-in one.</summary>
     public FrameworkElement? CardElementOf(ThemeCard card) =>
-        Descendants<Border>(CardList).FirstOrDefault(b => b.Name == "CardBorder" && ReferenceEquals(b.DataContext, card));
+        Descendants<Border>(card.IsBuiltIn ? BuiltInList : CardList)
+            .FirstOrDefault(b => b.Name == "CardBorder" && ReferenceEquals(b.DataContext, card));
 
     private void ScrollToCard(ThemeCard? card)
     {

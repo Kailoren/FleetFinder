@@ -1,5 +1,8 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using FleetView.Services;
@@ -9,8 +12,8 @@ using FleetView.ViewModels;
 namespace FleetView.Settings;
 
 /// <summary>
-/// One saved theme as a card on the Settings page: its picture, its name, the commander credited
-/// under it, and (in the page's template) an Apply button.
+/// One theme as a card on the Settings page: its picture, its name, the commander credited under
+/// it (or "FleetFinder" for a built-in theme), and (in the page's template) an Apply button.
 /// </summary>
 public sealed class ThemeCard : ObservableObject
 {
@@ -18,10 +21,15 @@ public sealed class ThemeCard : ObservableObject
     private ImageSource? _snapshot;
     private bool _isConfirmingDelete;
 
-    public ThemeCard(SavedTheme theme)
+    public ThemeCard(SavedTheme theme, bool isBuiltIn = false)
     {
         _theme = theme;
+        IsBuiltIn = isBuiltIn;
     }
+
+    /// <summary>One of the themes FleetFinder comes with (<see cref="BuiltInThemes"/>): it can be
+    /// applied and shared, never deleted or saved over.</summary>
+    public bool IsBuiltIn { get; }
 
     /// <summary>The theme as stored. Replaced in place when a theme of the same name is saved
     /// over it, so the card keeps its place.</summary>
@@ -41,11 +49,12 @@ public sealed class ThemeCard : ObservableObject
     public string Id => _theme.Id;
     public string Name => _theme.Name;
 
-    /// <summary>The line under the name: "CMDR Kailoren", or empty when nobody is credited.</summary>
-    public string Author => ThemeShelf.AuthorLine(_theme.Commander);
+    /// <summary>The line under the name: "CMDR Kailoren", empty when nobody is credited, and
+    /// "FleetFinder" on a built-in theme.</summary>
+    public string Author => IsBuiltIn ? BuiltInThemes.Author : ThemeShelf.AuthorLine(_theme.Commander);
 
-    /// <summary>Name and credit on one line, as the import dialog shows them.</summary>
-    public string Credit => ThemeShelf.CreditLine(_theme.Name, _theme.Commander);
+    /// <summary>Name and credit on one line, as the import dialog shows them (the card's tooltip).</summary>
+    public string Credit => IsBuiltIn ? ThemeShelf.BuiltInCreditLine(_theme.Name) : ThemeShelf.CreditLine(_theme.Name, _theme.Commander);
 
     /// <summary>The preview picture, or null until one is loaded or drawn.</summary>
     public ImageSource? Snapshot
@@ -63,9 +72,10 @@ public sealed class ThemeCard : ObservableObject
 }
 
 /// <summary>
-/// The saved themes on the colour changer page (C8): the cards, and what Apply, Copy share code,
-/// Delete, Save as theme and an import do to them. No WPF controls in here, so the self-test can
-/// drive all of it with a temporary folder and a pretend clipboard.
+/// The themes on the colour changer page (C8, D4): the user's saved ones and the built-in ones as
+/// cards, and what Apply, Copy share code, Delete, Save as theme and an import do to them. No WPF
+/// controls in here, so the self-test can drive all of it with a temporary folder and a pretend
+/// clipboard.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -78,8 +88,16 @@ public sealed class ThemeCard : ObservableObject
 /// held open by a card and Delete can always remove it. A picture that is missing, unreadable, or
 /// not a sensibly sized PNG is left null, and the page draws a new one from the theme's colours.
 /// </para>
+/// <para>
+/// The built-in themes (<see cref="BuiltIns"/>) come after the user's own and are never files in
+/// the library. Their pictures are drawn the same way the first time Settings opens and kept in
+/// <c>Data\themes\built-in\</c>, named by a hash of the theme's colours and the app build, plus
+/// the picture's width (<see cref="BuiltInSnapshotName"/>). A theme whose colours change, or a new
+/// FleetFinder whose preview may look different, so draws its pictures again rather than showing
+/// old ones, and pictures no current theme would look for are deleted from there.
+/// </para>
 /// </remarks>
-public sealed class ThemeShelf
+public sealed partial class ThemeShelf
 {
     public const string CopiedNote = "Share code copied";
     public const string NotDeletedNote = "That theme could not be deleted";
@@ -98,7 +116,14 @@ public sealed class ThemeShelf
         Library = library;
         _draft = draft;
         Clipboard = clipboard;
+        foreach (var theme in BuiltInThemes.All)
+            BuiltIns.Add(new ThemeCard(new SavedTheme(BuiltInIdPrefix + theme.Id, theme.Name, "", DateTime.MinValue, theme.Colours),
+                isBuiltIn: true));
     }
+
+    /// <summary>Starts the id of every built-in card. A library id is sixteen hex digits, so the
+    /// two can never be mistaken for each other.</summary>
+    public const string BuiltInIdPrefix = "built-in-";
 
     /// <summary>Where the themes are kept. The app's own <c>Data\themes</c> unless a test hands in
     /// a folder of its own (<see cref="UseLibrary"/>).</summary>
@@ -107,8 +132,20 @@ public sealed class ThemeShelf
     /// <summary>The clipboard Copy share code writes to. The real one unless a test swaps it.</summary>
     public IClipboardText Clipboard { get; set; }
 
-    /// <summary>The cards, oldest theme first, so a new one lands at the end of the row.</summary>
+    /// <summary>The user's own cards, oldest theme first, so a new one lands at the end of them.</summary>
     public ObservableCollection<ThemeCard> Cards { get; } = [];
+
+    /// <summary>The built-in themes' cards, in <see cref="BuiltInThemes.All"/> order, after the
+    /// user's own on the strip. The same ones for the life of the page.</summary>
+    public ObservableCollection<ThemeCard> BuiltIns { get; } = [];
+
+    /// <summary>The screen's scale (1.25 at 125%), which sets the width of the built-in pictures
+    /// looked for in their cache. The page sets it before <see cref="Reload"/>.</summary>
+    public double DpiScale { get; set; } = 1;
+
+    /// <summary>Where the built-in themes' pictures are kept: <c>built-in</c> inside the library's
+    /// folder, which the library itself never reads.</summary>
+    public string BuiltInFolder => Path.Combine(Library.Folder, "built-in");
 
     /// <summary>"CMDR Kailoren", or empty for a theme nobody is credited with.</summary>
     public static string AuthorLine(string commander) => commander.Length == 0 ? "" : "CMDR " + commander;
@@ -118,6 +155,9 @@ public sealed class ThemeShelf
     public static string CreditLine(string name, string commander) =>
         commander.Length == 0 ? name : name + " - CMDR " + commander;
 
+    /// <summary>"Windows 98 - built into FleetFinder": a built-in card's tooltip.</summary>
+    public static string BuiltInCreditLine(string name) => name + " - built into FleetFinder";
+
     /// <summary>Reads another folder's themes instead (the self-test's temporary one).</summary>
     public void UseLibrary(ThemeLibrary library)
     {
@@ -125,26 +165,105 @@ public sealed class ThemeShelf
         Reload();
     }
 
-    /// <summary>Reads every saved theme again and makes its card, with its picture if it has one.</summary>
+    /// <summary>Reads every saved theme again and makes its card, with its picture if it has one,
+    /// and looks in the cache for any built-in theme's picture not shown yet. One already shown is
+    /// kept: it is the same theme whatever folder the user's themes are read from.</summary>
     public void Reload()
     {
         Cards.Clear();
         foreach (var theme in Library.List())
             Cards.Add(new ThemeCard(theme) { Snapshot = LoadSnapshot(Library.SnapshotPath(theme.Id)) });
+        int width = BuiltInPixelWidth;
+        foreach (var card in BuiltIns.Where(c => c.Snapshot == null))
+            card.Snapshot = LoadSnapshot(Path.Combine(BuiltInFolder, BuiltInSnapshotName(card.Theme.Colours, width)));
     }
 
-    /// <summary>Cards that have no picture yet and need one drawn from their colours.</summary>
-    public IReadOnlyList<ThemeCard> MissingSnapshots => Cards.Where(c => c.Snapshot == null).ToList();
+    /// <summary>Cards that have no picture yet and need one drawn from their colours: the user's
+    /// own first, then the built-in ones.</summary>
+    public IReadOnlyList<ThemeCard> MissingSnapshots => Cards.Concat(BuiltIns).Where(c => c.Snapshot == null).ToList();
 
     /// <summary>
-    /// Keeps a picture drawn for a card: shown at once, and saved beside the theme for next time.
-    /// Returns false if the file could not be written; the card shows the picture all the same.
+    /// Keeps a picture drawn for a card: shown at once, and saved for next time, beside the theme
+    /// for one of the user's own, in the built-in cache for a built-in one. Returns false if the
+    /// file could not be written; the card shows the picture all the same.
     /// </summary>
     public bool StoreSnapshot(ThemeCard card, byte[] png)
     {
-        bool saved = Library.SaveSnapshot(card.Id, png);
         card.Snapshot = ReadSnapshot(png);
-        return saved;
+        if (!card.IsBuiltIn) return Library.SaveSnapshot(card.Id, png);
+        return card.Snapshot is BitmapSource picture && SaveBuiltInSnapshot(card, png, picture.PixelWidth);
+    }
+
+    // ---- the built-in themes' pictures -----------------------------------------------------------
+
+    /// <summary>A built-in picture's width in pixels at the current <see cref="DpiScale"/>, the
+    /// same sum <see cref="ThemeSnapshot.Png"/> does for the nearly square preview.</summary>
+    private int BuiltInPixelWidth => (int)Math.Round(ThemeSnapshot.CardWidth * DpiScale);
+
+    [GeneratedRegex(@"^([0-9a-f]{16})-[0-9]{1,5}\.png$", RegexOptions.CultureInvariant)]
+    private static partial Regex BuiltInSnapshotFile();
+
+    /// <summary>
+    /// The file name a built-in theme's picture is kept under: sixteen hex digits of SHA-256 over
+    /// this build of FleetFinder (its module id, which changes whenever the code does) and every
+    /// role's colour, then the picture's width. Colours that change, or a new build whose preview
+    /// may be drawn differently, give a new name, so the picture is drawn again; the same theme at
+    /// another screen scale keeps a file of its own beside the first.
+    /// </summary>
+    public static string BuiltInSnapshotName(IReadOnlyDictionary<string, Color> colours, int pixelWidth) =>
+        BuiltInSnapshotHash(colours) + "-" + pixelWidth + ".png";
+
+    private static string BuiltInSnapshotHash(IReadOnlyDictionary<string, Color> colours)
+    {
+        var text = new StringBuilder("FleetFinder built-in theme picture ");
+        text.Append(typeof(ThemeShelf).Assembly.ManifestModule.ModuleVersionId.ToString("N"));
+        foreach (var role in ThemeRoles.All)
+        {
+            var c = colours.TryGetValue(role.Key, out var found) ? found : role.Default;
+            text.Append(' ').Append(role.Key).Append('=').Append(ColourMaths.ToStorageHex(c, withAlpha: true));
+        }
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(text.ToString()));
+        return Convert.ToHexStringLower(hash, 0, 8);
+    }
+
+    private bool SaveBuiltInSnapshot(ThemeCard card, byte[] png, int pixelWidth)
+    {
+        var path = Path.Combine(BuiltInFolder, BuiltInSnapshotName(card.Theme.Colours, pixelWidth));
+        var temp = path + ".tmp";
+        try
+        {
+            Directory.CreateDirectory(BuiltInFolder);
+            File.WriteAllBytes(temp, png);
+            File.Move(temp, path, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DiagnosticLog.Note($"A built-in theme's picture could not be kept ({ex.GetType().Name}); it is drawn again next time.");
+            try { File.Delete(temp); } catch (Exception again) when (again is IOException or UnauthorizedAccessException) { }
+            return false;
+        }
+        PruneBuiltInSnapshots();
+        return true;
+    }
+
+    /// <summary>Deletes the built-in pictures that no current theme would look for: those of a
+    /// theme whose colours have changed, and those an earlier build drew. Only files named the way
+    /// <see cref="BuiltInSnapshotName"/> names them are touched.</summary>
+    private void PruneBuiltInSnapshots()
+    {
+        var current = BuiltIns.Select(c => BuiltInSnapshotHash(c.Theme.Colours)).ToHashSet(StringComparer.Ordinal);
+        try
+        {
+            foreach (var file in Directory.EnumerateFiles(BuiltInFolder, "*.png"))
+            {
+                var match = BuiltInSnapshotFile().Match(Path.GetFileName(file));
+                if (match.Success && !current.Contains(match.Groups[1].Value)) File.Delete(file);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            DiagnosticLog.Note($"Old built-in theme pictures could not be tidied away ({ex.GetType().Name}).");
+        }
     }
 
     /// <summary>The card whose theme has this name once cleaned, matched without regard to case
@@ -155,11 +274,16 @@ public sealed class ThemeShelf
         return clean.Length == 0 ? null : Cards.FirstOrDefault(c => string.Equals(c.Name, clean, StringComparison.OrdinalIgnoreCase));
     }
 
-    /// <summary>True if exactly this theme (name, credit and every colour) is already saved, so
-    /// importing the same code twice does not make two cards.</summary>
-    public bool Has(SharedTheme theme) => Cards.Any(c =>
-        c.Name == theme.Name && c.Theme.Commander == theme.Commander
-        && ThemeRoles.All.All(r => c.Theme.Colours[r.Key] == theme.Colours[r.Key]));
+    /// <summary>True if exactly this theme (name, credit and every colour) is already saved, or is
+    /// one of the built-in ones, so importing the same code twice does not make two cards.</summary>
+    public bool Has(SharedTheme theme) => Cards.Concat(BuiltIns).Any(c => Same(c, theme));
+
+    /// <summary>True if this is exactly one of the built-in themes, as its Copy share code gives it.</summary>
+    public bool HasBuiltIn(SharedTheme theme) => BuiltIns.Any(c => Same(c, theme));
+
+    private static bool Same(ThemeCard card, SharedTheme theme) =>
+        card.Name == theme.Name && card.Theme.Commander == theme.Commander
+        && ThemeRoles.All.All(r => card.Theme.Colours[r.Key] == theme.Colours[r.Key]);
 
     /// <summary>Apply: the theme's colours go into the draft. Nothing is saved.</summary>
     public void Apply(ThemeCard card)
@@ -175,9 +299,11 @@ public sealed class ThemeShelf
         return Clipboard.SetText(code) ? CopiedNote : HoverClipboard.ClipboardBusyNote;
     }
 
-    /// <summary>Delete from the menu: this card asks first, and any other card asking stops.</summary>
+    /// <summary>Delete from the menu: this card asks first, and any other card asking stops. A
+    /// built-in card has no Delete and is never asked about.</summary>
     public void AskDelete(ThemeCard card)
     {
+        if (card.IsBuiltIn) return;
         foreach (var other in Cards) other.IsConfirmingDelete = ReferenceEquals(other, card);
     }
 
@@ -188,11 +314,11 @@ public sealed class ThemeShelf
     public ThemeCard? Confirming => Cards.FirstOrDefault(c => c.IsConfirmingDelete);
 
     /// <summary>Delete, confirmed: the theme and its picture go, and so does the card. False if the
-    /// files could not be removed; the card stays and stops asking.</summary>
+    /// files could not be removed, or for a built-in card; the card stays and stops asking.</summary>
     public bool Delete(ThemeCard card)
     {
         card.IsConfirmingDelete = false;
-        if (!Library.Delete(card.Id)) return false;
+        if (card.IsBuiltIn || !Library.Delete(card.Id)) return false;
         Cards.Remove(card);
         return true;
     }

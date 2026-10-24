@@ -14,7 +14,8 @@ public enum ImportState
     /// <summary>A good code: the box shows the theme's picture and credit, and it can be added.</summary>
     Ready,
 
-    /// <summary>A good code for a theme that is already saved, every colour the same.</summary>
+    /// <summary>A good code for a theme that is already saved, every colour the same, or for one
+    /// of the built-in themes.</summary>
     AlreadyHave,
 }
 
@@ -38,6 +39,7 @@ public enum ImportState
 public sealed class ThemeImport
 {
     public const string AlreadyHaveMessage = "You already have this theme.";
+    public const string BuiltInMessage = "This theme comes with FleetFinder, so you have it already.";
     public const string NotAddedMessage = "The theme could not be saved in Data\\themes.";
 
     private readonly ThemeShelf _shelf;
@@ -79,7 +81,7 @@ public sealed class ThemeImport
         }
         bool have = _shelf.Has(result.Theme!);
         State = have ? ImportState.AlreadyHave : ImportState.Ready;
-        Message = have ? AlreadyHaveMessage : "";
+        Message = !have ? "" : _shelf.HasBuiltIn(result.Theme!) ? BuiltInMessage : AlreadyHaveMessage;
     }
 
     /// <summary>
