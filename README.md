@@ -29,9 +29,29 @@ A Windows desktop tool for **Elite Dangerous: Odyssey** that finds fleet carrier
 
 <img width="1717" height="1439" alt="Screenshot 2026-10-18 122126" src="https://github.com/user-attachments/assets/b2df286c-b815-4da3-ba3f-7c26da4792ba" />
 
+- **Ship Locker:** Everything in your ship locker at a glance, split into Goods, Assets, Data and Consumables, with how many of each you're holding and a running total at the top of each list. Type in the filter box to narrow all four lists at once. It updates live while you play, and if you have more than one commander it follows whichever one you last logged in with.
+
+<img width="1720" height="1440" alt="Ship Locker" src="docs/screenshots/ship-locker.png" />
+
+- **Engineers:** Every Odyssey on-foot engineer, nearest first, with how far they are from your current system. Each card shows where you stand with that engineer (Unlocked, Known, Invited or Not met), what you still need to do to unlock them, the referral that leads to the next one, and the suit and weapon modifications they can do. Use the search box or the Show list to narrow it down to a region, or just the ones you've unlocked. Click a system name to copy it for the galaxy map.
+
+<img width="1720" height="1440" alt="Engineers" src="docs/screenshots/engineers.png" />
+
+Click an engineer's name to see everything about them in one place: your progress, the full unlock chain, and the materials every one of their modifications needs.
+
+<img width="1162" height="332" alt="Engineer breakdown" src="docs/screenshots/engineer-breakdown.png" />
+
 - **Import:** Upload a wishlist exported from **EDOMH** (<a href="URL">[Elite Dangerous Odyssey Materials Helper](https://github.com/jixxed/ed-odyssey-materials-helper)</a>). FleetFinder matches each line against the component catalogue and auto-selects what you still need, so you can plan a build in EDOMH, export it, and one click find where to buy it.
 
 <img width="1718" height="1439" alt="Screenshot 2026-10-18 123920" src="https://github.com/user-attachments/assets/4742b71d-1d49-4545-8729-3df1db5eb2e5" />
+
+- **Colours and themes:** Click the cog in the top right to open Settings, where you can change the colour of every single part of the app. Click any colour box to open the colour picker, or click on something in the preview and the list will jump straight to the colours it uses. The preview updates as you go, and nothing changes in the rest of the app until you hit **Save**, so you can't make a mess of it (and **Reset to defaults** is always there if you do!). To copy a colour from one thing to another, hover over it and press Ctrl+C, then hover over the other one and press Ctrl+V.
+
+<img width="1000" height="865" alt="Changing colours in Settings" src="docs/screenshots/colour-changer.gif" />
+
+If you'd rather not make your own, there are built-in themes for all 12 Powerplay leaders, plus a few extras (yes, there's a Windows 98 one). You can also save your own themes with your CMDR name on them and share them with a code that anyone can import into their FleetFinder, with your name credited on it!
+
+<img width="1337" height="839" alt="Built-in themes" src="docs/screenshots/built-in-themes.png" />
 
 And most importantly, if you have a lot of materials to search for and you don't get them all finished in one sitting, the app will prompt you the next time you open the app so you can pick up exactly where you left off!
 
