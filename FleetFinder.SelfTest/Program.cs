@@ -70,6 +70,10 @@ internal sealed partial class SelfTest
             Section("share code", ShareCodeTests);
             Section("saved theme library", LibraryTests);
             Section("commander from the journal", CommanderTests);
+            Section("hover copy and paste", HoverClipboardTests);
+            Section("click to find", RoleFinderTests);
+            Section("preview tags in the XAML", PreviewTagXamlTests);
+            Section("Settings find and copy", SettingsFindAndCopyTests);
         }
         finally
         {

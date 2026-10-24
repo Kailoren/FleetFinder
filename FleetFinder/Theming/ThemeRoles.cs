@@ -171,11 +171,14 @@ public static class ThemeRoles
         Role("MenuBackground", Popups, "Right-click menu background", "#000000"),
         Role("MenuBorder", Popups, "Right-click menu border", "#FF7500"),
         Role("MenuText", Popups, "Right-click menu text", "#FF7500"),
-        Role("MenuDisabledText", Popups, "Right-click menu text, unavailable item", "#7A4F2A"),
+        // Every label here starts "Right-click menu", Ali's wording, and fits on one line of the
+        // Settings list (the self-test measures them). An item that cannot be used is "greyed",
+        // the word people use for it, even though Ali's menu draws it brown.
+        Role("MenuDisabledText", Popups, "Right-click menu text, greyed item", "#7A4F2A"),
         Role("MenuHighlight", Popups, "Right-click menu item under the mouse", "#3D000000"),
         Role("MenuHighlightBorder", Popups, "Right-click menu item under the mouse, border", "#FF7500"),
-        Role("MenuDisabledHighlight", Popups, "Unavailable right-click menu item under the mouse", "#0A000000"),
-        Role("MenuDisabledHighlightBorder", Popups, "Unavailable right-click menu item under the mouse, border", "#21000000"),
+        Role("MenuDisabledHighlight", Popups, "Right-click menu, greyed item under the mouse", "#0A000000"),
+        Role("MenuDisabledHighlightBorder", Popups, "Right-click menu, greyed item under the mouse, border", "#21000000"),
         // The strip down the left of the menu where icons would go, and the etched line that ends
         // it: two one-pixel lines side by side, dark and white in WPF's own menu, both orange in
         // Ali's.

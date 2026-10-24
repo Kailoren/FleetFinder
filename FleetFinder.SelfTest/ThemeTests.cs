@@ -60,7 +60,10 @@ internal sealed partial class SelfTest
         Check("no label under it starts with a bare Menu",
             ThemeRoles.All.Where(r => r.Group == heading).All(r => !r.Label.StartsWith("Menu", StringComparison.Ordinal)));
         Equal("for example the highlight", "Right-click menu item under the mouse", ThemeRoles.Find("MenuHighlight")!.Label);
-        Equal("and the unavailable one", "Unavailable right-click menu item under the mouse", ThemeRoles.Find("MenuDisabledHighlight")!.Label);
+        Equal("and the greyed one", "Right-click menu, greyed item under the mouse", ThemeRoles.Find("MenuDisabledHighlight")!.Label);
+        Check("every menu label starts with Right-click menu",
+            menu.All(r => r.Label.StartsWith("Right-click menu", StringComparison.Ordinal)),
+            string.Join(", ", menu.Where(r => !r.Label.StartsWith("Right-click menu", StringComparison.Ordinal)).Select(r => r.Label)));
         Equal("the tooltips keep their labels", "Tooltip background", ThemeRoles.Find("ToolTipBackground")!.Label);
         Check("no label or note has an em dash",
             ThemeRoles.All.All(r => !r.Label.Contains('\u2014') && !(r.Note ?? "").Contains('\u2014')));

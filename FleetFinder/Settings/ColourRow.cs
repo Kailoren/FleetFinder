@@ -19,6 +19,7 @@ public sealed class ColourRow : ObservableObject
 {
     private Color _colour;
     private bool _isEditing;
+    private bool _isFound;
 
     public ColourRow(ThemeRole role, Color colour)
     {
@@ -66,6 +67,14 @@ public sealed class ColourRow : ObservableObject
     {
         get => _isEditing;
         set => SetProperty(ref _isEditing, value);
+    }
+
+    /// <summary>A click in the preview landed on something drawn in this colour; the row stays
+    /// outlined until the next click there or until a picker opens.</summary>
+    public bool IsFound
+    {
+        get => _isFound;
+        set => SetProperty(ref _isFound, value);
     }
 
     private static string? AlphaNote(ThemeRole role, Color colour) =>

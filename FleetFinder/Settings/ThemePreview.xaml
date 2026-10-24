@@ -1,6 +1,7 @@
 <UserControl x:Class="FleetView.Settings.ThemePreview"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:settings="clr-namespace:FleetView.Settings"
              IsHitTestVisible="False" Focusable="False" IsTabStop="False"
              KeyboardNavigation.TabNavigation="None" KeyboardNavigation.DirectionalNavigation="None"
              KeyboardNavigation.ControlTabNavigation="None"
@@ -22,14 +23,22 @@
 
          States a still picture cannot show by itself (under the mouse, typing, a menu or tooltip
          open) are drawn as samples: either a real control given that state's colour, or plain
-         shapes laid out like the real template. Nothing in here can be clicked or tabbed into. -->
+         shapes laid out like the real template. Nothing in here can be clicked or tabbed into.
 
-    <Border x:Name="PreviewRoot" Width="1100"
+         Every element that draws a colour is tagged with the roles it uses (settings:PreviewTag.Roles,
+         in a style where the style sets the colour), so a click on the preview can light up those
+         rows in the colour list. Tags go on the finest element: a text block carries its text
+         colour, the panel round it its background and border. Parts WPF builds from the window's
+         styles (grid headers and rows, check boxes, the scrollbar thumb, the progress bar's fill)
+         are tagged by kind in PreviewTag.cs. -->
+
+    <Border x:Name="PreviewRoot" Width="1100" settings:PreviewTag.Roles="WindowBackground"
             Background="{DynamicResource WindowBackground}" TextElement.Foreground="{DynamicResource MainText}"
             TextElement.FontFamily="Segoe UI" TextElement.FontSize="13" TextElement.FontWeight="Normal">
         <Border.Resources>
             <!-- A sample tile looks like one of the app's panels. -->
             <Style x:Key="Tile" TargetType="Border">
+                <Setter Property="settings:PreviewTag.Roles" Value="PanelBackground PanelBorder"/>
                 <Setter Property="Background" Value="{DynamicResource PanelBackground}"/>
                 <Setter Property="BorderBrush" Value="{DynamicResource PanelBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -37,24 +46,51 @@
                 <Setter Property="Padding" Value="10"/>
             </Style>
             <Style x:Key="TileHeading" TargetType="TextBlock">
+                <Setter Property="settings:PreviewTag.Roles" Value="PanelText"/>
                 <Setter Property="Foreground" Value="{DynamicResource PanelText}"/>
                 <Setter Property="FontWeight" Value="SemiBold"/>
                 <Setter Property="FontSize" Value="14"/>
                 <Setter Property="Margin" Value="0,0,0,10"/>
             </Style>
             <Style x:Key="SampleLabel" TargetType="TextBlock">
+                <Setter Property="settings:PreviewTag.Roles" Value="MutedText"/>
                 <Setter Property="Foreground" Value="{DynamicResource MutedText}"/>
                 <Setter Property="FontSize" Value="11"/>
                 <Setter Property="Margin" Value="0,0,0,3"/>
             </Style>
+            <!-- Grid cell text. The grid colours it Grid text unless a cell style says otherwise;
+                 the two styles after this one tag the cells whose styles do. -->
             <Style x:Key="Centred" TargetType="TextBlock">
+                <Setter Property="settings:PreviewTag.Roles" Value="GridText"/>
                 <Setter Property="HorizontalAlignment" Value="Center"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="7,0"/>
             </Style>
             <Style x:Key="Padded" TargetType="TextBlock">
+                <Setter Property="settings:PreviewTag.Roles" Value="GridText"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
                 <Setter Property="Margin" Value="7,0"/>
+            </Style>
+            <!-- Same rules as the cell styles that colour these columns. -->
+            <Style x:Key="NeededText" TargetType="TextBlock" BasedOn="{StaticResource Centred}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsShort}" Value="True">
+                        <Setter Property="settings:PreviewTag.Roles" Value="NeededCount"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="AccessText" TargetType="TextBlock" BasedOn="{StaticResource Centred}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Access}" Value="Yes">
+                        <Setter Property="settings:PreviewTag.Roles" Value="GoodValue"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Access}" Value="No">
+                        <Setter Property="settings:PreviewTag.Roles" Value="BadValue"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Access}" Value="Unknown">
+                        <Setter Property="settings:PreviewTag.Roles" Value="UnknownValue"/>
+                    </DataTrigger>
+                </Style.Triggers>
             </Style>
             <!-- One line of the right-click menu, laid out like WPF's menu item: icon column,
                  header, shortcut at 70%, each line 22 high. -->
@@ -79,25 +115,25 @@
             <!-- ======== The window ======== -->
             <DockPanel Height="700">
                 <!-- Title bar, window buttons at rest. -->
-                <Border DockPanel.Dock="Top" Height="36" Background="{DynamicResource TitleBarBackground}">
+                <Border DockPanel.Dock="Top" Height="36" Background="{DynamicResource TitleBarBackground}" settings:PreviewTag.Roles="TitleBarBackground">
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
                             <Image Source="/FleetFinder;component/Assets/FleetFinderIcon.ico" Width="16" Height="16"/>
-                            <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12"
+                            <TextBlock Text="FleetFinder" Margin="8,0,0,0" FontSize="12" settings:PreviewTag.Roles="TitleBarText"
                                        Foreground="{DynamicResource TitleBarText}" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="VersionText" Margin="6,0,0,0" FontSize="10"
+                            <TextBlock x:Name="VersionText" Margin="6,0,0,0" FontSize="10" settings:PreviewTag.Roles="TitleBarVersion"
                                        Foreground="{DynamicResource TitleBarVersion}" VerticalAlignment="Center"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Style="{DynamicResource CaptionButton}">
+                            <Button Style="{DynamicResource CaptionButton}" settings:PreviewTag.Roles="CaptionButtonGlyph">
                                 <Path Width="10" Height="10" Stretch="None" Data="M0,5.5 H10" StrokeThickness="1"
                                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                             </Button>
-                            <Button Style="{DynamicResource CaptionButton}">
+                            <Button Style="{DynamicResource CaptionButton}" settings:PreviewTag.Roles="CaptionButtonGlyph">
                                 <Path Width="10" Height="10" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" StrokeThickness="1"
                                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                             </Button>
-                            <Button Style="{DynamicResource CloseCaptionButton}">
+                            <Button Style="{DynamicResource CloseCaptionButton}" settings:PreviewTag.Roles="CaptionButtonGlyph">
                                 <Path Width="10" Height="10" Stretch="None" Data="M0,0 L10,10 M0,10 L10,0" StrokeThickness="1.2"
                                       Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                             </Button>
@@ -106,33 +142,34 @@
                 </Border>
 
                 <!-- Update banner. -->
-                <Border DockPanel.Dock="Top" Background="{DynamicResource BannerBackground}" Padding="12,6">
+                <Border DockPanel.Dock="Top" Background="{DynamicResource BannerBackground}" Padding="12,6" settings:PreviewTag.Roles="BannerBackground">
                     <Grid>
-                        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource BannerText}" FontWeight="SemiBold"
+                        <TextBlock VerticalAlignment="Center" Foreground="{DynamicResource BannerText}" FontWeight="SemiBold" settings:PreviewTag.Roles="BannerText"
                                    Text="A new version (v2.3.0) is available."/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Content="Download" Padding="12,4" Margin="0,0,8,0"
+                            <Button Content="Download" Padding="12,4" Margin="0,0,8,0" settings:PreviewTag.Roles="BannerButtonBackground BannerButtonText"
                                     Background="{DynamicResource BannerButtonBackground}" Foreground="{DynamicResource BannerButtonText}"/>
-                            <Button Content="Dismiss" Padding="8,4"
+                            <Button Content="Dismiss" Padding="8,4" settings:PreviewTag.Roles="BannerText"
                                     Background="Transparent" Foreground="{DynamicResource BannerText}"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
                 <!-- Status bar. -->
-                <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackground}" Padding="16,8">
+                <Border DockPanel.Dock="Bottom" Background="{DynamicResource StatusBarBackground}" Padding="16,8" settings:PreviewTag.Roles="StatusBarBackground">
                     <Grid>
                         <TextBlock Text="9 place(s) to buy (9 fleet carriers) across 4 component(s)."
-                                   Foreground="{DynamicResource StatusText}" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource StatusText}" VerticalAlignment="Center" settings:PreviewTag.Roles="StatusText"/>
                         <TextBlock Text="Inventory: ShipLocker.json  (updated 01/10/2026 14:00)"
-                                   Foreground="{DynamicResource StatusDetailText}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                   Foreground="{DynamicResource StatusDetailText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   settings:PreviewTag.Roles="StatusDetailText"/>
                     </Grid>
                 </Border>
 
                 <!-- Tabs, Find Carriers selected, and the settings cog where the window has it. -->
                 <Grid>
                     <TabControl Margin="12,8,12,12">
-                        <TabItem Header="Find Carriers" IsSelected="True">
+                        <TabItem Header="Find Carriers" IsSelected="True" settings:PreviewTag.Roles="SelectedTabBackground SelectedTabOutline SelectedTabText">
                             <!-- PanelText here for the same reason as on the window's tabs: tab
                                  content inherits the selected tab's text colour otherwise. -->
                             <Grid TextElement.Foreground="{DynamicResource PanelText}">
@@ -144,34 +181,34 @@
 
                                 <!-- LEFT: the component picker. -->
                                 <Border Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
-                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" settings:PreviewTag.Roles="PanelBackground PanelBorder">
                                     <DockPanel>
-                                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap"
+                                        <TextBlock DockPanel.Dock="Top" Margin="0,0,0,8" FontWeight="SemiBold" FontSize="14" TextWrapping="Wrap" settings:PreviewTag.Roles="PanelText"
                                                    Text="Select components to price, or choose a modification in the Modifications tab"/>
                                         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <Button Content="Refresh inventory"
+                                            <Button Content="Refresh inventory" settings:PreviewTag.Roles="SecondaryButtonBackground SecondaryButtonText"
                                                     Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
-                                            <Button Content="Clear Buy" Padding="8,4" Margin="8,0,0,0"
+                                            <Button Content="Clear Buy" Padding="8,4" Margin="8,0,0,0" settings:PreviewTag.Roles="SecondaryButtonBackground SecondaryButtonText"
                                                     Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
-                                            <Button Content="Clear Sell" Padding="8,4" Margin="8,0,0,0"
+                                            <Button Content="Clear Sell" Padding="8,4" Margin="8,0,0,0" settings:PreviewTag.Roles="SecondaryButtonBackground SecondaryButtonText"
                                                     Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
                                         </StackPanel>
                                         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                                            <TextBlock Text="Search" Foreground="{DynamicResource MutedText}" FontSize="11" Margin="2,0,0,2"/>
-                                            <TextBox Text="Memory" BorderThickness="1" Padding="8,6"
+                                            <TextBlock Text="Search" Foreground="{DynamicResource MutedText}" FontSize="11" Margin="2,0,0,2" settings:PreviewTag.Roles="MutedText"/>
+                                            <TextBox Text="Memory" BorderThickness="1" Padding="8,6" settings:PreviewTag.Roles="InputBackground InputText InputBorder"
                                                      Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}"
                                                      BorderBrush="{DynamicResource InputBorder}"/>
                                         </StackPanel>
                                         <Button DockPanel.Dock="Bottom" Margin="0,8,0,0" Content="Search prices (4 buy, 2 sell)"
-                                                FontSize="14" Padding="12,9"/>
+                                                FontSize="14" Padding="12,9" settings:PreviewTag.Roles="ButtonBackground ButtonText"/>
 
-                                        <DataGrid x:Name="ComponentGrid">
+                                        <DataGrid x:Name="ComponentGrid" settings:PreviewTag.Roles="GridBackground GridBorder">
                                             <DataGrid.GroupStyle>
                                                 <GroupStyle>
                                                     <GroupStyle.HeaderTemplate>
                                                         <DataTemplate>
                                                             <TextBlock Text="{Binding Name}" FontWeight="Bold" Margin="4,8,0,4"
-                                                                       Foreground="{DynamicResource GroupHeaderText}"/>
+                                                                       Foreground="{DynamicResource GroupHeaderText}" settings:PreviewTag.Roles="GroupHeaderText"/>
                                                         </DataTemplate>
                                                     </GroupStyle.HeaderTemplate>
                                                 </GroupStyle>
@@ -179,7 +216,7 @@
                                                     <GroupStyle.HeaderTemplate>
                                                         <DataTemplate>
                                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="12" Margin="16,4,0,2"
-                                                                       Foreground="{DynamicResource GroupHeaderText}">
+                                                                       Foreground="{DynamicResource GroupHeaderText}" settings:PreviewTag.Roles="GroupHeaderText">
                                                                 <TextBlock.Style>
                                                                     <Style TargetType="TextBlock">
                                                                         <Style.Triggers>
@@ -202,11 +239,17 @@
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*"/>
+                                                <DataGridTextColumn Header="Component" Binding="{Binding Name}" Width="*">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock" BasedOn="{x:Static DataGridTextColumn.DefaultElementStyle}">
+                                                            <Setter Property="settings:PreviewTag.Roles" Value="GridText"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
                                                 <DataGridTextColumn Header="Amount" Binding="{Binding Have}" Width="Auto"
                                                                     ElementStyle="{StaticResource Centred}"/>
                                                 <DataGridTextColumn Header="Needed" Binding="{Binding Needed}" Width="Auto"
-                                                                    ElementStyle="{StaticResource Centred}">
+                                                                    ElementStyle="{StaticResource NeededText}">
                                                     <DataGridTextColumn.CellStyle>
                                                         <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                             <Style.Triggers>
@@ -239,14 +282,14 @@
                                     </Grid.RowDefinitions>
 
                                     <Border Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
-                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" settings:PreviewTag.Roles="PanelBackground PanelBorder">
                                         <DockPanel>
                                             <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                                                <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Where to Buy" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" settings:PreviewTag.Roles="PanelText"/>
                                                 <TextBlock Text="Current location: Sol" Foreground="{DynamicResource MutedText}"
-                                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center" settings:PreviewTag.Roles="MutedText"/>
                                             </Grid>
-                                            <DataGrid x:Name="BuyGrid" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
+                                            <DataGrid x:Name="BuyGrid" settings:PreviewTag.Roles="GridBackground GridBorder" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
                                                       HorizontalScrollBarVisibility="Disabled">
                                                 <DataGrid.CellStyle>
                                                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
@@ -272,14 +315,14 @@
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <TextBlock Text="{Binding Count}" Margin="7,0" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                           Foreground="{DynamicResource NeededCount}" FontWeight="Bold"/>
+                                                                           Foreground="{DynamicResource NeededCount}" FontWeight="Bold" settings:PreviewTag.Roles="NeededCount"/>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
                                                     <DataGridTextColumn Header="Carrier Name" Binding="{Binding Carrier}" Width="Auto"
                                                                         ElementStyle="{StaticResource Padded}"/>
                                                     <DataGridTextColumn Header="Access" Binding="{Binding Access}" Width="Auto"
-                                                                        ElementStyle="{StaticResource Centred}">
+                                                                        ElementStyle="{StaticResource AccessText}">
                                                         <DataGridTextColumn.CellStyle>
                                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                                 <Setter Property="FontWeight" Value="SemiBold"/>
@@ -301,7 +344,7 @@
                                                     <DataGridTemplateColumn Header="System" Width="Auto">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
-                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0"/>
+                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0" settings:PreviewTag.Roles="LinkText"/>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
@@ -315,19 +358,19 @@
                                     </Border>
 
                                     <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
-                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                            BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1" settings:PreviewTag.Roles="PanelBackground PanelBorder">
                                         <DockPanel>
                                             <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-                                                <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Where to Sell" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" settings:PreviewTag.Roles="PanelText"/>
                                                 <TextBlock Text="Current location: Sol" Foreground="{DynamicResource MutedText}"
-                                                           HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                                           HorizontalAlignment="Right" VerticalAlignment="Center" settings:PreviewTag.Roles="MutedText"/>
                                             </Grid>
                                             <!-- Searching: the real bar runs back and forth; this one
                                                  stands still part way so both of its colours show. -->
-                                            <ProgressBar DockPanel.Dock="Top" Value="45" Width="140" Height="6" Margin="16,0,0,8"
+                                            <ProgressBar DockPanel.Dock="Top" Value="45" Width="140" Height="6" Margin="16,0,0,8" settings:PreviewTag.Roles="ProgressTrack"
                                                          HorizontalAlignment="Left" BorderThickness="0"
                                                          Background="{DynamicResource ProgressTrack}" Foreground="{DynamicResource ProgressFill}"/>
-                                            <DataGrid x:Name="SellGrid" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
+                                            <DataGrid x:Name="SellGrid" settings:PreviewTag.Roles="GridBackground GridBorder" GridLinesVisibility="All" VerticalGridLinesBrush="{DynamicResource GridLines}"
                                                       HorizontalScrollBarVisibility="Disabled">
                                                 <DataGrid.CellStyle>
                                                     <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
@@ -341,14 +384,14 @@
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
                                                                 <TextBlock Text="{Binding Count}" Margin="7,0" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                                           Foreground="{DynamicResource HaveCount}" FontWeight="Bold"/>
+                                                                           Foreground="{DynamicResource HaveCount}" FontWeight="Bold" settings:PreviewTag.Roles="HaveCount"/>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
                                                     <DataGridTextColumn Header="Carrier Name" Binding="{Binding Carrier}" Width="Auto"
                                                                         ElementStyle="{StaticResource Padded}"/>
                                                     <DataGridTextColumn Header="Access" Binding="{Binding Access}" Width="Auto"
-                                                                        ElementStyle="{StaticResource Centred}">
+                                                                        ElementStyle="{StaticResource AccessText}">
                                                         <DataGridTextColumn.CellStyle>
                                                             <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
                                                                 <Setter Property="FontWeight" Value="SemiBold"/>
@@ -370,7 +413,7 @@
                                                     <DataGridTemplateColumn Header="System" Width="Auto">
                                                         <DataGridTemplateColumn.CellTemplate>
                                                             <DataTemplate>
-                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0"/>
+                                                                <Button Content="{Binding System}" Style="{DynamicResource LinkButton}" Margin="7,0" settings:PreviewTag.Roles="LinkText"/>
                                                             </DataTemplate>
                                                         </DataGridTemplateColumn.CellTemplate>
                                                     </DataGridTemplateColumn>
@@ -385,13 +428,14 @@
                                 </Grid>
                             </Grid>
                         </TabItem>
-                        <TabItem Header="Modifications"/>
-                        <TabItem Header="Barter"/>
-                        <TabItem Header="Import"/>
+                        <TabItem Header="Modifications" settings:PreviewTag.Roles="TabText"/>
+                        <TabItem Header="Barter" settings:PreviewTag.Roles="TabText"/>
+                        <TabItem Header="Import" settings:PreviewTag.Roles="TabText"/>
                     </TabControl>
 
                     <!-- Same place and drawing as the window's own cog. -->
-                    <Button Style="{DynamicResource CaptionButton}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,11,14,0">
+                    <Button Style="{DynamicResource CaptionButton}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,11,14,0"
+                            settings:PreviewTag.Roles="CaptionButtonGlyph">
                         <Path Width="14" Height="14" Stretch="None" StrokeThickness="1" Data="{DynamicResource CogGlyph}"
                               Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
                     </Button>
@@ -431,19 +475,19 @@
                                  maximise and close as they look under the mouse. -->
                             <StackPanel>
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Window buttons"/>
-                                <Border Background="{DynamicResource TitleBarBackground}" HorizontalAlignment="Left">
+                                <Border Background="{DynamicResource TitleBarBackground}" HorizontalAlignment="Left" settings:PreviewTag.Roles="TitleBarBackground">
                                     <StackPanel Orientation="Horizontal">
                                         <Border Width="46" Height="36">
                                             <Path Width="10" Height="10" Stretch="None" Data="M0,5.5 H10" StrokeThickness="1"
-                                                  Stroke="{DynamicResource CaptionButtonGlyph}"/>
+                                                  Stroke="{DynamicResource CaptionButtonGlyph}" settings:PreviewTag.Roles="CaptionButtonGlyph"/>
                                         </Border>
-                                        <Border Width="46" Height="36" Background="{DynamicResource CaptionButtonHover}">
+                                        <Border Width="46" Height="36" Background="{DynamicResource CaptionButtonHover}" settings:PreviewTag.Roles="CaptionButtonHover">
                                             <Path Width="10" Height="10" Data="M0.5,0.5 H9.5 V9.5 H0.5 Z" StrokeThickness="1"
-                                                  Stroke="{DynamicResource CaptionButtonHoverGlyph}"/>
+                                                  Stroke="{DynamicResource CaptionButtonHoverGlyph}" settings:PreviewTag.Roles="CaptionButtonHoverGlyph"/>
                                         </Border>
-                                        <Border Width="46" Height="36" Background="{DynamicResource CloseButtonHover}">
+                                        <Border Width="46" Height="36" Background="{DynamicResource CloseButtonHover}" settings:PreviewTag.Roles="CloseButtonHover">
                                             <Path Width="10" Height="10" Stretch="None" Data="M0,0 L10,10 M0,10 L10,0" StrokeThickness="1.2"
-                                                  Stroke="{DynamicResource CloseButtonHoverGlyph}"/>
+                                                  Stroke="{DynamicResource CloseButtonHoverGlyph}" settings:PreviewTag.Roles="CloseButtonHoverGlyph"/>
                                         </Border>
                                     </StackPanel>
                                 </Border>
@@ -453,8 +497,8 @@
                             <StackPanel Grid.Column="2">
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Tab"/>
                                 <Border Background="{DynamicResource TabHoverBackground}" Padding="16,9" CornerRadius="6,6,0,0"
-                                        HorizontalAlignment="Left">
-                                    <TextBlock Text="Modifications" FontSize="14" Foreground="{DynamicResource TabText}"/>
+                                        HorizontalAlignment="Left" settings:PreviewTag.Roles="TabHoverBackground">
+                                    <TextBlock Text="Modifications" FontSize="14" Foreground="{DynamicResource TabText}" settings:PreviewTag.Roles="TabText"/>
                                 </Border>
                             </StackPanel>
 
@@ -462,8 +506,9 @@
                             <StackPanel Grid.Column="4">
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Scrollbar"/>
                                 <StackPanel Orientation="Horizontal" Height="38">
-                                    <Border Width="8" Margin="2" CornerRadius="5" Background="{DynamicResource ScrollbarThumb}"/>
-                                    <Border Width="8" Margin="8,2,2,2" CornerRadius="5" Background="{DynamicResource ScrollbarThumbHover}"/>
+                                    <Border Width="8" Margin="2" CornerRadius="5" Background="{DynamicResource ScrollbarThumb}" settings:PreviewTag.Roles="ScrollbarThumb"/>
+                                    <Border Width="8" Margin="8,2,2,2" CornerRadius="5" Background="{DynamicResource ScrollbarThumbHover}"
+                                            settings:PreviewTag.Roles="ScrollbarThumbHover"/>
                                 </StackPanel>
                             </StackPanel>
 
@@ -471,10 +516,10 @@
                             <StackPanel Grid.Row="2">
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="System name and text box"/>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="Shinrarta Dezhra" Foreground="{DynamicResource LinkHoverText}" TextDecorations="Underline"
+                                    <TextBlock Text="Shinrarta Dezhra" Foreground="{DynamicResource LinkHoverText}" TextDecorations="Underline" settings:PreviewTag.Roles="LinkHoverText"
                                                VerticalAlignment="Center" Margin="0,0,14,0"/>
                                     <!-- A real text box, given the border the mouse brings. -->
-                                    <TextBox Text="Graphene" Width="100" BorderThickness="1" Padding="8,6"
+                                    <TextBox Text="Graphene" Width="100" BorderThickness="1" Padding="8,6" settings:PreviewTag.Roles="InputBackground InputText InputHoverBorder"
                                              Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}"
                                              BorderBrush="{DynamicResource InputHoverBorder}"/>
                                 </StackPanel>
@@ -484,10 +529,10 @@
                             <StackPanel Grid.Row="2" Grid.Column="2">
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Plus and minus"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                                    <Button Content="−" Style="{DynamicResource StepperButton}"/>
-                                    <TextBlock Text="2" MinWidth="26" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
-                                    <Border Width="22" Height="22" CornerRadius="3" Background="{DynamicResource StepperHover}">
-                                        <TextBlock Text="+" FontWeight="Bold" Foreground="{DynamicResource StepperText}"
+                                    <Button Content="−" Style="{DynamicResource StepperButton}" settings:PreviewTag.Roles="StepperBackground StepperText"/>
+                                    <TextBlock Text="2" MinWidth="26" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" settings:PreviewTag.Roles="MainText"/>
+                                    <Border Width="22" Height="22" CornerRadius="3" Background="{DynamicResource StepperHover}" settings:PreviewTag.Roles="StepperHover">
+                                        <TextBlock Text="+" FontWeight="Bold" Foreground="{DynamicResource StepperText}" settings:PreviewTag.Roles="StepperText"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                 </StackPanel>
@@ -498,8 +543,9 @@
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Checkbox"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                     <Border Width="16" Height="16" CornerRadius="3" BorderThickness="1.5"
-                                            BorderBrush="{DynamicResource CheckboxHoverBorder}" Background="{DynamicResource CheckboxBackground}"/>
-                                    <TextBlock Text="Sell" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            BorderBrush="{DynamicResource CheckboxHoverBorder}" Background="{DynamicResource CheckboxBackground}"
+                                            settings:PreviewTag.Roles="CheckboxBackground CheckboxHoverBorder"/>
+                                    <TextBlock Text="Sell" Margin="6,0,0,0" VerticalAlignment="Center" settings:PreviewTag.Roles="MainText"/>
                                 </StackPanel>
                             </StackPanel>
                         </Grid>
@@ -513,17 +559,18 @@
                         <TextBlock Style="{StaticResource TileHeading}" Text="Typing"/>
                         <TextBlock Style="{StaticResource SampleLabel}" Text="Text box with text selected"/>
                         <Border Background="{DynamicResource InputBackground}" BorderBrush="{DynamicResource InputFocusBorder}"
-                                BorderThickness="1" Padding="10,6">
+                                BorderThickness="1" Padding="10,6" settings:PreviewTag.Roles="InputBackground InputFocusBorder">
                             <StackPanel Orientation="Horizontal">
                                 <Grid>
-                                    <TextBlock Text="Memory" Foreground="{DynamicResource InputText}"/>
-                                    <Border Background="{DynamicResource TextSelection}" Opacity="0.4"/>
+                                    <TextBlock Text="Memory" Foreground="{DynamicResource InputText}" settings:PreviewTag.Roles="InputText"/>
+                                    <Border Background="{DynamicResource TextSelection}" Opacity="0.4" settings:PreviewTag.Roles="TextSelection"/>
                                 </Grid>
-                                <TextBlock Text=" Chip" Foreground="{DynamicResource InputText}"/>
+                                <TextBlock Text=" Chip" Foreground="{DynamicResource InputText}" settings:PreviewTag.Roles="InputText"/>
                             </StackPanel>
                         </Border>
                         <TextBlock Style="{StaticResource SampleLabel}" Margin="0,14,0,3" Text="Button you cannot use yet"/>
-                        <Button Content="Apply selected" IsEnabled="False" HorizontalAlignment="Left" Padding="12,7"/>
+                        <Button Content="Apply selected" IsEnabled="False" HorizontalAlignment="Left" Padding="12,7"
+                                settings:PreviewTag.Roles="ButtonDisabledBackground ButtonDisabledText"/>
                     </StackPanel>
                 </Border>
 
@@ -531,10 +578,13 @@
                 <Border Grid.Column="4" Style="{StaticResource Tile}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource TileHeading}" Text="Tooltip"/>
-                        <Button Content="HIP 50515" Style="{DynamicResource LinkButton}" HorizontalAlignment="Left" Margin="0,0,0,4"/>
+                        <Button Content="HIP 50515" Style="{DynamicResource LinkButton}" HorizontalAlignment="Left" Margin="0,0,0,4"
+                                settings:PreviewTag.Roles="LinkText"/>
                         <Border Background="{DynamicResource ToolTipBackground}" BorderBrush="{DynamicResource ToolTipBorder}"
-                                BorderThickness="1" Padding="6,4" HorizontalAlignment="Left" Margin="30,0,0,0">
-                            <TextBlock Text="Click to copy system name" FontSize="12" Foreground="{DynamicResource ToolTipText}"/>
+                                BorderThickness="1" Padding="6,4" HorizontalAlignment="Left" Margin="30,0,0,0"
+                                settings:PreviewTag.Roles="ToolTipBackground ToolTipBorder">
+                            <TextBlock Text="Click to copy system name" FontSize="12" Foreground="{DynamicResource ToolTipText}"
+                                       settings:PreviewTag.Roles="ToolTipText"/>
                         </Border>
                     </StackPanel>
                 </Border>
@@ -556,35 +606,39 @@
                         <TextBlock Style="{StaticResource TileHeading}" Text="Right-click menu"/>
                         <StackPanel Orientation="Horizontal">
                             <Grid Margin="0,0,30,0">
-                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}">
+                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}" settings:PreviewTag.Roles="MenuShadow">
                                     <Border.Effect>
                                         <BlurEffect Radius="6"/>
                                     </Border.Effect>
                                 </Border>
                                 <Border Width="156" Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource MenuBorder}"
-                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12">
+                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12"
+                                        settings:PreviewTag.Roles="MenuBackground MenuBorder">
                                     <Grid Margin="1,0">
-                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"/>
-                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"/>
-                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"
+                                                   settings:PreviewTag.Roles="MenuGutter MenuGutterLine MenuGutterLineHighlight"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"
+                                                   settings:PreviewTag.Roles="MenuGutterLine"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"
+                                                   settings:PreviewTag.Roles="MenuGutterLineHighlight"/>
                                         <StackPanel Margin="0,2">
                                             <Border Style="{StaticResource MenuLine}" Background="{DynamicResource MenuHighlight}"
-                                                    BorderBrush="{DynamicResource MenuHighlightBorder}">
+                                                    BorderBrush="{DynamicResource MenuHighlightBorder}" settings:PreviewTag.Roles="MenuHighlight MenuHighlightBorder">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut" settings:PreviewTag.Roles="MenuText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X" settings:PreviewTag.Roles="MenuText"/>
                                                 </Grid>
                                             </Border>
                                             <Border Style="{StaticResource MenuLine}">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy" settings:PreviewTag.Roles="MenuText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C" settings:PreviewTag.Roles="MenuText"/>
                                                 </Grid>
                                             </Border>
                                             <Border Style="{StaticResource MenuLine}" TextElement.Foreground="{DynamicResource MenuDisabledText}">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste" settings:PreviewTag.Roles="MenuDisabledText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V" settings:PreviewTag.Roles="MenuDisabledText"/>
                                                 </Grid>
                                             </Border>
                                         </StackPanel>
@@ -592,36 +646,41 @@
                                 </Border>
                             </Grid>
                             <Grid>
-                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}">
+                                <Border Margin="5,5,-5,-5" CornerRadius="2" Background="{DynamicResource MenuShadow}" settings:PreviewTag.Roles="MenuShadow">
                                     <Border.Effect>
                                         <BlurEffect Radius="6"/>
                                     </Border.Effect>
                                 </Border>
                                 <Border Width="156" Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource MenuBorder}"
-                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12">
+                                        BorderThickness="1" TextElement.Foreground="{DynamicResource MenuText}" TextElement.FontSize="12"
+                                        settings:PreviewTag.Roles="MenuBackground MenuBorder">
                                     <Grid Margin="1,0">
-                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"/>
-                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"/>
-                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutter}" HorizontalAlignment="Left" Width="28" Margin="1,2" RadiusX="2" RadiusY="2"
+                                                   settings:PreviewTag.Roles="MenuGutter MenuGutterLine MenuGutterLineHighlight"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLine}" HorizontalAlignment="Left" Width="1" Margin="29,2,0,2"
+                                                   settings:PreviewTag.Roles="MenuGutterLine"/>
+                                        <Rectangle Fill="{DynamicResource MenuGutterLineHighlight}" HorizontalAlignment="Left" Width="1" Margin="30,2,0,2"
+                                                   settings:PreviewTag.Roles="MenuGutterLineHighlight"/>
                                         <StackPanel Margin="0,2">
                                             <Border Style="{StaticResource MenuLine}" Background="{DynamicResource MenuDisabledHighlight}"
                                                     BorderBrush="{DynamicResource MenuDisabledHighlightBorder}"
-                                                    TextElement.Foreground="{DynamicResource MenuDisabledText}">
+                                                    TextElement.Foreground="{DynamicResource MenuDisabledText}"
+                                                    settings:PreviewTag.Roles="MenuDisabledHighlight MenuDisabledHighlightBorder">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Cut" settings:PreviewTag.Roles="MenuDisabledText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+X" settings:PreviewTag.Roles="MenuDisabledText"/>
                                                 </Grid>
                                             </Border>
                                             <Border Style="{StaticResource MenuLine}" TextElement.Foreground="{DynamicResource MenuDisabledText}">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Copy" settings:PreviewTag.Roles="MenuDisabledText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+C" settings:PreviewTag.Roles="MenuDisabledText"/>
                                                 </Grid>
                                             </Border>
                                             <Border Style="{StaticResource MenuLine}">
                                                 <Grid>
-                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste"/>
-                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V"/>
+                                                    <TextBlock Style="{StaticResource MenuHeader}" Text="Paste" settings:PreviewTag.Roles="MenuText"/>
+                                                    <TextBlock Style="{StaticResource MenuGesture}" Text="Ctrl+V" settings:PreviewTag.Roles="MenuText"/>
                                                 </Grid>
                                             </Border>
                                         </StackPanel>
@@ -638,37 +697,37 @@
                         <TextBlock Style="{StaticResource TileHeading}" Text="Resume prompt"/>
                         <Grid Height="150" ClipToBounds="True">
                             <StackPanel TextElement.Foreground="{DynamicResource GridText}">
-                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Chemical Inventory" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridRow">
+                                    <TextBlock Text="Chemical Inventory" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
-                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Electrical Fuse" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridAlternateRow">
+                                    <TextBlock Text="Electrical Fuse" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
-                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Epoxy Adhesive" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridRow">
+                                    <TextBlock Text="Epoxy Adhesive" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
-                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Micro Transformer" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridAlternateRow">
+                                    <TextBlock Text="Micro Transformer" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
-                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Titanium Plating" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridRow">
+                                    <TextBlock Text="Titanium Plating" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
-                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0">
-                                    <TextBlock Text="Weapon Schematic" VerticalAlignment="Center"/>
+                                <Border Background="{DynamicResource GridAlternateRow}" Height="25" Padding="8,0" settings:PreviewTag.Roles="GridAlternateRow">
+                                    <TextBlock Text="Weapon Schematic" VerticalAlignment="Center" settings:PreviewTag.Roles="GridText"/>
                                 </Border>
                             </StackPanel>
-                            <Border Background="{DynamicResource OverlayDim}"/>
+                            <Border Background="{DynamicResource OverlayDim}" settings:PreviewTag.Roles="OverlayDim"/>
                             <Border Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
                                     BorderThickness="1" CornerRadius="8" Padding="14,10" Width="250"
-                                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" settings:PreviewTag.Roles="DialogBackground DialogBorder">
                                 <StackPanel>
                                     <TextBlock Text="Unfinished search" FontWeight="SemiBold" FontSize="14"
-                                               Foreground="{DynamicResource DialogTitle}" Margin="0,0,0,4"/>
-                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12"
+                                               Foreground="{DynamicResource DialogTitle}" Margin="0,0,0,4" settings:PreviewTag.Roles="DialogTitle"/>
+                                    <TextBlock TextWrapping="Wrap" Margin="0,0,0,8" FontSize="12" settings:PreviewTag.Roles="MainText"
                                                Text="You didn't complete your last search. Continue it or start a new one?"/>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <Button Content="Continue" Padding="12,4" Margin="0,0,8,0"/>
-                                        <Button Content="Start New" Padding="12,4"
+                                        <Button Content="Continue" Padding="12,4" Margin="0,0,8,0" settings:PreviewTag.Roles="ButtonBackground ButtonText"/>
+                                        <Button Content="Start New" Padding="12,4" settings:PreviewTag.Roles="SecondaryButtonBackground SecondaryButtonText"
                                                 Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -681,24 +740,24 @@
                 <Border Grid.Column="4" Style="{StaticResource Tile}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource TileHeading}" Text="Other tabs"/>
-                        <TextBlock Foreground="{DynamicResource SummaryText}" TextWrapping="Wrap"
+                        <TextBlock Foreground="{DynamicResource SummaryText}" TextWrapping="Wrap" settings:PreviewTag.Roles="SummaryText"
                                    Text="3 mod(s) selected, buy 15 component units from carriers."/>
-                        <Border Height="1" Background="{DynamicResource Divider}" Margin="0,8"/>
+                        <Border Height="1" Background="{DynamicResource Divider}" Margin="0,8" settings:PreviewTag.Roles="Divider"/>
                         <StackPanel Orientation="Horizontal">
                             <Border Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}"
-                                    BorderThickness="1" CornerRadius="6" Padding="10,6">
+                                    BorderThickness="1" CornerRadius="6" Padding="10,6" settings:PreviewTag.Roles="TotalsBoxBackground TotalsBoxBorder">
                                 <StackPanel>
-                                    <TextBlock Foreground="{DynamicResource MutedText}" FontSize="11" Text="YOU COULD ACQUIRE"/>
-                                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BarterResult}" Text="3 unit(s)"/>
+                                    <TextBlock Foreground="{DynamicResource MutedText}" FontSize="11" Text="YOU COULD ACQUIRE" settings:PreviewTag.Roles="MutedText"/>
+                                    <TextBlock FontSize="20" FontWeight="Bold" Foreground="{DynamicResource BarterResult}" Text="3 unit(s)" settings:PreviewTag.Roles="BarterResult"/>
                                 </StackPanel>
                             </Border>
                             <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Style="{StaticResource SampleLabel}" Text="Barter points"/>
-                                <TextBlock FontWeight="Bold" Foreground="{DynamicResource BarterPoints}" Text="40"/>
+                                <TextBlock FontWeight="Bold" Foreground="{DynamicResource BarterPoints}" Text="40" settings:PreviewTag.Roles="BarterPoints"/>
                             </StackPanel>
                         </StackPanel>
                         <TextBlock Style="{StaticResource SampleLabel}" Margin="0,10,0,2" Text="Import item not recognised"/>
-                        <TextBlock FontWeight="Bold" Foreground="{DynamicResource UnmatchedText}" Text="Unobtainium Widget"/>
+                        <TextBlock FontWeight="Bold" Foreground="{DynamicResource UnmatchedText}" Text="Unobtainium Widget" settings:PreviewTag.Roles="UnmatchedText"/>
                     </StackPanel>
                 </Border>
             </Grid>

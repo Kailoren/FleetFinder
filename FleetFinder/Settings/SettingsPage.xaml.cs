@@ -1,8 +1,11 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using FleetView.Controls;
+using FleetView.Services;
 using FleetView.Theming;
 
 namespace FleetView.Settings;
@@ -10,20 +13,32 @@ namespace FleetView.Settings;
 /// <summary>
 /// The Settings page: the colour list, the live preview, and Save, Revert and Reset to defaults.
 /// All the decisions about colours are in <see cref="ThemeDraft"/>; this class wires it to the
-/// list, the preview and the picker.
+/// list, the preview and the picker. Copy and paste over the list (<see cref="HoverClipboard"/>)
+/// and click to find in the preview (<see cref="RoleFinder"/>, <see cref="PreviewTag"/>) keep
+/// their rules in those classes too.
 /// </summary>
 public partial class SettingsPage : UserControl
 {
+    /// <summary>Room to leave above and below rows the list scrolls to, so they do not end up
+    /// jammed against its edge.</summary>
+    private const double ComfortMargin = 60;
+
     private readonly Dictionary<string, ColourRow> _rows;
+    private readonly HoverClipboard _hoverClipboard;
     private ColourRow? _editing;
     private Button? _editingBox;
     private bool _saveFailed;
+    private ColourRow? _hovered;
+    private Window? _host;
+    private List<RoleRegion>? _regions;
+    private int _noteCount;
 
     public SettingsPage()
     {
         InitializeComponent();
 
         Draft = ThemeDraft.ForApp();
+        _hoverClipboard = new HoverClipboard(Draft, SystemClipboardText.Instance);
         Groups = ThemeRoles.Groups
             .Select(g => new ColourGroup(g, ThemeRoles.All.Where(r => r.Group == g)
                 .Select(r => new ColourRow(r, Draft[r.Key])).ToList()))
@@ -39,9 +54,26 @@ public partial class SettingsPage : UserControl
         // picked, as a click anywhere else would.
         IsVisibleChanged += (_, e) =>
         {
-            if (!(bool)e.NewValue) ClosePicker(keep: true);
+            if ((bool)e.NewValue) return;
+            ClosePicker(keep: true);
+            _hovered = null;
+            OutlineInPreview(null);
         };
         SizeChanged += (_, _) => PlacePicker();
+        // Ctrl+C and Ctrl+V over the list are caught at the window, because the keyboard is
+        // usually somewhere else (the cog that opened Settings, a colour box), and only while
+        // this page is in the window: the tab control takes it out when another tab is chosen.
+        Loaded += (_, _) =>
+        {
+            if (_host != null) _host.PreviewKeyDown -= Host_PreviewKeyDown;
+            _host = Window.GetWindow(this);
+            if (_host != null) _host.PreviewKeyDown += Host_PreviewKeyDown;
+        };
+        Unloaded += (_, _) =>
+        {
+            if (_host != null) _host.PreviewKeyDown -= Host_PreviewKeyDown;
+            _host = null;
+        };
         UpdateFoot();
     }
 
@@ -55,6 +87,23 @@ public partial class SettingsPage : UserControl
     public ThemePreview PreviewControl => Preview;
     public ColourPicker PickerControl => Picker;
     public bool IsPickerOpen => PickerLayer.Visibility == Visibility.Visible;
+
+    /// <summary>Something is open over the page, so the keys over the list are left alone. Only
+    /// the picker so far; anything else that opens over the page belongs here too.</summary>
+    public bool IsOverlayOpen => IsPickerOpen;
+
+    /// <summary>The clipboard hover copy and paste use: the real one, unless a test hands in its own.</summary>
+    public IClipboardText ClipboardText
+    {
+        get => _hoverClipboard.Clipboard;
+        set => _hoverClipboard.Clipboard = value;
+    }
+
+    /// <summary>The row under the mouse, or null.</summary>
+    public ColourRow? HoveredRow => _hovered;
+
+    /// <summary>The note a hover copy or paste left, while it shows, or null.</summary>
+    public string? NoteShowing => CopyNote.Visibility == Visibility.Visible ? CopyNoteText.Text : null;
 
     private void OnDraftColourChanged(string? key)
     {
@@ -108,6 +157,7 @@ public partial class SettingsPage : UserControl
     private void OpenPicker(ColourRow row, Button box)
     {
         ClosePicker(keep: true);
+        ClearFound();
         Draft.BeginEdit(row.Key);
         _editing = row;
         _editingBox = box;
@@ -210,5 +260,193 @@ public partial class SettingsPage : UserControl
 
         Canvas.SetLeft(PickerCard, inner.Right - width);
         Canvas.SetTop(PickerCard, top);
+    }
+
+    // ---- copy and paste over the list (C7) ------------------------------------------------------
+
+    private void Row_MouseEnter(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ColourRow row }) _hovered = row;
+    }
+
+    private void Row_MouseLeave(object sender, MouseEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ColourRow row } && ReferenceEquals(row, _hovered)) _hovered = null;
+    }
+
+    /// <summary>The mouse is now over this role's row (null: over no row). What the rows' own
+    /// mouse handlers do; the screenshot harness calls it, having no real mouse to move.</summary>
+    public void HoverRow(string? key) => _hovered = key is null ? null : _rows[key];
+
+    private void Host_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (HandleHoverKey(e.Key, Keyboard.Modifiers, Keyboard.FocusedElement))
+            e.Handled = true;
+    }
+
+    /// <summary>
+    /// A key pressed anywhere in the window. Ctrl+C or Ctrl+V with the mouse over a row copies or
+    /// pastes that row's colour and returns true; anything else returns false and is left for
+    /// the window as before. <see cref="HoverClipboard.ActionFor"/> has the rules.
+    /// </summary>
+    public bool HandleHoverKey(Key key, ModifierKeys modifiers, object? focused)
+    {
+        var action = HoverClipboard.ActionFor(key, modifiers, settingsShowing: IsVisible, rowUnderMouse: _hovered != null,
+            overlayOpen: IsOverlayOpen, typingInTextBox: focused is TextBoxBase or PasswordBox);
+        return CopyOrPaste(action);
+    }
+
+    /// <summary>Copies or pastes on the row under the mouse and shows the note, without the
+    /// checks <see cref="HandleHoverKey"/> makes first. The self-test calls it directly, since the
+    /// page it builds is never on screen.</summary>
+    public bool CopyOrPaste(HoverAction action)
+    {
+        if (action == HoverAction.None || _hovered is not { } row) return false;
+        ShowNote(row, action == HoverAction.Copy ? _hoverClipboard.Copy(row.Key) : _hoverClipboard.Paste(row.Key));
+        return true;
+    }
+
+    /// <summary>
+    /// The note beside the row's colour box, just left of it and over the end of the label, for
+    /// a second at full strength and then fading out over half a second.
+    /// </summary>
+    private void ShowNote(ColourRow row, string text)
+    {
+        int note = ++_noteCount;
+        CopyNoteText.Text = text;
+        CopyNote.BeginAnimation(OpacityProperty, null);
+        CopyNote.Opacity = 1;
+        CopyNote.Visibility = Visibility.Visible;
+
+        if (ColourBoxOf(row) is { } box)
+        {
+            CopyNote.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var boxRect = box.TransformToAncestor(this).TransformBounds(new Rect(box.RenderSize));
+            var list = ListPanel.TransformToAncestor(this).TransformBounds(new Rect(ListPanel.RenderSize));
+            double left = Math.Max(list.Left + ListPanel.Padding.Left, boxRect.Left - 8 - CopyNote.DesiredSize.Width);
+            Canvas.SetLeft(CopyNote, Math.Round(left));
+            Canvas.SetTop(CopyNote, Math.Round(boxRect.Top + (boxRect.Height - CopyNote.DesiredSize.Height) / 2));
+        }
+
+        var fade = new DoubleAnimationUsingKeyFrames();
+        fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+        fade.KeyFrames.Add(new DiscreteDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(1.0))));
+        fade.KeyFrames.Add(new LinearDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromSeconds(1.5))));
+        fade.Completed += (_, _) =>
+        {
+            // A newer note may have taken over in the meantime; only the latest one hides it.
+            if (note != _noteCount) return;
+            CopyNote.BeginAnimation(OpacityProperty, null);
+            CopyNote.Visibility = Visibility.Collapsed;
+        };
+        CopyNote.BeginAnimation(OpacityProperty, fade);
+    }
+
+    /// <summary>The element that holds a row in the list: the whole row, gaps included.</summary>
+    private FrameworkElement? RowElementOf(ColourRow row) =>
+        Descendants<Border>(ColourList).FirstOrDefault(b => b.Name == "RowHit" && ReferenceEquals(b.DataContext, row));
+
+    private Button? ColourBoxOf(ColourRow row) =>
+        RowElementOf(row) is { } element ? Descendants<Button>(element).FirstOrDefault() : null;
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T t) yield return t;
+            foreach (var deeper in Descendants<T>(child)) yield return deeper;
+        }
+    }
+
+    // ---- click to find (C9) ---------------------------------------------------------------------
+
+    /// <summary>Every tagged element of the preview, worked out afresh. For the self-test, and for
+    /// the outline, which keeps the last lot while the mouse moves.</summary>
+    public IReadOnlyList<RoleRegion> PreviewRegions() => _regions = PreviewTag.Regions(Preview);
+
+    /// <summary>
+    /// A click at this point of the preview (in its own coordinates): lights up the rows of every
+    /// colour the element under it is drawn with, and scrolls the list to them. Returns those roles,
+    /// none when the point is off the preview, which also clears the last lot.
+    /// </summary>
+    public IReadOnlyList<string> FindInPreview(Point pointInPreview)
+    {
+        var roles = RoleFinder.At(PreviewRegions(), pointInPreview)?.Roles ?? [];
+        foreach (var row in _rows.Values) row.IsFound = roles.Contains(row.Key);
+        ScrollToFound();
+        return roles;
+    }
+
+    private void ClearFound()
+    {
+        foreach (var row in _rows.Values) row.IsFound = false;
+    }
+
+    /// <summary>Scrolls the list so the found rows show, comfortably clear of its edges.</summary>
+    private void ScrollToFound()
+    {
+        var found = Groups.SelectMany(g => g.Rows).Where(r => r.IsFound).ToList();
+        if (found.Count == 0) return;
+        UpdateLayout();
+        if (RowElementOf(found[0]) is not { } first || RowElementOf(found[^1]) is not { } last) return;
+        double top = first.TransformToAncestor(ColourList).Transform(new Point(0, 0)).Y;
+        double bottom = last.TransformToAncestor(ColourList).Transform(new Point(0, last.ActualHeight)).Y;
+        double target = RoleFinder.ScrollTarget(ListScroll.VerticalOffset, ListScroll.ViewportHeight, ListScroll.ExtentHeight,
+            top, bottom, ComfortMargin);
+        if (Math.Abs(target - ListScroll.VerticalOffset) >= 0.5)
+        {
+            ListScroll.ScrollToVerticalOffset(target);
+            UpdateLayout();
+        }
+    }
+
+    /// <summary>
+    /// Outlines what a click at this point of the preview would pick, or hides the outline (null,
+    /// or a point on nothing). Returns what it outlined.
+    /// </summary>
+    public RoleRegion? OutlineInPreview(Point? pointInPreview)
+    {
+        var hit = pointInPreview is { } p ? RoleFinder.At(_regions ??= PreviewTag.Regions(Preview), p) : null;
+        if (hit == null)
+        {
+            HoverOutline.Visibility = HoverOutlineBack.Visibility = Visibility.Collapsed;
+            return null;
+        }
+
+        // Two pixels clear of the element all round, on whole pixels so the dashes stay crisp.
+        var r = Preview.TransformToVisual(OutlineLayer).TransformBounds(hit.Bounds);
+        double left = Math.Floor(r.Left) - 2, top = Math.Floor(r.Top) - 2;
+        double width = Math.Ceiling(r.Right) + 2 - left, height = Math.Ceiling(r.Bottom) + 2 - top;
+        foreach (var outline in new[] { HoverOutlineBack, HoverOutline })
+        {
+            Canvas.SetLeft(outline, left);
+            Canvas.SetTop(outline, top);
+            outline.Width = width;
+            outline.Height = height;
+            outline.Visibility = Visibility.Visible;
+        }
+        return hit;
+    }
+
+    private void PreviewArea_MouseMove(object sender, MouseEventArgs e) => OutlineInPreview(e.GetPosition(Preview));
+
+    private void PreviewArea_MouseLeave(object sender, MouseEventArgs e)
+    {
+        OutlineInPreview(null);
+        // Worked out again next time the mouse comes back, in case anything moved meanwhile.
+        _regions = null;
+    }
+
+    private void PreviewArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        FindInPreview(e.GetPosition(Preview));
+        e.Handled = true;
+    }
+
+    private void PreviewArea_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        _regions = null;
+        OutlineInPreview(null);
     }
 }
