@@ -223,6 +223,35 @@ public sealed partial class ThemeLibrary
         return theme;
     }
 
+    /// <summary>
+    /// Saves new colours, name and commander over an existing theme, keeping its id and its saved
+    /// date, so its card stays where it was. The old snapshot is replaced by
+    /// <paramref name="snapshotPng"/>, or removed when that is null, because it would show the old
+    /// colours. Returns the theme as stored, or null if there is no such theme, the name is empty
+    /// once cleaned, or the file could not be written.
+    /// </summary>
+    public SavedTheme? Replace(string id, string name, string commander, IReadOnlyDictionary<string, Color> colours,
+        byte[]? snapshotPng)
+    {
+        var cleanName = ThemeText.CleanName(name);
+        if (cleanName.Length == 0 || Load(id) is not { } old) return null;
+
+        var theme = old with { Name = cleanName, Commander = ThemeText.CleanCommander(commander), Colours = Complete(colours) };
+        if (!Write(theme)) return null;
+        if (snapshotPng == null || !SaveSnapshot(id, snapshotPng))
+        {
+            try
+            {
+                File.Delete(Path.Combine(Folder, id + ".png"));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                DiagnosticLog.Note($"Old snapshot for saved theme {id} could not be removed ({ex.GetType().Name}).");
+            }
+        }
+        return theme;
+    }
+
     /// <summary>Gives a saved theme a new name. False if there is no such theme, the name is empty
     /// once cleaned, or the file could not be written.</summary>
     public bool Rename(string id, string newName)

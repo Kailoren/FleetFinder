@@ -162,32 +162,133 @@
                 </DockPanel>
             </Border>
 
-            <!-- RIGHT: the preview, scaled to fit and never past its own size. Clicking something in
-                 it lights up that thing's rows in the list, and whatever a click would pick is
-                 outlined while the mouse is over it. The preview itself never takes the mouse (its
-                 buttons and grids would react), so the area round it does, and the outline sits on
-                 a layer of its own over it, in the app's colours rather than the draft's. -->
-            <Border x:Name="PreviewPanel" Grid.Column="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
-                    BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
-                <DockPanel>
-                    <TextBlock DockPanel.Dock="Top" Text="Preview" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
-                    <Grid x:Name="PreviewArea" Background="Transparent" Cursor="Hand"
-                          MouseMove="PreviewArea_MouseMove" MouseLeave="PreviewArea_MouseLeave"
-                          MouseLeftButtonDown="PreviewArea_MouseLeftButtonDown" SizeChanged="PreviewArea_SizeChanged">
-                        <Viewbox x:Name="PreviewBox" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top">
-                            <settings:ThemePreview x:Name="Preview"/>
-                        </Viewbox>
-                        <!-- Marching ants: a light dash over a dark line, so it shows on any colour
-                             the preview has, and stays thin enough not to get in the way. -->
-                        <Canvas x:Name="OutlineLayer" IsHitTestVisible="False">
-                            <Rectangle x:Name="HoverOutlineBack" Visibility="Collapsed" StrokeThickness="1"
-                                       Stroke="{DynamicResource WindowBackground}" SnapsToDevicePixels="True"/>
-                            <Rectangle x:Name="HoverOutline" Visibility="Collapsed" StrokeThickness="1" StrokeDashArray="3 3"
-                                       Stroke="{DynamicResource MainText}" SnapsToDevicePixels="True"/>
-                        </Canvas>
-                    </Grid>
-                </DockPanel>
-            </Border>
+            <!-- RIGHT: the preview, and the saved themes under it. -->
+            <Grid x:Name="RightColumn" Grid.Column="2" SizeChanged="RightColumn_SizeChanged">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- The preview, scaled to fit and never past its own size: the themes strip takes
+                     its height first, and the preview shrinks into what is left. Clicking something
+                     in it lights up that thing's rows in the list, and whatever a click would pick
+                     is outlined while the mouse is over it. The preview itself never takes the mouse
+                     (its buttons and grids would react), so the area round it does, and the outline
+                     sits on a layer of its own over it, in the app's colours rather than the draft's. -->
+                <Border x:Name="PreviewPanel" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Top" Text="Preview" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,8"/>
+                        <Grid x:Name="PreviewArea" Background="Transparent" Cursor="Hand"
+                              MouseMove="PreviewArea_MouseMove" MouseLeave="PreviewArea_MouseLeave"
+                              MouseLeftButtonDown="PreviewArea_MouseLeftButtonDown" SizeChanged="PreviewArea_SizeChanged">
+                            <Viewbox x:Name="PreviewBox" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Top"
+                                     TextOptions.TextHintingMode="Fixed">
+                                <settings:ThemePreview x:Name="Preview"/>
+                            </Viewbox>
+                            <!-- Marching ants: a light dash over a dark line, so it shows on any colour
+                                 the preview has, and stays thin enough not to get in the way. -->
+                            <Canvas x:Name="OutlineLayer" IsHitTestVisible="False">
+                                <Rectangle x:Name="HoverOutlineBack" Visibility="Collapsed" StrokeThickness="1"
+                                           Stroke="{DynamicResource WindowBackground}" SnapsToDevicePixels="True"/>
+                                <Rectangle x:Name="HoverOutline" Visibility="Collapsed" StrokeThickness="1" StrokeDashArray="3 3"
+                                           Stroke="{DynamicResource MainText}" SnapsToDevicePixels="True"/>
+                            </Canvas>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <!-- The saved themes (C8): a row of small cards that scrolls sideways, each one a
+                     picture of the preview in that theme, its name, who made it and Apply. The
+                     card's right-click menu has Copy share code and Delete. On a short window the
+                     whole strip is scaled down (ThemesScale) so the preview keeps some room. -->
+                <Border x:Name="ThemesPanel" Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                    <Border.LayoutTransform>
+                        <ScaleTransform x:Name="ThemesScale"/>
+                    </Border.LayoutTransform>
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                            <TextBlock Text="Themes" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="SaveThemeButton" Content="Save as theme" Click="SaveTheme_Click" Padding="12,5"
+                                        Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                <Button x:Name="ImportCodeButton" Content="Import code" Click="ImportCode_Click" Padding="12,5" Margin="8,0,0,0"
+                                        Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- One card's height, plus room for the scrollbar, whether or not there
+                             are any cards, so saving the first theme does not shift the preview. -->
+                        <Grid Height="{x:Static settings:SettingsPage.CardRowHeight}">
+                            <TextBlock x:Name="ThemesEmpty" Foreground="{DynamicResource MutedText}" FontWeight="Normal" FontSize="13"
+                                       TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center"
+                                       Text="No saved themes yet. Save your colours as a theme, or import a code someone shared."/>
+                            <ScrollViewer x:Name="CardScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
+                                          Focusable="False" PreviewMouseWheel="CardScroll_PreviewMouseWheel">
+                                <ItemsControl x:Name="CardList" Focusable="False" VerticalAlignment="Top">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type settings:ThemeCard}">
+                                            <!-- Window background with a divider line round it: a dark tile
+                                                 set into the panel, like the barter totals box. The tooltip
+                                                 has the whole credit, for a name too long for the card. -->
+                                            <Border x:Name="CardBorder" Width="178" Margin="0,0,10,0" Padding="8" CornerRadius="6" BorderThickness="1"
+                                                    Background="{DynamicResource WindowBackground}" BorderBrush="{DynamicResource Divider}"
+                                                    ToolTip="{Binding Credit}" AutomationProperties.Name="{Binding Credit}">
+                                                <Border.ContextMenu>
+                                                    <ContextMenu Opened="CardMenu_Opened" Closed="CardMenu_Closed">
+                                                        <MenuItem Header="Copy share code" Click="CardCopyCode_Click"/>
+                                                        <MenuItem Header="Delete" Click="CardDelete_Click"/>
+                                                    </ContextMenu>
+                                                </Border.ContextMenu>
+                                                <StackPanel>
+                                                    <Image Source="{Binding Snapshot}" Width="{x:Static settings:ThemeSnapshot.CardWidth}"
+                                                           Height="{x:Static settings:ThemeSnapshot.CardHeight}" Stretch="Uniform"
+                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                    <Grid Margin="0,8,0,0">
+                                                        <StackPanel x:Name="CardFace">
+                                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MainText}" FontWeight="SemiBold"
+                                                                       FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                                            <!-- An empty line still takes its height, so every card is the
+                                                                 same height whether or not anyone is credited. -->
+                                                            <TextBlock Text="{Binding Author}" Foreground="{DynamicResource MutedText}" FontWeight="Normal"
+                                                                       FontSize="12" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                                            <Button Content="Apply" Click="CardApply_Click" Padding="12,5" Margin="0,8,0,0"
+                                                                    HorizontalAlignment="Left" MinWidth="70"/>
+                                                        </StackPanel>
+                                                        <!-- Delete asks here, on the card, in the face's place. -->
+                                                        <StackPanel x:Name="CardConfirm" Visibility="Collapsed">
+                                                            <TextBlock Text="Delete this theme?" Foreground="{DynamicResource MainText}" FontWeight="SemiBold"
+                                                                       FontSize="13"/>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,25,0,0">
+                                                                <Button x:Name="CardConfirmDeleteButton" Content="Delete" Click="CardConfirmDelete_Click" Padding="12,5"/>
+                                                                <Button x:Name="CardKeepButton" Content="Keep" Click="CardKeep_Click" Padding="12,5" Margin="6,0,0,0"
+                                                                        Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsConfirmingDelete}" Value="True">
+                                                    <Setter TargetName="CardFace" Property="Visibility" Value="Hidden"/>
+                                                    <Setter TargetName="CardConfirm" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </Grid>
         </Grid>
 
         <!-- The note a hover copy or paste leaves beside the row ("Copied #FF7500"), for a moment.
@@ -221,5 +322,80 @@
                 </StackPanel>
             </Border>
         </Canvas>
+
+        <!-- The theme dialogs (Save as theme, Import code), in the window like the picker, over a
+             dimmed page as the resume prompt is. The dimming takes every click, so nothing behind
+             can be reached while one is open, and Tab goes round the dialog rather than out of it.
+             Enter is Save or Add, Escape is Cancel (Page_KeyDown). -->
+        <Grid x:Name="DialogLayer" Background="{DynamicResource OverlayDim}" Visibility="Collapsed">
+            <Grid.LayoutTransform>
+                <ScaleTransform x:Name="DialogScale"/>
+            </Grid.LayoutTransform>
+
+            <Border x:Name="SaveThemeCard" Width="420" CornerRadius="8" Padding="24" BorderThickness="1"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" KeyboardNavigation.TabNavigation="Cycle"
+                    Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
+                    TextElement.Foreground="{DynamicResource MainText}" TextElement.FontSize="13" TextElement.FontWeight="Normal">
+                <StackPanel>
+                    <TextBlock Text="Save as theme" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource DialogTitle}"/>
+                    <TextBlock Margin="0,4,0,14" Foreground="{DynamicResource MutedText}" TextWrapping="Wrap"
+                               Text="Saves the colours the preview shows, with a picture of it."/>
+                    <TextBlock Text="Name" Margin="0,0,0,4"/>
+                    <TextBox x:Name="ThemeNameBox" Padding="8,6" BorderThickness="1" TextChanged="ThemeNameBox_TextChanged"
+                             Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
+                             AutomationProperties.Name="Theme name"/>
+                    <TextBlock Text="CMDR" Margin="0,12,0,4"/>
+                    <TextBox x:Name="ThemeCommanderBox" Padding="8,6" BorderThickness="1" TextChanged="ThemeCommanderBox_TextChanged"
+                             Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
+                             AutomationProperties.Name="Commander name"/>
+                    <TextBlock Margin="0,4,0,0" Foreground="{DynamicResource MutedText}" FontSize="12" TextWrapping="Wrap"
+                               Text="The credit people see when they import it. Leave it empty for none."/>
+                    <TextBlock x:Name="SaveThemeMessage" Margin="0,12,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                        <Button x:Name="SaveThemeOkButton" Content="Save" MinWidth="76" Click="SaveThemeOk_Click"/>
+                        <Button x:Name="SaveThemeCancelButton" Content="Cancel" MinWidth="76" Margin="8,0,0,0" Click="DialogCancel_Click"
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- The code box takes Enter for Add rather than a new line (ImportCodeBox_PreviewKeyDown),
+                 but accepts line breaks in what is pasted, so a whole Discord message can go in. -->
+            <Border x:Name="ImportCard" Width="460" CornerRadius="8" Padding="24" BorderThickness="1"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" KeyboardNavigation.TabNavigation="Cycle"
+                    Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
+                    TextElement.Foreground="{DynamicResource MainText}" TextElement.FontSize="13" TextElement.FontWeight="Normal">
+                <StackPanel>
+                    <TextBlock Text="Import code" FontWeight="SemiBold" FontSize="16" Foreground="{DynamicResource DialogTitle}"/>
+                    <TextBlock Margin="0,4,0,14" Foreground="{DynamicResource MutedText}" TextWrapping="Wrap"
+                               Text="Paste a theme code someone shared. You can see the theme here before adding it."/>
+                    <TextBox x:Name="ImportCodeBox" MinHeight="58" MaxHeight="130" Padding="8,6" BorderThickness="1" TextWrapping="Wrap" AcceptsReturn="True"
+                             FontFamily="Consolas" FontSize="12" TextChanged="ImportCodeBox_TextChanged" PreviewKeyDown="ImportCodeBox_PreviewKeyDown"
+                             Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
+                             AutomationProperties.Name="Theme code"/>
+                    <TextBlock x:Name="ImportMessage" Margin="0,12,0,0" TextWrapping="Wrap"/>
+                    <StackPanel x:Name="ImportFound" Margin="0,14,0,0" HorizontalAlignment="Center" Visibility="Collapsed">
+                        <Border BorderThickness="1" BorderBrush="{DynamicResource Divider}" HorizontalAlignment="Center">
+                            <Image x:Name="ImportImage" Width="{x:Static settings:ThemeSnapshot.CardWidth}"
+                                   Height="{x:Static settings:ThemeSnapshot.CardHeight}" Stretch="Uniform"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                        </Border>
+                        <TextBlock x:Name="ImportCredit" Margin="0,8,0,0" FontWeight="SemiBold" TextAlignment="Center"
+                                   TextWrapping="Wrap" MaxWidth="400"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+                        <Button x:Name="ImportAddButton" Content="Add to my themes" MinWidth="76" Click="ImportAdd_Click"/>
+                        <Button x:Name="ImportCancelButton" Content="Cancel" MinWidth="76" Margin="8,0,0,0" Click="DialogCancel_Click"
+                                Background="{DynamicResource SecondaryButtonBackground}" Foreground="{DynamicResource SecondaryButtonText}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Where a theme's picture is drawn when there is no preview showing it: a second preview,
+             made when first needed, laid out at full size inside a box of no size, so it never
+             shows. It sits in the page so the window's styles reach it, as they reach the real one. -->
+        <Canvas x:Name="SnapshotHost" Width="0" Height="0" ClipToBounds="True" IsHitTestVisible="False"
+                HorizontalAlignment="Left" VerticalAlignment="Top" Focusable="False"/>
     </Grid>
 </UserControl>

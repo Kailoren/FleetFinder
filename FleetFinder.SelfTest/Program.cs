@@ -22,8 +22,9 @@ using FleetView.Theming;
 // reset, the picker's edits), and the Settings page and its preview. Then the shipped defaults,
 // and the logic behind saved and shared themes (ThemeTests.cs): names cleaned for display, the
 // share code both ways and every way a paste can be wrong, the theme library on disk, and the
-// commander name read from the journal. Prints one PASS or FAIL line per check and a final
-// SUMMARY line; exit code 1 if anything failed.
+// commander name read from the journal. Then hover copy and paste and click to find (FindTests.cs),
+// and the saved themes on the page: cards, Save as theme, Import code (ShelfTests.cs). Prints one
+// PASS or FAIL line per check and a final SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
 // object tree to check the Settings page in it, but never shows it, so nothing appears on screen.
@@ -74,6 +75,12 @@ internal sealed partial class SelfTest
             Section("click to find", RoleFinderTests);
             Section("preview tags in the XAML", PreviewTagXamlTests);
             Section("Settings find and copy", SettingsFindAndCopyTests);
+            Section("theme draft takes a whole theme", DraftUseThemeTests);
+            Section("theme library saves over a theme", LibraryReplaceTests);
+            Section("theme cards", ShelfTests);
+            Section("save as theme", SaveThemeFormTests);
+            Section("import a theme code", ImportTests);
+            Section("Settings themes", SettingsThemesTests);
         }
         finally
         {

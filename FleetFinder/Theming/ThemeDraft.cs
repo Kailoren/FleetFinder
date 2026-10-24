@@ -99,6 +99,26 @@ public sealed class ThemeDraft : INotifyPropertyChanged
     }
 
     /// <summary>
+    /// The draft becomes a whole theme at once: a saved theme's Apply. Like Reset to defaults,
+    /// only the draft changes, so the preview shows it, Save keeps it and Revert goes back. Roles
+    /// the theme leaves out get their default, and roles without alpha are made opaque, as
+    /// <see cref="Set"/> would.
+    /// </summary>
+    public void UseTheme(IReadOnlyDictionary<string, Color> colours)
+    {
+        EndEdit();
+        var theme = Complete(colours);
+        foreach (var role in ThemeRoles.All)
+        {
+            if (role.HasAlpha) continue;
+            var c = theme[role.Key];
+            c.A = 255;
+            theme[role.Key] = c;
+        }
+        Replace(theme);
+    }
+
+    /// <summary>
     /// Puts the draft on the app and writes it to theme.json. Returns false if the file could not
     /// be written; the colours are on the app all the same (they stay until it closes), so they
     /// count as saved, and the reason is in the log.

@@ -21,7 +21,11 @@ public partial class MainWindow : Window
         DataContextChanged += (_, e) =>
         {
             if (e.NewValue is MainViewModel vm)
+            {
                 vm.ScrollToRowRequested += OnScrollToRowRequested;
+                // Save as theme credits the commander the journal last saw log in.
+                SettingsView.CommanderLookup = vm.GetLatestCommander;
+            }
         };
         Closing += (_, _) =>
         {

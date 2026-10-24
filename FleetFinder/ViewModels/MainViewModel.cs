@@ -435,6 +435,10 @@ public sealed class MainViewModel : ObservableObject
         private set => SetProperty(ref _currentSystemLabel, value);
     }
 
+    /// <summary>The commander of the last login in the journal, or empty: the credit Save as theme
+    /// starts with. Reads journal files, so call it off the UI thread.</summary>
+    public string GetLatestCommander() => _journal.GetLatestCommander();
+
     /// <summary>
     /// Sets each listing's Distance to the light-year distance from the commander's current
     /// system (read from the journal), resolving system coordinates via the coordinate source.
