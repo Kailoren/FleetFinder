@@ -71,6 +71,10 @@ public sealed class ThemeCard : ObservableObject
     }
 }
 
+/// <summary>One group of built-in cards on the strip, after a line and its label (empty for a
+/// group marked by the line alone).</summary>
+public sealed record BuiltInSection(string Label, IReadOnlyList<ThemeCard> Cards);
+
 /// <summary>
 /// The themes on the colour changer page (C8, D4): the user's saved ones and the built-in ones as
 /// cards, and what Apply, Copy share code, Delete, Save as theme and an import do to them. No WPF
@@ -116,9 +120,18 @@ public sealed partial class ThemeShelf
         Library = library;
         _draft = draft;
         Clipboard = clipboard;
+        var sections = new List<BuiltInSection>();
         foreach (var theme in BuiltInThemes.All)
-            BuiltIns.Add(new ThemeCard(new SavedTheme(BuiltInIdPrefix + theme.Id, theme.Name, "", DateTime.MinValue, theme.Colours),
-                isBuiltIn: true));
+        {
+            var card = new ThemeCard(new SavedTheme(BuiltInIdPrefix + theme.Id, theme.Name, "", DateTime.MinValue, theme.Colours),
+                isBuiltIn: true);
+            BuiltIns.Add(card);
+            // A theme whose section differs from the one before starts a new group.
+            if (sections.Count == 0 || sections[^1].Label != theme.Section)
+                sections.Add(new BuiltInSection(theme.Section, new List<ThemeCard>()));
+            ((List<ThemeCard>)sections[^1].Cards).Add(card);
+        }
+        BuiltInSections = sections;
     }
 
     /// <summary>Starts the id of every built-in card. A library id is sixteen hex digits, so the
@@ -138,6 +151,10 @@ public sealed partial class ThemeShelf
     /// <summary>The built-in themes' cards, in <see cref="BuiltInThemes.All"/> order, after the
     /// user's own on the strip. The same ones for the life of the page.</summary>
     public ObservableCollection<ThemeCard> BuiltIns { get; } = [];
+
+    /// <summary>The same cards in their groups on the strip ("Built in", "Powerplay", then the
+    /// rest after a line alone), in order.</summary>
+    public IReadOnlyList<BuiltInSection> BuiltInSections { get; }
 
     /// <summary>The screen's scale (1.25 at 125%), which sets the width of the built-in pictures
     /// looked for in their cache. The page sets it before <see cref="Reload"/>.</summary>
@@ -176,6 +193,9 @@ public sealed partial class ThemeShelf
         int width = BuiltInPixelWidth;
         foreach (var card in BuiltIns.Where(c => c.Snapshot == null))
             card.Snapshot = LoadSnapshot(Path.Combine(BuiltInFolder, BuiltInSnapshotName(card.Theme.Colours, width)));
+        // Pictures of themes that are no longer built in (or of an earlier build) would otherwise
+        // stay until a new picture happens to be drawn.
+        if (Directory.Exists(BuiltInFolder)) PruneBuiltInSnapshots();
     }
 
     /// <summary>Cards that have no picture yet and need one drawn from their colours: the user's

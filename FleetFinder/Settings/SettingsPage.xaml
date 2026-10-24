@@ -201,8 +201,7 @@
 
                 <!-- The themes (C8, D4): a row of small cards that scrolls sideways, each one a
                      picture of the preview in that theme, its name, who made it and Apply. The
-                     user's own come first, then a line and a "Built in" label, then the ones
-                     FleetFinder comes with. A saved theme's right-click menu has Copy share code and
+                     user's own come first, then the ones FleetFinder comes with, in labelled groups. A saved theme's right-click menu has Copy share code and
                      Delete; a built-in one's has only Copy share code. On a short window the whole
                      strip is scaled down (ThemesScale) so the preview keeps some room. -->
                 <Border x:Name="ThemesPanel" Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
@@ -295,18 +294,11 @@
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
 
-                                <!-- Between the user's themes and FleetFinder's own: a line down the
-                                     card's height and a small label beside it, reading downwards. -->
-                                <StackPanel x:Name="BuiltInDivider" Orientation="Horizontal" Height="257" Margin="0,0,10,0" VerticalAlignment="Top">
-                                    <Border Width="1" Background="{DynamicResource Divider}"/>
-                                    <TextBlock Text="Built in" Foreground="{DynamicResource MutedText}" FontWeight="Normal" FontSize="12"
-                                               Margin="6,4,0,0" VerticalAlignment="Top">
-                                        <TextBlock.LayoutTransform>
-                                            <RotateTransform Angle="90"/>
-                                        </TextBlock.LayoutTransform>
-                                    </TextBlock>
-                                </StackPanel>
-
+                                <!-- FleetFinder's own themes, in groups: each starts with a line down the
+                                     card's height and a small label beside it, reading downwards ("Built in"
+                                     before FleetFinder Orange, "Powerplay" before the twelve leaders, and a
+                                     line alone before the rest). A built-in card is the card above without
+                                     Delete: it can be applied and shared, never removed. -->
                                 <ItemsControl x:Name="BuiltInList" Focusable="False" VerticalAlignment="Top">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -314,31 +306,56 @@
                                         </ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
-                                        <!-- The same card as above, without Delete: a built-in theme can be
-                                             applied and shared, never removed. -->
-                                        <DataTemplate DataType="{x:Type settings:ThemeCard}">
-                                            <Border x:Name="CardBorder" Width="178" Margin="0,0,10,0" Padding="8" CornerRadius="6" BorderThickness="1"
-                                                    Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}"
-                                                    ToolTip="{Binding Credit}" AutomationProperties.Name="{Binding Credit}">
-                                                <Border.ContextMenu>
-                                                    <ContextMenu Opened="CardMenu_Opened" Closed="CardMenu_Closed">
-                                                        <MenuItem Header="Copy share code" Click="CardCopyCode_Click"/>
-                                                    </ContextMenu>
-                                                </Border.ContextMenu>
-                                                <StackPanel>
-                                                    <Image Source="{Binding Snapshot}" Width="{x:Static settings:ThemeSnapshot.CardWidth}"
-                                                           Height="{x:Static settings:ThemeSnapshot.CardHeight}" Stretch="Uniform"
-                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
-                                                    <StackPanel x:Name="CardFace" Margin="0,8,0,0">
-                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MainText}" FontWeight="SemiBold"
-                                                                   FontSize="13" TextTrimming="CharacterEllipsis"/>
-                                                        <TextBlock Text="{Binding Author}" Foreground="{DynamicResource MutedText}" FontWeight="Normal"
-                                                                   FontSize="12" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
-                                                        <Button Content="Apply" Click="CardApply_Click" Padding="12,5" Margin="0,8,0,0"
-                                                                HorizontalAlignment="Left" MinWidth="70"/>
-                                                    </StackPanel>
+                                        <DataTemplate DataType="{x:Type settings:BuiltInSection}">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                                                <StackPanel x:Name="SectionDivider" Orientation="Horizontal" Height="257" Margin="0,0,10,0" VerticalAlignment="Top">
+                                                    <Border Width="1" Background="{DynamicResource Divider}"/>
+                                                    <TextBlock x:Name="SectionLabel" Text="{Binding Label}" Foreground="{DynamicResource MutedText}"
+                                                               FontWeight="Normal" FontSize="12" Margin="6,4,0,0" VerticalAlignment="Top">
+                                                        <TextBlock.LayoutTransform>
+                                                            <RotateTransform Angle="90"/>
+                                                        </TextBlock.LayoutTransform>
+                                                    </TextBlock>
                                                 </StackPanel>
-                                            </Border>
+                                                <ItemsControl ItemsSource="{Binding Cards}" Focusable="False" VerticalAlignment="Top">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate DataType="{x:Type settings:ThemeCard}">
+                                                            <Border x:Name="CardBorder" Width="178" Margin="0,0,10,0" Padding="8" CornerRadius="6" BorderThickness="1"
+                                                                    Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}"
+                                                                    ToolTip="{Binding Credit}" AutomationProperties.Name="{Binding Credit}">
+                                                                <Border.ContextMenu>
+                                                                    <ContextMenu Opened="CardMenu_Opened" Closed="CardMenu_Closed">
+                                                                        <MenuItem Header="Copy share code" Click="CardCopyCode_Click"/>
+                                                                    </ContextMenu>
+                                                                </Border.ContextMenu>
+                                                                <StackPanel>
+                                                                    <Image Source="{Binding Snapshot}" Width="{x:Static settings:ThemeSnapshot.CardWidth}"
+                                                                           Height="{x:Static settings:ThemeSnapshot.CardHeight}" Stretch="Uniform"
+                                                                           RenderOptions.BitmapScalingMode="HighQuality"/>
+                                                                    <StackPanel x:Name="CardFace" Margin="0,8,0,0">
+                                                                        <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MainText}" FontWeight="SemiBold"
+                                                                                   FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                                                        <TextBlock Text="{Binding Author}" Foreground="{DynamicResource MutedText}" FontWeight="Normal"
+                                                                                   FontSize="12" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                        <Button Content="Apply" Click="CardApply_Click" Padding="12,5" Margin="0,8,0,0"
+                                                                                HorizontalAlignment="Left" MinWidth="70"/>
+                                                                    </StackPanel>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Label}" Value="">
+                                                    <Setter TargetName="SectionLabel" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

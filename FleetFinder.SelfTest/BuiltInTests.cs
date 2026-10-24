@@ -23,12 +23,32 @@ internal sealed partial class SelfTest
     /// </summary>
     private static readonly (string Id, string Name, string Code)[] PinnedBuiltIns =
     [
-        ("federation-blue", "Federation Blue",
-            "FFTheme1HbdkTZ7CTUgRGF5dg8n8ctJG6ppetR55mkm3D6YuMvZpFoLZSkYc4HsyPtsvi65ua8XQMCQer12CpjC1RoCiEiCak3Az4YBuJtPNE28rxVKWxwHtLXrSZFLYmCPBnBf3vpoTWw57eTFw9UqRrcEGMgYkymDAfcMgPZYiMt2TxiSqyumwTmbkopFLJEdVFNfQ157XeWf"),
-        ("imperial-purple", "Imperial Purple",
-            "FFTheme1HcP2sCS891qqDVt8DVjiQABpossy35qaBqG8tgg1G1zZCcS1ggYGRiUoQ5HfmR1PgZEYB3xKCXQGPL4mCDprzjPdvKWnKjxxyVeMouhQz15Fejfos6fhjwmigNDZBdVPgGGNt2o7yfxwwC7zsMYTvMWZ2sncrbhxtLvUVnZVXvNygFFJotc6znkaBwAD6qRZtSkaSFG"),
-        ("alliance-green", "Alliance Green",
-            "FFTheme14WYPyRAmomstN4vkAKwmPkew8pwhrNHbmppCs2GoNiBjm3MGQWVLT3UivaghPUdSPBdms4TKfg6K12FKtkohoikothMiiTkqK7MJ778v2gHHdFrAN3mqTA6c8Q2GSBetV49xe2jxh1bF8R5veTikdRqgy7qgPMbY3HxgJrfEdYtgHzdsA9JKvDtgAa2ZMQnrq2BKMd"),
+        ("fleetfinder-orange", "FleetFinder Orange",
+            "FFTheme1LrhfebzaaFEZ6irkHkoxi6sLn6RghNgmTe97QFYBoFQWNwuCmSvMSEcD4aJe2YNfECaQnN3ZrY5e6kjNjGvPKRPxGZz1McT9LN6bQCtt6e5uWcCLzfTEShka9f1ar9j2x4pYMLv1iiAMYHMrSZ8yCEmYtet61keWYTSGveR3KFU7UDvfQhYBEdhF1tiZoFZ5zH12Tas"),
+        ("jerome-archer", "Jerome Archer",
+            "FFTheme1ECFiXtdfEau8k1CsW1xbspB4abu1eHvLuA3eq1oP4QAifgy1tMYHDFPW8PDroXczivL5ZuUbKZnGBZZ9ifCJkkrifijTBCLHUG8X3kswcXtw1CRyJJZGjUQXX95jtRn5YEvFU5SFDQGbG6FZ9rzNvwmxGseRWXeB4saeYrG1To27USbdD9DxwV8R"),
+        ("nakato-kaine", "Nakato Kaine",
+            "FFTheme13mY54qh2XcsMLFSS7YpvkC4kui7XFAfzGdavRp8qok6XXis5VtdEuvvhkBft71F1VzJ8k2LyfCoAWtxv6pD4RTXVceX2EvHc6LjWxnjDZhArQPeFpxscwk4piSbBvx5FmjJoav37NyhkvTwZayjza29iH9eaLwtEtqFMWv2Q5z59nd82tjv6SWM"),
+        ("zemina-torval", "Zemina Torval",
+            "FFTheme1kCLjgvkRcrdbXfSH615YBmfF3wX18uU72cgaLRc7cAU6U7TGamnS6UMPvrxNAVhVqB6vJ6XMe5AtQQ6jSwsjjiAHFmMAhiPR9tui48BxjWq4x9VYzRHiqXzBkUonzLj9UpH61H12wJEwcvDLGUnBhucJyVz6Jf9G5fch3g2NxBmNJTTjRCHdLo3xDZSnQtThcG23"),
+        ("yuri-grom", "Yuri Grom",
+            "FFTheme136xxciXDEGtPJ1BavzCsUk81qNgt3freaohTETT6tFnkkubHVcXytxk5iBhhFZKKGt6GYVX6epwDTKKeEYaP5bP5yson7fzNgy3M7KRiEwDWJBsbWRt7Q5qT2vHdJVXPevW6LFNxEAiQxP54Jnf3vNEGR8EYV6JP5kh7hunAM668LGyxXGL2Jv4"),
+        ("pranav-antal", "Pranav Antal",
+            "FFTheme13meBGRyxEScHjeTgrK8jZ56erniGxuzUW23TrMTF2gPMrDbzsiHT3jJKGCjuHMw1sPWKasFimHbJCbFmswo4YxNPLroHzysy2X6pUfkPt6LReEvQVEjuXvu7T8iPznnCX5sdLsArEbp2sUpWMcaRujDtt3J2wf4De74nJYfRVQ98BJ3qdEP26jE"),
+        ("li-yong-rui", "Li Yong-Rui",
+            "FFTheme1aPoLxJA2MvyDzFGWukEgfFi2SBSarHpeFhdyRTjBimuMTyEeS8EUESxXfQoAchXjPxG9KHkHo3SViC4oG19ctzPKaAh437g9ACtuN74LhKG8Yjaz1B1pbMFFMqXe6tuoz14NoG3CAjHkt4pAPV52ooE1bmFRtuDcpQeEfRQU1EZ4Y6RnCYxZ3"),
+        ("felicia-winters", "Felicia Winters",
+            "FFTheme166RFscYte32eiLCJwhkGg9QpQGjnH1DqgEyPmvyauj2ocVshJxj9i24AMShKvwxUZjrQ5kmveq6btLABqXprY5NkCUBvURWbwtZL1C3VcQsjkMaqseF997m15bdA3d3NnAptkHJA5neTiHCZCgEGCUEM4MDVyEw52U3uQYEDLN4YLPEHojbgNzYhBYj"),
+        ("edmund-mahon", "Edmund Mahon",
+            "FFTheme19zcyraL5RtiZsWEJFxDjjE3MQfTzALWMhp4Hc3a8o1hgWrhDpydsfVZepB1aUEYfhm8Bp8FwRNrB7DL4A9fqeKHxPo8fCHdXrDy4BNK8ydQnCzD8teaUNq1CA1Pozo3bWvUGx6KXf8XsJt2D6gjxKPeJeETzxDJvB8wozF1VSuDKaVkbLcyicQ5nFKB9DMe1oPP"),
+        ("denton-patreus", "Denton Patreus",
+            "FFTheme125WrahmkVmthnDTDndNtTdTrnEykDUdaK9ud5SQyUYVp1HAY31Beo27gE4WCUFbmgksLg6JuHUd31gqHtNBRs2p1Czbc1Gx1B57vD2tGyidnTbeUw6jbrjy5AwoWPGenKgyXZvHaeSzkRp6osa3ADhCQbfKTXKL1o8iRd86siZGgRGEXjWZbt1XHrU"),
+        ("archon-delaine", "Archon Delaine",
+            "FFTheme12bc9rNqQ2fbGsdyDwSC74yHot4Qdp7RKVT5XtnSzo5e2b3v976paD6rybi54rviFHGa6VfJznMLdxygd4bz4DYe3Yi6C9sbEXRVThgXjrn89M6q6KtqVYk8VE45ovVsfpYxMHiuo1kUPzt2a1uDyp5mV3e2xE97tKtRnQVw8deZnEPtR1EdeG7RSduk586"),
+        ("aisling-duval", "Aisling Duval",
+            "FFTheme1EAEWokhVRVB76eA4GqH32QdeuVKguVAY4ARNFrD2yZMptm9bAmySbxco6hQpotQnnKA6C8megWBhUut24fJMjzNKZXNRXtfhr5ckM9mRhbgvYngEh4fMx8GJfBjokda55SYyY5ivpUWmij7deZEjUNKL58mw95DZrg3if94qAiPM5j5aSP34rb4C"),
+        ("arissa-lavigny-duval", "Arissa Lavigny-Duval",
+            "FFTheme1Bxfk6Y97N1CRD6ajHoaQPWhME518zy9ZwR5pJbBSweWYNrGYY24akGW3HHZLK6JjL2LcPGi2suF1zodZQJBxV53ych8eb5F2KpieoLUZaVLocuZAbV83ifuueukoJCU9goumn98EDS1wX4EAJySzoZsC79MJL293UPo1aepvM5b8tngNJJBcZj519AKwcAcohyP3KEwriVumML"),
         ("guardian-cyan", "Guardian Cyan",
             "FFTheme1jxTjLYVGRt5VMvMgffkwRtbg495siPog9zgaiHavQJgmmnHoS982bZQKUdxdoysB4WZrk9vGPSFsdKM5JMbfRd25hTSu4VA62gedeCJat3pTgyBKh5w5L2yzxU1iG4uBGQEXWT4LYng4HfWcSquAEwH5XGQquNpwjZ2SFGR3shQsVUDeKQ8cdJsggGZdAkTaEtPf"),
         ("synthwave", "Synthwave",
@@ -39,20 +59,33 @@ internal sealed partial class SelfTest
             "FFTheme12pX8SvHcBnCAjdSut1x7qEd4GxgGWV8HnqxRnhfCgPAMqK9gqFRYqnUJGYYhtiuv3FcdCsRuz3iAqVqZrZ1Ddewzxd46vzxRyTHjSEkwbBgnHb4CadDUweDim9oV7KizNMCTL5YATJTUtNokg4cmNeSRBTNNh9sRy1dXfHgc1tzDyFcegPcKX4A7Fj9wXB5feGyYw1a9ASBA8cjnAmoVZXhLKxitNdKhnqpJh9VwN2cQVXEnaLk3BpsCoeyECGwm8jgiSJAaq"),
         ("green-screen", "Green Screen",
             "FFTheme1PNBwAF3LBRBnEPaKBWabD7G9ubj9vfYjLyrXUUvfDQk679Vt1ivWeLBoZk9WcHtRpvMS9yvKHiMienxo73CLzd8wBSYXvHiwutMzWfczQhfk3U53UVvus4dZQdFHV2dJFrkRjJaPx1P9F8XRKVbkY43WX3JhQjskfy"),
-        ("classic", "FleetFinder classic",
-            "FFTheme136CswR1Sybr9mQeVRYgTpvvN9UfVjw5u6dUZKadWNVVDPkrQxuQ9B5FbyVcjdifoN8cvVsEQcYjkKJyBzWPYBxYHBtMbrV9S8ifXpzBFuTJ2JFzd8PbxfDYAcv7z7umQBBKT7so8jtinhWuzYzKEKocFrK1ZEUioWovzmEtZJbngZj3x6DJ66mbG7LQtiVid2BkHg8tLNah5vzYkQckPNUhyPrL2UNT5o127uhkZNmbWxk6muFQ4QY"),
     ];
 
-    /// <summary>The 17 roles where the original look differs from Ali's palette, as TASKS.md's
-    /// Roles table gives them ("was"). FleetFinder classic must be exactly the defaults with these.</summary>
-    private static readonly (string Key, string Hex)[] OriginalLook =
+    /// <summary>The twelve Powerplay colours as sampled from Ali's grid
+    /// (<c>_reference\powerplay-colours\README.md</c>). Each power's theme must use its colour exactly
+    /// wherever it is a fill or a line.</summary>
+    private static readonly (string Id, string Hex)[] PowerplayColours =
     [
-        ("CloseButtonHover", "#E81123"), ("CloseButtonHoverGlyph", "#FFFFFF"), ("InputHoverBorder", "#7EB4EA"),
-        ("InputFocusBorder", "#569DE5"), ("TextSelection", "#0078D4"), ("ToolTipBackground", "#F1F2F7"),
-        ("ToolTipBorder", "#767676"), ("ToolTipText", "#575757"), ("MenuBackground", "#F5F5F5"),
-        ("MenuBorder", "#959595"), ("MenuText", "#000000"), ("MenuDisabledText", "#707070"),
-        ("MenuHighlight", "#3D26A0DA"), ("MenuHighlightBorder", "#26A0DA"), ("MenuGutter", "#F1F1F1"),
-        ("MenuGutterLine", "#E2E3E3"), ("MenuGutterLineHighlight", "#FFFFFF"),
+        ("jerome-archer", "#F009F0"),
+        ("nakato-kaine", "#82F80F"),
+        ("zemina-torval", "#0341F0"),
+        ("yuri-grom", "#F64606"),
+        ("pranav-antal", "#FBF019"),
+        ("li-yong-rui", "#11F662"),
+        ("felicia-winters", "#F68712"),
+        ("edmund-mahon", "#09720B"),
+        ("denton-patreus", "#0CC3C7"),
+        ("archon-delaine", "#FF0100"),
+        ("aisling-duval", "#009AFA"),
+        ("arissa-lavigny-duval", "#8001FB"),
+    ];
+
+    /// <summary>The roles that draw a power's colour as a fill or a line, never lightened.</summary>
+    private static readonly string[] PowerFillRoles =
+    [
+        "PanelBorder", "SelectedTabOutline", "BannerBackground", "ButtonBackground", "InputHoverBorder", "InputFocusBorder",
+        "CheckboxHoverBorder", "DialogBorder", "ToolTipBorder", "MenuBorder", "MenuHighlightBorder", "ScrollbarThumbHover",
+        "CloseButtonHover", "TextSelection",
     ];
 
     // ---- the definitions ---------------------------------------------------------------------------
@@ -61,7 +94,7 @@ internal sealed partial class SelfTest
     {
         Equal("no built-in theme has a problem in its definition", "", string.Join(" | ", BuiltInThemes.Problems));
         var all = BuiltInThemes.All;
-        Equal("there are nine built-in themes, in strip order", string.Join("|", PinnedBuiltIns.Select(p => p.Name)),
+        Equal("the built-in themes, in strip order", string.Join("|", PinnedBuiltIns.Select(p => p.Name)),
             string.Join("|", all.Select(t => t.Name)));
         Equal("with their ids", string.Join("|", PinnedBuiltIns.Select(p => p.Id)), string.Join("|", all.Select(t => t.Id)));
         Check("ids are short lower-case words", all.All(t => Regex.IsMatch(t.Id, "^[a-z0-9]+(-[a-z0-9]+)*$")));
@@ -81,18 +114,54 @@ internal sealed partial class SelfTest
             var badAlpha = ThemeRoles.All.Where(r => theme.Colours.TryGetValue(r.Key, out var c)
                 && (r.HasAlpha ? c.A is 0 or 255 : c.A != 255)).Select(r => r.Key).ToList();
             Check($"{theme.Name}: opaque where a role has no alpha, part see-through where it has", badAlpha.Count == 0, string.Join(", ", badAlpha));
-            Check($"{theme.Name}: is not just the shipped defaults", !SameColours(theme.Colours, ThemeRoles.Defaults()));
+            if (theme.Id != "fleetfinder-orange")
+                Check($"{theme.Name}: is not just the shipped defaults", !SameColours(theme.Colours, ThemeRoles.Defaults()));
         }
         Equal("no two built-in themes are the same colours", all.Count,
             all.Select(t => string.Join(",", ThemeRoles.All.Select(r => t.Colours[r.Key].ToString()))).Distinct().Count());
 
-        // FleetFinder classic: the original look, decoded from the D1 code, must be the defaults
-        // with the 17 colours Ali changed put back.
-        var original = ThemeRoles.Defaults();
-        foreach (var (key, hex) in OriginalLook) original[key] = Hex(hex);
-        var classic = BuiltInThemes.Find("classic");
-        var moved = classic == null ? ["no classic theme"] : ThemeRoles.All.Where(r => classic.Colours[r.Key] != original[r.Key]).Select(r => r.Key).ToList();
-        Check("FleetFinder classic is the original look exactly: the defaults with the 17 original colours", moved.Count == 0, string.Join(", ", moved));
+        // FleetFinder Orange is the shipped colours exactly, whatever they become.
+        var orange = BuiltInThemes.Find("fleetfinder-orange");
+        Check("FleetFinder Orange is the shipped defaults exactly", orange != null && SameColours(orange.Colours, ThemeRoles.Defaults())
+            && orange.Colours.Count == ThemeRoles.All.Count);
+
+        // The strip's groups: "Built in" (Orange), "Powerplay" (the twelve, in Ali's order), then the
+        // rest after a line alone.
+        string Group(string section) => string.Join(",", all.Where(t => t.Section == section).Select(t => t.Name));
+        Equal("FleetFinder Orange starts the Built in group, first", "FleetFinder Orange", Group("Built in"));
+        Equal("the twelve powers are the Powerplay group, in Ali's order",
+            "Jerome Archer,Nakato Kaine,Zemina Torval,Yuri Grom,Pranav Antal,Li Yong-Rui,Felicia Winters,Edmund Mahon,Denton Patreus,Archon Delaine,Aisling Duval,Arissa Lavigny-Duval",
+            Group(BuiltInThemes.PowerplaySection));
+        Equal("and the rest follow with no label", "Guardian Cyan,Synthwave,Windows 98,Windows XP,Green Screen", Group(""));
+        Equal("the old Federation, Imperial, Alliance and classic themes are gone", "", string.Join(",",
+            new[] { "federation-blue", "imperial-purple", "alliance-green", "classic" }.Where(id => BuiltInThemes.Find(id) != null)));
+
+        // Each power's colour exactly wherever it is a fill or a line; Good and Bad clearly apart
+        // from it and from its text colour (at least 25 degrees of hue).
+        foreach (var (id, hex) in PowerplayColours)
+        {
+            if (BuiltInThemes.Find(id) is not { } power)
+            {
+                Check($"{id} exists", false);
+                continue;
+            }
+            var colour = Hex(hex);
+            var notExact = PowerFillRoles.Where(k => Opaque(power.Colours[k]) != colour).ToList();
+            Check($"{power.Name}: its colour {hex} exactly in every fill and line", notExact.Count == 0, string.Join(", ", notExact));
+            Equal($"{power.Name}: and see-through in the menu highlight", colour, Opaque(power.Colours["MenuHighlight"]));
+            Equal($"{power.Name}: the window is near black and neutral", true, Luminance(power.Colours["WindowBackground"]) < 0.01
+                && Luminance(power.Colours["PanelBackground"]) < 0.01);
+            var text = power.Colours["NeededCount"];
+            static double HueGap(Color a, Color b)
+            {
+                double d = Math.Abs(ColourMaths.ToHsv(a).H - ColourMaths.ToHsv(b).H) % 360;
+                return Math.Min(d, 360 - d);
+            }
+            foreach (var value in new[] { "GoodValue", "BadValue" })
+                Check($"{power.Name}: {value} is clearly apart from the power's colour and its text colour",
+                    HueGap(power.Colours[value], colour) >= 25 && HueGap(power.Colours[value], text) >= 25,
+                    $"{power.Colours[value]} against {colour} and {text}");
+        }
 
         // Pinned: each theme still encodes to the code written above.
         foreach (var (id, name, code) in PinnedBuiltIns)
@@ -277,6 +346,8 @@ internal sealed partial class SelfTest
         return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
     }
 
+    private static Color Opaque(Color c) => Color.FromRgb(c.R, c.G, c.B);
+
     /// <summary>A colour laid over another at some opacity, as it shows on screen.</summary>
     private static Color Blend(Color top, Color under, double opacity) => Color.FromRgb(
         (byte)Math.Round(top.R * opacity + under.R * (1 - opacity)),
@@ -309,11 +380,11 @@ internal sealed partial class SelfTest
         foreach (var theme in BuiltInThemes.All)
         {
             var fails = ContrastFailures(theme.Colours);
-            if (theme.Id == "classic")
+            if (theme.Id == "fleetfinder-orange")
             {
-                // The original look kept exactly, so it is reported like the defaults below
+                // The shipped colours themselves, so they are reported like the defaults below
                 // rather than changed to pass.
-                Console.WriteLine($"   (reported, not counted) {theme.Name}, the original look: {ContrastPairs.Length - fails.Count} of {ContrastPairs.Length} pairs pass"
+                Console.WriteLine($"   (reported, not counted) {theme.Name}, the shipped colours: {ContrastPairs.Length - fails.Count} of {ContrastPairs.Length} pairs pass"
                                   + (fails.Count == 0 ? "" : "; short: " + string.Join("; ", fails)));
                 continue;
             }
@@ -415,6 +486,13 @@ internal sealed partial class SelfTest
         Check("files named any other way are left alone", File.Exists(Path.Combine(cache, "notes.txt")) && File.Exists(Path.Combine(cache, "mine.png")));
         Check("and the current ones stay", File.Exists(Path.Combine(cache, name)) && File.Exists(Path.Combine(cache, ThemeShelf.BuiltInSnapshotName(synth.Theme.Colours, 160))));
         Equal("no temporary file is left behind", 0, Directory.GetFiles(cache, "*.tmp").Length);
+        // A theme that is no longer built in leaves a picture behind; the next read of the shelf
+        // tidies it away even when nothing new is drawn.
+        File.WriteAllBytes(Path.Combine(cache, "fedcba9876543210-160.png"), png);
+        var tidied = new ThemeShelf(library, draft, clip);
+        tidied.Reload();
+        Check("reading the shelf tidies away a picture no built-in theme uses", !File.Exists(Path.Combine(cache, "fedcba9876543210-160.png"))
+            && File.Exists(Path.Combine(cache, name)) && File.Exists(Path.Combine(cache, "mine.png")));
 
         // A cached file that is not a picture is drawn again.
         File.WriteAllBytes(Path.Combine(cache, name), [0x89, 0x50, 0x4E, 0x47, 1, 2, 3]);
@@ -450,13 +528,23 @@ internal sealed partial class SelfTest
 
         var user = page.ThemeCards;
         var builtIn = page.BuiltInThemeCards;
-        Equal("the strip has the user's two and the nine built in", "2 9", $"{user.Count} {builtIn.Count}");
+        Equal("the strip has the user's two and every built-in one", $"2 {BuiltInThemes.All.Count}", $"{user.Count} {builtIn.Count}");
         double Left(FrameworkElement e) => e.TransformToAncestor(page).Transform(new Point(0, 0)).X;
         var lastUser = page.CardElementOf(user[^1])!;
-        var divider = (FrameworkElement)page.FindName("BuiltInDivider");
+        var dividers = Descendants<StackPanel>((FrameworkElement)page.FindName("BuiltInList")).Where(p => p.Name == "SectionDivider").ToList();
+        string LabelOf(FrameworkElement divider) => Descendants<TextBlock>(divider).FirstOrDefault(t => t.Visibility == Visibility.Visible)?.Text ?? "(line alone)";
+        Equal("three groups, each after a line: Built in, Powerplay, then a line alone", "Built in|Powerplay|(line alone)",
+            string.Join("|", dividers.Select(LabelOf)));
         var firstBuiltIn = page.CardElementOf(builtIn[0])!;
-        Check("the built-in ones come after the user's, past a divider", Left(lastUser) < Left(divider) && Left(divider) < Left(firstBuiltIn));
-        Check("which says Built in", divider.Visibility == Visibility.Visible && Descendants<TextBlock>(divider).Any(t => t.Text == "Built in"));
+        Check("the built-in ones come after the user's, past the first divider", dividers.Count > 0 && Left(lastUser) < Left(dividers[0])
+            && Left(dividers[0]) < Left(firstBuiltIn));
+        var firstPower = page.CardElementOf(builtIn.First(c => c.Name == "Jerome Archer"))!;
+        var lastPower = page.CardElementOf(builtIn.First(c => c.Name == "Arissa Lavigny-Duval"))!;
+        var guardian = page.CardElementOf(builtIn.First(c => c.Name == "Guardian Cyan"))!;
+        Check("Powerplay sits between FleetFinder Orange and the first power", dividers.Count == 3
+            && Left(firstBuiltIn) < Left(dividers[1]) && Left(dividers[1]) < Left(firstPower));
+        Check("and the line alone between the last power and Guardian Cyan", dividers.Count == 3
+            && Left(lastPower) < Left(dividers[2]) && Left(dividers[2]) < Left(guardian));
         Check("and the built-in cards keep strip order", builtIn.Select(c => Left(page.CardElementOf(c)!)).Zip(builtIn.Skip(1).Select(c => Left(page.CardElementOf(c)!)))
             .All(p => p.First < p.Second));
         Check("with no empty tile when the user has themes", ((FrameworkElement)page.FindName("ThemesEmptyTile")).Visibility == Visibility.Collapsed);
@@ -464,7 +552,7 @@ internal sealed partial class SelfTest
         // The same card: picture, name, author, Apply.
         var fed = page.CardElementOf(builtIn[0])!;
         var face = Descendants<StackPanel>(fed).First(p => p.Name == "CardFace");
-        Equal("a built-in card is a picture, its name, FleetFinder and Apply", "1|Federation Blue|FleetFinder|Apply",
+        Equal("a built-in card is a picture, its name, FleetFinder and Apply", "1|FleetFinder Orange|FleetFinder|Apply",
             Descendants<Image>(fed).Count() + "|" + string.Join("|", face.Children.OfType<FrameworkElement>()
                 .Select(e => e switch { Button b => b.Content as string, TextBlock t => t.Text, _ => e.GetType().Name })));
         Equal("its right-click menu has Copy share code and no Delete", "Copy share code",

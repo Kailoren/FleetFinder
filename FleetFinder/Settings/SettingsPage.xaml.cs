@@ -77,7 +77,7 @@ public partial class SettingsPage : UserControl
         _rows = Groups.SelectMany(g => g.Rows).ToDictionary(r => r.Key, StringComparer.Ordinal);
         ColourList.ItemsSource = Groups;
         CardList.ItemsSource = _shelf.Cards;
-        BuiltInList.ItemsSource = _shelf.BuiltIns;
+        BuiltInList.ItemsSource = _shelf.BuiltInSections;
         _shelf.Cards.CollectionChanged += (_, _) => UpdateThemesEmpty();
         UpdateThemesEmpty();
         // The name's cap is the share code's; the CMDR box leaves room for a typed "CMDR ", which

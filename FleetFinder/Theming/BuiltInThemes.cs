@@ -4,15 +4,20 @@ using FleetView.Services;
 
 namespace FleetView.Theming;
 
-/// <summary>One of the themes FleetFinder comes with: a fixed id, its name, and every role's colour.</summary>
-public sealed record BuiltInTheme(string Id, string Name, IReadOnlyDictionary<string, Color> Colours);
+/// <summary>
+/// One of the themes FleetFinder comes with: a fixed id, its name, every role's colour, and the
+/// label of the group it starts or belongs to on the strip ("Built in", "Powerplay", or empty for
+/// a group marked by a line alone).
+/// </summary>
+public sealed record BuiltInTheme(string Id, string Name, IReadOnlyDictionary<string, Color> Colours, string Section = "");
 
 /// <summary>
-/// The themes that ship inside FleetFinder (D4, Ali 2026-10-24: "4-5 colourful ones, and some funny
-/// ones like a windows 98 theme", "and a windows XP theme"). They show on the Themes strip after
-/// the user's own, with "FleetFinder" as their author, and can be applied and shared like any other
-/// but never deleted. They are not files in <c>Data\themes</c>, so nothing a user does to that
-/// folder can break one.
+/// The themes that ship inside FleetFinder. They show on the Themes strip after the user's own,
+/// with "FleetFinder" as their author, and can be applied and shared like any other but never
+/// deleted. They are not files in <c>Data\themes</c>, so nothing a user does to that folder can
+/// break one. FleetFinder Orange (the shipped colours) comes first, then the twelve Powerplay
+/// leaders in their own group, then Guardian Cyan, Synthwave, Windows 98, Windows XP and Green
+/// Screen (D4 and D5, Ali 2026-10-24).
 /// </summary>
 /// <remarks>
 /// <para>
@@ -20,8 +25,8 @@ public sealed record BuiltInTheme(string Id, string Name, IReadOnlyDictionary<st
 /// that <see cref="Spread"/> turns into all 93 roles, the same way Ali's own palette is built,
 /// followed by the handful of roles where a theme wants something else. The two light ones
 /// (Windows 98 and XP) override a lot more, since a light theme puts its text on very different
-/// backgrounds. FleetFinder classic is the original dark brown and orange look, from the share code
-/// kept in TASKS.md, so nobody loses it now that Ali's palette is the default.
+/// backgrounds. The Powerplay themes all share one near-black page and differ only in the power's
+/// colour (<see cref="Power"/>), sampled from Ali's grid of the leaders.
 /// </para>
 /// <para>
 /// This file and <see cref="ThemeRoles"/> are the only C# that may name a colour (the self-test's
@@ -38,10 +43,8 @@ public static partial class BuiltInThemes
     /// <summary>The author line on every built-in theme's card.</summary>
     public const string Author = "FleetFinder";
 
-    /// <summary>The original look, as a v1 share code (TASKS.md, D1 notes). Its own name in the
-    /// code is "FleetFinder original"; the built-in is called FleetFinder classic.</summary>
-    private const string ClassicCode =
-        "FFTheme1AhjCPBcK3kqW4jxmZhyUjfmy9crjPLgNZSnAnKGWmzV1prEjbEFNto3XBh34zrQic4DK5HbAbF3XQX2eZhs5VxV36mif95FEFjzwLDSRz1BNR6KCFgQ46hrGPkwAYZQFGVYPskFVur2G76Z46a6X1emSxmzKRpfxVXnCMvk1xgjnPn9awBNCuLxqKmyt9f4hZCMWTXEjVTKunSZNrpivVwXErsEupLmmGwZuxxLAdUNqmE7MRYiYQzh";
+    /// <summary>The label over the twelve Powerplay themes on the strip.</summary>
+    public const string PowerplaySection = "Powerplay";
 
     /// <summary>
     /// The base colours of a theme. Each one is a kind of colour rather than a role: one "edge"
@@ -70,39 +73,30 @@ public static partial class BuiltInThemes
         string Dim = "#CC000000", string FaintWash = "#0A000000", string FaintEdge = "#21000000", string Shadow = "#71000000");
 
     /// <summary>One theme as written below: its palette and the roles it sets itself, or (for
-    /// FleetFinder classic) a share code.</summary>
-    private sealed record Definition(string Id, string Name, Palette? Palette, (string Key, string Hex)[] Overrides, string? Code = null);
+    /// FleetFinder Orange) the shipped defaults as they are. <paramref name="Section"/> starts a
+    /// group on the strip.</summary>
+    private sealed record Definition(string Id, string Name, Palette? Palette, (string Key, string Hex)[] Overrides,
+                                     bool IsDefaults = false, string Section = "");
 
-    /// <summary>In the order the strip shows them: the five colourful ones, the three funny ones,
-    /// then the original look.</summary>
+    /// <summary>In the order the strip shows them.</summary>
     private static readonly Definition[] Definitions =
     [
-        // Deep navy and crisp white with a sky blue accent, and Federation gold for links and
-        // group headings.
-        new("federation-blue", "Federation Blue", new Palette(
-            Window: "#060B17", Panel: "#0C1629", Alternate: "#14223D", Line: "#1D2F52", Edge: "#2E4775",
-            EdgeHover: "#3D5A8F", Disabled: "#1E2D4C", Text: "#F2F6FC", Soft: "#B9C8E2", Muted: "#91A4C8",
-            Accent: "#56B6FF", OnAccent: "#04101F", Link: "#F0C04E", LinkHover: "#FFE09A", Good: "#6EE7A0",
-            Bad: "#FF8080", Selection: "#2F6FC4", Menu: "#050A14", MenuDisabled: "#6A7DA3", Wash: "#4056B6FF"),
-            [("PanelText", "#F2F6FC"), ("GroupHeaderText", "#F0C04E"), ("TitleBarText", "#B9C8E2"),
-             ("MenuText", "#F2F6FC")]),
+        // The shipped colours, Ali's palette, so they are one Apply away after trying another theme.
+        new("fleetfinder-orange", "FleetFinder Orange", null, [], IsDefaults: true, Section: "Built in"),
 
-        // Dark plum and Imperial gold.
-        new("imperial-purple", "Imperial Purple", new Palette(
-            Window: "#0C0610", Panel: "#170C1D", Alternate: "#23132C", Line: "#311B3D", Edge: "#4C2C5E",
-            EdgeHover: "#613A77", Disabled: "#33213F", Text: "#F6EFF8", Soft: "#D3BCDC", Muted: "#AC90B8",
-            Accent: "#E9C46A", OnAccent: "#1A0E1F", Link: "#D9AEFF", LinkHover: "#ECD4FF", Good: "#6EE7A0",
-            Bad: "#FF8A8A", Selection: "#9A5BC4", Menu: "#08040B", MenuDisabled: "#7E6489", Wash: "#40E9C46A"),
-            []),
-
-        // Dark forest green with a lime accent. Docking Yes is a sea green, so it does not read as
-        // one more accent, and links are a pale sky blue, so they do not read as Yes.
-        new("alliance-green", "Alliance Green", new Palette(
-            Window: "#050C07", Panel: "#0B1810", Alternate: "#122419", Line: "#1A3223", Edge: "#294D37",
-            EdgeHover: "#346249", Disabled: "#1D3427", Text: "#EDF6EF", Soft: "#B6CFBE", Muted: "#88AA94",
-            Accent: "#A8E23A", OnAccent: "#08140C", Link: "#8FD0FF", LinkHover: "#C2E6FF", Good: "#5EEAD4",
-            Bad: "#FF8577", Selection: "#5FA83A", Menu: "#030805", MenuDisabled: "#5F7F6A", Wash: "#40A8E23A"),
-            []),
+        // The twelve Powerplay leaders, in the order of Ali's grid.
+        Power("jerome-archer", "Jerome Archer", "#F009F0", alternate: "#1D161D", linkHover: "#F778F7"),
+        Power("nakato-kaine", "Nakato Kaine", "#82F80F", alternate: "#191D16", linkHover: "#BAFB7B", good: "#8FD8FF"),
+        Power("zemina-torval", "Zemina Torval", "#0341F0", alternate: "#15171D", linkHover: "#9BB5FE", onColour: "#FFFFFF", text: "#4A79FD", state: "#2059FC"),
+        Power("yuri-grom", "Yuri Grom", "#F64606", alternate: "#1D1716", linkHover: "#FC9E7C", text: "#F94E10", bad: "#FF8AC8"),
+        Power("pranav-antal", "Pranav Antal", "#FBF019", alternate: "#1D1D16", linkHover: "#FDF780"),
+        Power("li-yong-rui", "Li Yong-Rui", "#11F662", alternate: "#161D18", linkHover: "#7CFAA9", good: "#8FD8FF"),
+        Power("felicia-winters", "Felicia Winters", "#F68712", alternate: "#1D1916", linkHover: "#FABD7D"),
+        Power("edmund-mahon", "Edmund Mahon", "#09720B", alternate: "#161916", linkHover: "#79C77B", onColour: "#FFFFFF", text: "#0C9A0F", state: "#0A7E0C", good: "#8FD8FF"),
+        Power("denton-patreus", "Denton Patreus", "#0CC3C7", alternate: "#161B1B", linkHover: "#79DEE0"),
+        Power("archon-delaine", "Archon Delaine", "#FF0100", alternate: "#1D1515", linkHover: "#FF8E8D", text: "#FF3130", bad: "#FF8AC8"),
+        Power("aisling-duval", "Aisling Duval", "#009AFA", alternate: "#151A1D", linkHover: "#73C7FC"),
+        Power("arissa-lavigny-duval", "Arissa Lavigny-Duval", "#8001FB", alternate: "#19151D", linkHover: "#D0A0FE", onColour: "#FFFFFF", text: "#A952FE", state: "#9222FE"),
 
         // Charcoal grey with the cyan glow of Guardian ruins.
         new("guardian-cyan", "Guardian Cyan", new Palette(
@@ -188,10 +182,38 @@ public static partial class BuiltInThemes
             Accent: "#66FF66", OnAccent: "#000000", Link: "#99FF99", LinkHover: "#CCFFCC", Good: "#99FF99",
             Bad: "#33CC33", Selection: "#33FF33", Menu: "#000000", MenuDisabled: "#1A8A1A", Wash: "#4033FF33"),
             []),
-
-        // The original dark brown and orange, exactly as it shipped before Ali's palette.
-        new("classic", "FleetFinder classic", null, [], ClassicCode),
     ];
+
+    /// <summary>
+    /// A Powerplay theme: the near-black page of Ali's grid (panels <c>#0E0E0E</c>, a darker
+    /// window, every other row with the faintest touch of the power's hue), light grey text, and
+    /// the power's colour exactly wherever it is a fill or a line: the accent, panel borders, the
+    /// tab and row outlines, the banner, the main button, ticks, the progress bar, the text box and
+    /// dialog borders. Where the colour is text (headings, counts, links) and too dark to read on
+    /// the page, <paramref name="text"/> is the same hue made just light enough (4.5 to 1);
+    /// <paramref name="state"/> does the same at 3 to 1 for the large headings, the window button
+    /// icon under the mouse, ticks, the row outline and the progress bar. Both were worked out by
+    /// raising the colour's lightness in small steps until the self-test's contrast pairs pass.
+    /// <paramref name="onColour"/> is black or white, whichever reads on the colour.
+    /// </summary>
+    private static Definition Power(string id, string name, string colour, string alternate, string linkHover,
+                                    string onColour = "#000000", string? text = null, string? state = null,
+                                    string good = "#6EE7A0", string bad = "#F87171")
+    {
+        var palette = new Palette(
+            Window: "#090909", Panel: "#0E0E0E", Alternate: alternate, Line: "#202020", Edge: "#3A3A3A",
+            EdgeHover: "#4C4C4C", Disabled: "#242424", Text: "#EDEDED", Soft: "#C2C2C2", Muted: "#9C9C9C",
+            Accent: colour, OnAccent: onColour, Link: text ?? colour, LinkHover: linkHover, Good: good, Bad: bad,
+            Selection: colour, Menu: "#060606", MenuDisabled: "#707070", Wash: "#40" + colour[1..]);
+        var overrides = new List<(string, string)>();
+        if (text != null)
+            foreach (var key in new[] { "PanelText", "NeededCount", "HaveCount", "SummaryText", "UnmatchedText", "BarterPoints", "SelectedTabText", "MenuText" })
+                overrides.Add((key, text));
+        if (state != null)
+            foreach (var key in new[] { "GroupHeaderText", "DialogTitle", "BarterResult", "CaptionButtonHoverGlyph", "CheckboxTicked", "RowOutline", "ProgressFill" })
+                overrides.Add((key, state));
+        return new Definition(id, name, palette, [.. overrides], Section: PowerplaySection);
+    }
 
     /// <summary>
     /// Which base colour each role takes. Every role is here once, in the order of
@@ -335,29 +357,18 @@ public static partial class BuiltInThemes
         foreach (var definition in Definitions)
         {
             var found = new List<string>();
-            var colours = definition.Code is { } code ? FromCode(definition, code, found)
+            var colours = definition.IsDefaults ? ThemeRoles.Defaults()
                 : definition.Palette is { } palette ? Expand(definition.Name, palette, definition.Overrides, found)
                 : [];
-            if (definition.Code is null && definition.Palette is null)
-                found.Add($"{definition.Name}: has neither a palette nor a share code.");
+            if (!definition.IsDefaults && definition.Palette is null)
+                found.Add($"{definition.Name}: has neither a palette nor the shipped defaults.");
             if (found.Count == 0)
-                themes.Add(new BuiltInTheme(definition.Id, definition.Name, colours));
+                themes.Add(new BuiltInTheme(definition.Id, definition.Name, colours, definition.Section));
             problems.AddRange(found);
         }
         foreach (var problem in problems)
             DiagnosticLog.Note("Built-in theme left out: " + problem);
         return (themes, problems);
-    }
-
-    private static Dictionary<string, Color> FromCode(Definition definition, string code, List<string> problems)
-    {
-        var result = ThemeCode.Decode(code);
-        if (!result.Ok)
-        {
-            problems.Add($"{definition.Name}: its share code does not read ({result.Problem}).");
-            return [];
-        }
-        return new Dictionary<string, Color>(result.Theme!.Colours, StringComparer.Ordinal);
     }
 
     /// <summary>
