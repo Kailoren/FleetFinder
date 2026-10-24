@@ -53,25 +53,10 @@ public static class ThemeStore
                 return colours;
             }
 
-            foreach (var entry in map.EnumerateObject())
-            {
-                var role = ThemeRoles.Find(entry.Name);
-                if (role is null) continue;
-
-                if (entry.Value.ValueKind == JsonValueKind.String
-                    && TryReadColour(role, entry.Value.GetString(), out var colour))
-                {
-                    colours[role.Key] = colour;
-                }
-                else
-                {
-                    // The key is ours and safe to record; the value is whatever was in the file and
-                    // is left out. DiagnosticLog holds an identical note back for a while, so a
-                    // broken value costs one line rather than one per launch.
-                    DiagnosticLog.Note($"Theme colour for {role.Key} is not a usable colour; using its default.");
-                }
-            }
-            return colours;
+            // The key is ours and safe to record; the value is whatever was in the file and is
+            // left out. DiagnosticLog holds an identical note back for a while, so a broken value
+            // costs one line rather than one per launch.
+            return ReadColours(map, key => $"Theme colour for {key} is not a usable colour; using its default.");
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -83,17 +68,57 @@ public static class ThemeStore
     }
 
     /// <summary>
+    /// Every role's colour from a JSON object of role keys to hex strings, the way theme.json holds
+    /// them: unknown keys skipped, missing roles at their default, and a value that is not a usable
+    /// colour noted (with the text <paramref name="note"/> makes from the role's key) and left at
+    /// the default. The saved-theme library reads its files through this too, so a theme file and
+    /// theme.json can never disagree about what counts as a colour.
+    /// </summary>
+    internal static Dictionary<string, Color> ReadColours(JsonElement map, Func<string, string> note)
+    {
+        var colours = ThemeRoles.Defaults();
+        foreach (var entry in map.EnumerateObject())
+        {
+            var role = ThemeRoles.Find(entry.Name);
+            if (role is null) continue;
+
+            if (entry.Value.ValueKind == JsonValueKind.String
+                && TryReadColour(role, entry.Value.GetString(), out var colour))
+            {
+                colours[role.Key] = colour;
+            }
+            else
+            {
+                DiagnosticLog.Note(note(role.Key));
+            }
+        }
+        return colours;
+    }
+
+    /// <summary>
     /// The value for one role. Hex in any form <see cref="ColourMaths.TryParseHex(string?, out Color)"/>
-    /// takes. A role with alpha given six digits keeps its own alpha, since the picker never edits
-    /// alpha and an opaque overlay would hide the tabs completely. A role without alpha refuses an
-    /// eight-digit value unless that alpha is fully opaque.
+    /// takes, then <see cref="TryAccept"/>.
     /// </summary>
     private static bool TryReadColour(ThemeRole role, string? text, out Color colour)
     {
-        if (!ColourMaths.TryParseHex(text, out colour, out bool hadAlpha)) return false;
+        colour = default;
+        return ColourMaths.TryParseHex(text, out var read, out bool hadAlpha)
+               && TryAccept(role, read, hadAlpha, out colour);
+    }
+
+    /// <summary>
+    /// Whether a colour that came from outside the app (a file, a share code) can be this role's,
+    /// and what it becomes if so. A role with alpha given a colour with no alpha of its own
+    /// (<paramref name="hadAlpha"/> false) keeps the role's default alpha, since the picker never
+    /// edits alpha and an opaque overlay would hide the tabs completely. A role without alpha
+    /// refuses anything that is not fully opaque.
+    /// </summary>
+    public static bool TryAccept(ThemeRole role, Color colour, bool hadAlpha, out Color accepted)
+    {
+        accepted = colour;
         if (role.HasAlpha)
         {
-            if (!hadAlpha) colour.A = role.Default.A;
+            if (!hadAlpha) accepted.A = role.Default.A;
             return true;
         }
         return colour.A == 255;

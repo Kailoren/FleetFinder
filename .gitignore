@@ -10,12 +10,14 @@ publish/
 *.suo
 
 # Runtime files written into Data/ at run time (see App.xaml.cs, Services/EdsmCoordinateSource.cs,
-# Services/WindowStateStore.cs, Services/PendingSearchStore.cs, Theming/ThemeStore.cs)
+# Services/WindowStateStore.cs, Services/PendingSearchStore.cs, Theming/ThemeStore.cs,
+# Theming/ThemeLibrary.cs, which keeps saved themes in Data/themes/)
 system-coords-cache.json
 fleetview-crash.log
 window-state.json
 pending-search.json
 theme.json
+themes/
 
 # FleetView.Relay's SQLite database (default path when RelayDbPath isn't overridden)
 FleetView.Relay/relay.db*

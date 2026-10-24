@@ -12,6 +12,7 @@ public sealed record PlayerLocation(string System, double X, double Y, double Z)
 /// <summary>
 /// Reads the commander's current location from the Elite Dangerous journal files.
 /// The most recent event carrying a "StarPos" (FSDJump / CarrierJump / Location) wins.
+/// Also the name of the commander who logged in last, for the theme credit.
 /// </summary>
 public sealed partial class JournalReader
 {
@@ -44,9 +45,62 @@ public sealed partial class JournalReader
 
     public PlayerLocation? GetCurrentLocation()
     {
-        if (string.IsNullOrWhiteSpace(_dir)) return null;
-        if (!Path.IsPathRooted(_dir)) return null;
-        if (!Directory.Exists(_dir)) return null;
+        // Newest journal first; use the last StarPos in the first file that has one.
+        foreach (var file in NewestFirst())
+        {
+            var loc = ScanFile(file);
+            if (loc != null) return loc;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// How many journals <see cref="GetLatestCommander"/> looks back through before giving up. A
+    /// session that never got past the main menu writes a journal with no login in it, so the
+    /// newest file is not always enough; but every journal on the disk can be gigabytes, and a
+    /// name to prefill a box is not worth reading them all for.
+    /// </summary>
+    private const int CommanderSearchFiles = 25;
+
+    /// <summary>Longest commander name read from a journal; the theme credit cuts it shorter
+    /// still.</summary>
+    private const int MaxCommanderLength = 64;
+
+    /// <summary>
+    /// The commander of the most recent login: the last <c>Commander</c> or <c>LoadGame</c> event
+    /// in the newest journal that has one. Empty when there are no journals or none of the recent
+    /// ones has a login. Used to prefill the credit when saving a theme.
+    /// </summary>
+    /// <remarks>
+    /// The last one in the file, not the first: a player with two commanders can log out to the
+    /// menu and back in as the other one without the game starting a new journal, and the login
+    /// that counts is the latest. It reads whole files, so call it off the UI thread.
+    /// </remarks>
+    public string GetLatestCommander()
+    {
+        foreach (var file in NewestFirst().Take(CommanderSearchFiles))
+        {
+            var name = ScanFileForCommander(file);
+            if (name.Length > 0) return name;
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// The journal files, newest first, or none if there is no usable journal directory.
+    /// </summary>
+    /// <remarks>
+    /// Ordered by the timestamp and part number the game puts in the filename, not by the file's
+    /// modified time. The name is what the game itself recorded when it opened the session; the
+    /// modified time is a filesystem property that a copy, a restore, a sync client or a backup
+    /// tool can set to anything, and ordering by it alone let a stale file be preferred over the
+    /// one actually being written. Modified time stays as the tiebreak for names that do not parse.
+    /// </remarks>
+    private IEnumerable<string> NewestFirst()
+    {
+        if (string.IsNullOrWhiteSpace(_dir)) return [];
+        if (!Path.IsPathRooted(_dir)) return [];
+        if (!Directory.Exists(_dir)) return [];
 
         string[] files;
         try
@@ -56,30 +110,16 @@ public sealed partial class JournalReader
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             DiagnosticLog.Note($"Journal directory could not be listed ({ex.GetType().Name}).");
-            return null;
+            return [];
         }
 
-        // Newest journal first; use the last StarPos in the first file that has one.
-        //
-        // Ordered by the timestamp and part number the game puts in the filename, not by the
-        // file's modified time. The name is what the game itself recorded when it opened the
-        // session; the modified time is a filesystem property that a copy, a restore, a sync
-        // client or a backup tool can set to anything, and ordering by it alone let a stale file
-        // be preferred over the one actually being written. Modified time stays as the tiebreak
-        // for names that do not parse.
-        var ordered = files
+        return files
             .Select(path => (Path: path, Stamp: SessionStamp(path), Written: LastWriteOrMin(path)))
             .OrderByDescending(f => f.Stamp.Time)
             .ThenByDescending(f => f.Stamp.Part)
             .ThenByDescending(f => f.Written)
-            .Select(f => f.Path);
-
-        foreach (var file in ordered)
-        {
-            var loc = ScanFile(file);
-            if (loc != null) return loc;
-        }
-        return null;
+            .Select(f => f.Path)
+            .ToList();
     }
 
     /// <summary>
@@ -152,6 +192,63 @@ public sealed partial class JournalReader
                 Path.GetFileName(path));
 
         return found;
+    }
+
+    /// <summary>The commander of the last login event in one journal, or empty if it has none.</summary>
+    private static string ScanFileForCommander(string path)
+    {
+        string found = "";
+        try
+        {
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var sr = new StreamReader(fs);
+
+            while (ReadBoundedLine(sr, out var line, out bool oversize))
+            {
+                // Both events carry the word: "event":"Commander", and LoadGame's "Commander" field.
+                if (oversize || !line.Contains("Commander", StringComparison.Ordinal)) continue;
+                var name = TryParseCommander(line);
+                if (name.Length > 0) found = name; // keep updating -> last wins
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
+                                       or System.Security.SecurityException)
+        {
+            DiagnosticLog.Note(
+                $"Journal file could not be read ({ex.GetType().Name}): {Path.GetFileName(path)}");
+        }
+        return found;
+    }
+
+    /// <summary>
+    /// The name from a <c>Commander</c> event (its <c>Name</c>) or a <c>LoadGame</c> event (its
+    /// <c>Commander</c>), cleaned at this boundary like a system name; empty for any other line.
+    /// </summary>
+    private static string TryParseCommander(string line)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(line);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("event", out var ev) || ev.ValueKind != JsonValueKind.String)
+                return "";
+
+            string field = ev.GetString() switch
+            {
+                "Commander" => "Name",
+                "LoadGame" => "Commander",
+                _ => "",
+            };
+            if (field.Length == 0
+                || !root.TryGetProperty(field, out var value) || value.ValueKind != JsonValueKind.String)
+                return "";
+            return SafeText.Clean(value.GetString(), MaxCommanderLength);
+        }
+        catch (JsonException)
+        {
+            return ""; // not a JSON event line, or a partially-written one
+        }
     }
 
     /// <summary>

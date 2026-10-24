@@ -19,8 +19,11 @@ using FleetView.Theming;
 // hands out, a scan of MainWindow.xaml that fails if a colour literal comes back or a
 // DynamicResource names something that is not a role, the colour picker (its state on its own,
 // then the real control driven through its public methods), the Settings draft (save, revert,
-// reset, the picker's edits), and the Settings page and its preview. Prints one PASS or FAIL line
-// per check and a final SUMMARY line; exit code 1 if anything failed.
+// reset, the picker's edits), and the Settings page and its preview. Then the shipped defaults,
+// and the logic behind saved and shared themes (ThemeTests.cs): names cleaned for display, the
+// share code both ways and every way a paste can be wrong, the theme library on disk, and the
+// commander name read from the journal. Prints one PASS or FAIL line per check and a final
+// SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
 // object tree to check the Settings page in it, but never shows it, so nothing appears on screen.
@@ -32,7 +35,7 @@ thread.Join();
 Console.WriteLine($"SUMMARY: {suite.Passed} passed, {suite.Failed} failed");
 return suite.Failed == 0 ? 0 : 1;
 
-internal sealed class SelfTest
+internal sealed partial class SelfTest
 {
     public int Passed { get; private set; }
     public int Failed { get; private set; }
@@ -62,6 +65,11 @@ internal sealed class SelfTest
             Section("theme draft", DraftTests);
             Section("Settings XAML", SettingsXamlTests);
             Section("Settings page and preview", SettingsPageTests);
+            Section("shipped defaults and labels", DefaultsTests);
+            Section("theme text", ThemeTextTests);
+            Section("share code", ShareCodeTests);
+            Section("saved theme library", LibraryTests);
+            Section("commander from the journal", CommanderTests);
         }
         finally
         {
