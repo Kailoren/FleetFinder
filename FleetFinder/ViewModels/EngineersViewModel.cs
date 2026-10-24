@@ -223,10 +223,9 @@ public sealed class EngineerCard : ObservableObject
         if (Engineer.Find.Length > 0) lines.Add(new("Find", Engineer.Find));
         if (Engineer.Invite.Length > 0) lines.Add(new("Invite", Engineer.Invite));
         if (referral.Length > 0) lines.Add(new("Referral", referral));
-        if (Engineer.RefersTo.Count > 0) lines.Add(new("Refers you to", EngineerText.Join(Engineer.RefersTo)));
         if (UnlockOrder.Length > 0) lines.Add(new("Unlock order", UnlockOrder));
-        lines.Add(new("Location", EngineerText.Location(Engineer)));
-        lines.Add(new("Distance", distanceLy == null ? "Unknown" : DistanceText));
+        // Who the referral leads to is already in the referral and the unlock order, and the
+        // system, settlement and distance sit in the panel's own header, so none repeat here.
         if (!SameLines(lines, BreakdownLines)) BreakdownLines = lines;
     }
 

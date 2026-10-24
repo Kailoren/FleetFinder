@@ -512,7 +512,7 @@ internal sealed partial class SelfTest
         Equal("for each engineer", "Hut", ada.PlaceText);
         Equal("the kind line", "On-foot engineer, Colonia", yi.KindText);
         Equal("the breakdown has everything",
-            "Your progress: Unlocked|Find: Common knowledge.|Invite: Travel at least 100 light years in shuttles.|Referral: Provide 5 doses of Push to learn about Kit Fowler.|Refers you to: Kit Fowler|Unlock order: Domino Green > Kit Fowler|Location: The Jackrabbit, Orishis (the Bubble)|Distance: 13 ly",
+            "Your progress: Unlocked|Find: Common knowledge.|Invite: Travel at least 100 light years in shuttles.|Referral: Provide 5 doses of Push to learn about Kit Fowler.|Unlock order: Domino Green > Kit Fowler",
             string.Join("|", domino.BreakdownLines.Select(l => $"{l.Label}: {l.Text}")));
         Equal("and counts the modules", "2 suit modules, 2 weapon modules.", domino.ModulesText);
         Equal("one of each reads as one", "1 suit module, 1 weapon module.", kit.ModulesText);

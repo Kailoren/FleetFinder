@@ -2011,8 +2011,17 @@
                                         <TextBlock Text="{Binding Card.PlaceText}" Foreground="{DynamicResource MutedText}"
                                                    VerticalAlignment="Center" Margin="16,0,0,0"/>
                                     </WrapPanel>
-                                    <TextBlock Text="{Binding Card.ModulesText}" Foreground="{DynamicResource MainText}" Margin="0,8,0,0"/>
-                                    <ItemsControl ItemsSource="{Binding Card.BreakdownLines}" Margin="0,12,0,0" Focusable="False"
+                                    <!-- Details, suit modules and weapon modules side by side, so the panel
+                                         is as wide as it is rather than one long column. -->
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.15*"/>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                    <ItemsControl Grid.Column="0" ItemsSource="{Binding Card.BreakdownLines}" Focusable="False"
                                                   Grid.IsSharedSizeScope="True">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
@@ -2029,13 +2038,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <Grid Margin="0,8,0,0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="28"/>
-                                            <ColumnDefinition Width="*"/>
-                                        </Grid.ColumnDefinitions>
-                                        <StackPanel Grid.Column="0" Visibility="{Binding HasSuitModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                        <StackPanel Grid.Column="2" Visibility="{Binding HasSuitModules, Converter={x:Static local:BoolToVis.Instance}}">
                                             <TextBlock Style="{StaticResource EngineerHeading}" Text="Suit Modules"/>
                                             <ItemsControl ItemsSource="{Binding SuitModules}" Focusable="False">
                                                 <ItemsControl.ItemTemplate>
@@ -2050,7 +2053,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                         </StackPanel>
-                                        <StackPanel Grid.Column="2" Visibility="{Binding HasWeaponModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                        <StackPanel Grid.Column="4" Visibility="{Binding HasWeaponModules, Converter={x:Static local:BoolToVis.Instance}}">
                                             <TextBlock Style="{StaticResource EngineerHeading}" Text="Weapon Modules"/>
                                             <ItemsControl ItemsSource="{Binding WeaponModules}" Focusable="False">
                                                 <ItemsControl.ItemTemplate>
