@@ -31,9 +31,18 @@ public sealed record ThemeRole(string Key, string Group, string Label, Color Def
 /// orange "still needed" count is one role.
 /// </para>
 /// <para>
-/// The defaults are exactly the colours the XAML had before this existed, which is what lets the
-/// change be checked by pixel diff. This file is the only place in the C# that names a colour.
-/// The order here is the order Settings lists them in, group by group.
+/// The defaults started out as exactly the colours the XAML had before this existed, which is what
+/// let the change be checked by pixel diff. They are now the palette Ali settled on after trying
+/// the colour changer (his theme.json of 2026-10-23), which differs from that original look in
+/// 17 roles: the close button under the mouse, the text box borders under the mouse and while
+/// typing, text selection, and the tooltips and right-click menu, which were WPF's pale grey and
+/// are dark and orange now. Everything else is unchanged. This file is the only place in the C#
+/// that names a colour. The order here is the order Settings lists them in, group by group.
+/// </para>
+/// <para>
+/// Share codes do not follow this list. <see cref="ThemeCode"/> keeps its own frozen copy of the
+/// keys as they were when its format was made, so reordering or adding roles here never changes
+/// what an old code means.
 /// </para>
 /// </remarks>
 public static class ThemeRoles
@@ -47,7 +56,7 @@ public static class ThemeRoles
     private const string Values = "Values";
     private const string Buttons = "Buttons";
     private const string Inputs = "Inputs";
-    private const string Popups = "Tooltips and menus";
+    private const string Popups = "Tooltips and right-click menu";
     private const string Scrolling = "Scrollbars and progress";
     private const string StatusBar = "Status bar";
     private const string Dialog = "Dialog";
@@ -67,8 +76,8 @@ public static class ThemeRoles
         Role("CaptionButtonGlyph", TitleBar, "Window buttons", "#9C7A55"),
         Role("CaptionButtonHover", TitleBar, "Window button under the mouse", "#3A2410"),
         Role("CaptionButtonHoverGlyph", TitleBar, "Window button icon under the mouse", "#FF7500"),
-        Role("CloseButtonHover", TitleBar, "Close button under the mouse", "#E81123"),
-        Role("CloseButtonHoverGlyph", TitleBar, "Close button icon under the mouse", "#FFFFFF"),
+        Role("CloseButtonHover", TitleBar, "Close button under the mouse", "#FF7500"),
+        Role("CloseButtonHoverGlyph", TitleBar, "Close button icon under the mouse", "#000000"),
 
         Role("BannerBackground", Banner, "Banner background", "#FF7500"),
         Role("BannerText", Banner, "Banner text", "#0A0705"),
@@ -130,46 +139,50 @@ public static class ThemeRoles
         Role("InputBackground", Inputs, "Text box background", "#0A0705"),
         Role("InputText", Inputs, "Text box text", "#EAE4DA"),
         Role("InputBorder", Inputs, "Text box border", "#5A3A15"),
-        // The two blues every text box has always shown under the mouse and while typing. They
-        // used to come from WPF's own Aero2 TextBox template, out of reach of any role; the
-        // window now carries a copy of that template with these in its triggers. The defaults
-        // are the values read off the live template's triggers in the running app, so nothing
-        // looks different until someone picks a colour. The Needed cell editor on Find Carriers
+        // The borders every text box shows under the mouse and while typing. They used to be two
+        // blues from WPF's own Aero2 TextBox template, out of reach of any role; the window now
+        // carries a copy of that template with these in its triggers. They first defaulted to
+        // those blues (#7EB4EA and #569DE5, read off the live template) and are Ali's orange
+        // now. The Needed cell editor on Find Carriers
         // had a border role of its own at first, but the editor always has the keyboard while it
         // is open, so the focus border drew over it and that role never showed; the editor now
         // uses the focus border, which is what it always looked like.
-        Role("InputHoverBorder", Inputs, "Text box border under the mouse", "#7EB4EA"),
-        Role("InputFocusBorder", Inputs, "Text box border while typing", "#569DE5"),
+        Role("InputHoverBorder", Inputs, "Text box border under the mouse", "#FF7500"),
+        Role("InputFocusBorder", Inputs, "Text box border while typing", "#FF7500"),
         Role("CheckboxBackground", Inputs, "Checkbox background", "#120E08"),
         Role("CheckboxBorder", Inputs, "Checkbox border", "#5A3A15"),
         Role("CheckboxHoverBorder", Inputs, "Checkbox border under the mouse", "#FF7500"),
         Role("CheckboxTicked", Inputs, "Ticked checkbox", "#FF7500"),
         // Selected text in a text box. WPF lays it over the text at 40% (the text box's
         // SelectionOpacity, left as it was), so what shows is this blended with the box behind.
-        // The default is the system highlight colour WPF used before this role existed.
-        Role("TextSelection", Inputs, "Text selection", "#0078D4", "Shows at 40% over the box"),
+        // It first defaulted to the system highlight blue WPF used before this role existed
+        // (#0078D4); Ali's amber reads better on the dark boxes.
+        Role("TextSelection", Inputs, "Text selection", "#CF8613", "Shows at 40% over the box"),
 
         // Tooltips and the text box right-click menu. All of these were WPF's own Aero2 look,
-        // pale grey and black on a dark app, and the defaults keep that look exactly; the
-        // values were read off a live tooltip and a live menu in the running window. The menu
-        // ones with alpha are see-through washes in the original, and stay see-through.
-        Role("ToolTipBackground", Popups, "Tooltip background", "#F1F2F7"),
-        Role("ToolTipBorder", Popups, "Tooltip border", "#767676"),
-        Role("ToolTipText", Popups, "Tooltip text", "#575757"),
-        Role("MenuBackground", Popups, "Menu background", "#F5F5F5"),
-        Role("MenuBorder", Popups, "Menu border", "#959595"),
-        Role("MenuText", Popups, "Menu text", "#000000"),
-        Role("MenuDisabledText", Popups, "Menu text, unavailable item", "#707070"),
-        Role("MenuHighlight", Popups, "Menu item under the mouse", "#3D26A0DA"),
-        Role("MenuHighlightBorder", Popups, "Menu item under the mouse, border", "#26A0DA"),
-        Role("MenuDisabledHighlight", Popups, "Unavailable menu item under the mouse", "#0A000000"),
-        Role("MenuDisabledHighlightBorder", Popups, "Unavailable menu item under the mouse, border", "#21000000"),
-        // The strip down the left of the menu where icons would go, and the etched line (a dark
-        // line with a white one beside it) that ends it.
-        Role("MenuGutter", Popups, "Menu icon strip", "#F1F1F1"),
-        Role("MenuGutterLine", Popups, "Menu icon strip line", "#E2E3E3"),
-        Role("MenuGutterLineHighlight", Popups, "Menu icon strip line highlight", "#FFFFFF"),
-        Role("MenuShadow", Popups, "Menu shadow", "#71000000"),
+        // pale grey and black on a dark app, and the first defaults kept that look exactly (the
+        // values were read off a live tooltip and a live menu in the running window; TASKS.md
+        // has them). Ali's palette makes both dark with orange, and keeps the menu's see-through
+        // washes see-through: its highlight is now a dark wash rather than a blue one, with an
+        // orange outline doing the work.
+        Role("ToolTipBackground", Popups, "Tooltip background", "#120E08"),
+        Role("ToolTipBorder", Popups, "Tooltip border", "#FF7500"),
+        Role("ToolTipText", Popups, "Tooltip text", "#F6F4F2"),
+        Role("MenuBackground", Popups, "Right-click menu background", "#000000"),
+        Role("MenuBorder", Popups, "Right-click menu border", "#FF7500"),
+        Role("MenuText", Popups, "Right-click menu text", "#FF7500"),
+        Role("MenuDisabledText", Popups, "Right-click menu text, unavailable item", "#7A4F2A"),
+        Role("MenuHighlight", Popups, "Right-click menu item under the mouse", "#3D000000"),
+        Role("MenuHighlightBorder", Popups, "Right-click menu item under the mouse, border", "#FF7500"),
+        Role("MenuDisabledHighlight", Popups, "Unavailable right-click menu item under the mouse", "#0A000000"),
+        Role("MenuDisabledHighlightBorder", Popups, "Unavailable right-click menu item under the mouse, border", "#21000000"),
+        // The strip down the left of the menu where icons would go, and the etched line that ends
+        // it: two one-pixel lines side by side, dark and white in WPF's own menu, both orange in
+        // Ali's.
+        Role("MenuGutter", Popups, "Right-click menu icon strip", "#000000"),
+        Role("MenuGutterLine", Popups, "Right-click menu icon strip line", "#FF7500"),
+        Role("MenuGutterLineHighlight", Popups, "Right-click menu icon strip line highlight", "#FF7500"),
+        Role("MenuShadow", Popups, "Right-click menu shadow", "#71000000"),
 
         Role("ScrollbarThumb", Scrolling, "Scrollbar", "#5A3A15"),
         Role("ScrollbarThumbHover", Scrolling, "Scrollbar under the mouse", "#FF7500"),
@@ -180,7 +193,7 @@ public static class ThemeRoles
         Role("StatusText", StatusBar, "Status text", "#B89470"),
         Role("StatusDetailText", StatusBar, "Inventory status", "#9C7A55"),
 
-        // The one role with alpha: it dims the tabs behind the resume-search dialog.
+        // See-through on purpose: it dims the tabs behind the resume-search dialog.
         Role("OverlayDim", Dialog, "Dimming behind the dialog", "#CC000000"),
         Role("DialogBackground", Dialog, "Dialog background", "#120E08"),
         Role("DialogBorder", Dialog, "Dialog border", "#FF7500"),
