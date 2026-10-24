@@ -1,6 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Input;
 using FleetView.Services;
 using FleetView.ViewModels;
 
@@ -133,6 +134,32 @@ public partial class MainWindow : Window
         string label = maximized ? "Restore" : "Maximize";
         MaximizeRestoreButton.ToolTip = label;
         AutomationProperties.SetName(MaximizeRestoreButton, label);
+    }
+
+    /// <summary>Escape anywhere on the Engineers tab shuts the breakdown when it is open, and does
+    /// nothing otherwise.</summary>
+    private void EngineersTab_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && (sender as FrameworkElement)?.DataContext is EngineersViewModel vm && vm.CloseOnEscape())
+            e.Handled = true;
+    }
+
+    /// <summary>A click on the dimmed tab round the breakdown shuts it; a click on the breakdown
+    /// itself reaches here too, as it bubbles, and is left alone.</summary>
+    private void EngineerBreakdownLayer_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!ReferenceEquals(e.OriginalSource, sender)) return;
+        if ((sender as FrameworkElement)?.DataContext is EngineersViewModel vm && vm.CloseOnEscape())
+            e.Handled = true;
+    }
+
+    /// <summary>When the breakdown opens, the keyboard goes to its Close button, inside this
+    /// window only, so Escape and Enter both work at once. The breakdown starts at its top.</summary>
+    private void EngineerBreakdownLayer_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is not true) return;
+        EngineerBreakdownScroll.ScrollToTop();
+        EngineerBreakdownClose.Focus();
     }
 
     /// <summary>The cog opens Settings, a tab with no header of its own; any tab takes it away.</summary>

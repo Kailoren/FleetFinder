@@ -26,8 +26,12 @@ using FleetView.Theming;
 // and the saved themes on the page: cards, Save as theme, Import code (ShelfTests.cs), and the
 // themes FleetFinder comes with, pinned and checked for readable text (BuiltInTests.cs). Then the
 // Ship Locker tab: its reader on made-up journals and locker files, its words, its view model and
-// the tab in the window (LockerTests.cs). Prints one PASS or FAIL line per check and a final
-// SUMMARY line; exit code 1 if anything failed.
+// the tab in the window (LockerTests.cs). Then the Engineers tab's data and logic: the shipped
+// engineers.json, the loader on damaged files, EngineerProgress per commander, distances with a
+// fake coordinate source, the view model's order, search and Show filter, and the journal growth
+// probe (EngineerTests.cs). Then the Engineers tab itself: the card columns, the copy note, the
+// breakdown, the words for an empty tab, and the tab in the window (EngineerTabTests.cs). Prints
+// one PASS or FAIL line per check and a final SUMMARY line; exit code 1 if anything failed.
 //
 // Runs on an STA thread because WPF brushes are dispatcher objects. It builds the main window's
 // object tree to check the Settings page in it, but never shows it, so nothing appears on screen.
@@ -92,6 +96,14 @@ internal sealed partial class SelfTest
             Section("ship locker words", LockerTextTests);
             Section("ship locker view model", LockerViewModelTests);
             Section("Ship Locker tab", LockerTabTests);
+            Section("engineer data", EngineerDataTests);
+            Section("engineer data damaged", EngineerLoaderTests);
+            Section("engineer progress", EngineerProgressTests);
+            Section("engineer reads and distances", EngineerStatusTests);
+            Section("engineers view model", EngineerViewModelTests);
+            Section("journal growth probe", JournalProbeTests);
+            Section("engineers tab logic", EngineerTabLogicTests);
+            Section("Engineers tab", EngineerTabTests);
         }
         finally
         {
@@ -1188,7 +1200,7 @@ internal sealed partial class SelfTest
         var page = (FleetView.Settings.SettingsPage)window.FindName("SettingsView");
         var cog = (Button)window.FindName("SettingsCogButton");
 
-        Equal("the tabs in the strip, Ship Locker since T1", "Find Carriers,Modifications,Barter,Ship Locker,Import",
+        Equal("the tabs in the strip, Ship Locker since T1 and Engineers since T3", "Find Carriers,Modifications,Barter,Ship Locker,Engineers,Import",
             string.Join(",", tabs.Items.OfType<TabItem>().Where(t => t.Visibility == Visibility.Visible).Select(t => t.Header)));
         Check("Settings is a tab with no header in the strip", tab.Visibility == Visibility.Collapsed && tabs.Items.Contains(tab));
         Check("after the others, so they keep their places", tabs.Items.IndexOf(tab) == tabs.Items.Count - 1);

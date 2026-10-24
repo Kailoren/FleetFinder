@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FleetView"
         xmlns:settings="clr-namespace:FleetView.Settings"
+        xmlns:controls="clr-namespace:FleetView.Controls"
         xmlns:aero2="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
         mc:Ignorable="d"
         Title="FleetFinder - Odyssey Engineering Material Finder"
@@ -514,6 +515,147 @@
             <Setter Property="Background" Value="{DynamicResource ToolTipBackground}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource ToolTipBorder}"/>
             <Setter Property="Foreground" Value="{DynamicResource ToolTipText}"/>
+        </Style>
+
+        <!-- Drop-down boxes (the Engineers tab's Show box). WPF's own template draws in fixed
+             system colours, so this is a small one of FleetFinder's own: the closed box looks
+             like a text box (the same roles, the same border under the mouse and while in use)
+             and the open list like the right-click menu, so no new role was needed. A toggle
+             button with nothing drawn covers the box and opens the list. -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource InputText}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <Border x:Name="bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" SnapsToDevicePixels="True">
+                                <DockPanel Margin="{TemplateBinding Padding}">
+                                    <Path DockPanel.Dock="Right" Width="10" Height="6" Margin="10,0,0,0" VerticalAlignment="Center"
+                                          Data="M0.5,0.5 L5,5 L9.5,0.5" StrokeThickness="1.2"
+                                          Stroke="{TemplateBinding Foreground}"/>
+                                    <ContentPresenter Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                </DockPanel>
+                            </Border>
+                            <ToggleButton Focusable="False" ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent"/>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+                                <Border Background="{DynamicResource MenuBackground}" BorderBrush="{DynamicResource MenuBorder}"
+                                        BorderThickness="1" Margin="0,2,0,0" Padding="1"
+                                        MinWidth="{Binding ActualWidth, ElementName=bd}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource InputHoverBorder}"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
+                            </Trigger>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource InputFocusBorder}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Resources>
+                <Style TargetType="ComboBoxItem">
+                    <Setter Property="Foreground" Value="{DynamicResource MenuText}"/>
+                    <Setter Property="Padding" Value="8,5"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ComboBoxItem">
+                                <Border x:Name="itemBorder" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"
+                                        Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                                    <ContentPresenter/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Trigger>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="itemBorder" Property="Background" Value="{DynamicResource MenuHighlight}"/>
+                                        <Setter TargetName="itemBorder" Property="BorderBrush" Value="{DynamicResource MenuHighlightBorder}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <!-- Engineers tab: the engineer's name on a card, a button drawn as plain text that opens
+             the breakdown. Main text until the engineer is unlocked, then the panel heading
+             colour (the accent in most themes). -->
+        <Style x:Key="EngineerNameButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource MainText}"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock x:Name="txt" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                   TextTrimming="CharacterEllipsis" Background="Transparent"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="txt" Property="TextDecorations" Value="Underline"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsUnlocked}" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource PanelText}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Engineers tab: the small headings on a card and in the breakdown. -->
+        <Style x:Key="EngineerHeading" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource GroupHeaderText}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,10,0,3"/>
+        </Style>
+
+        <!-- Engineers tab: the "Copied" note beside a system, drawn like a tooltip. -->
+        <Style x:Key="CopyNoteChip" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ToolTipBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolTipBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Padding" Value="6,0"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource ToolTipText}"/>
+            <Setter Property="TextElement.FontSize" Value="12"/>
+            <Setter Property="TextElement.FontWeight" Value="Normal"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+            <Setter Property="Visibility" Value="{Binding HasCopyNote, Converter={x:Static local:BoolToVis.Instance}}"/>
         </Style>
 
         <!-- Dark-theme tabs. -->
@@ -1689,6 +1831,246 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </Grid>
+        </TabItem>
+
+        <!-- Engineers: a card per on-foot engineer, nearest first, with the commander's standing
+             with each. Click a name for the breakdown over the tab, a system to copy it. The view
+             model reads off the UI thread and follows the journal live; cards are moved, not
+             rebuilt, so the scroll position and an open breakdown survive an update. Regular
+             weight here, as in the design, rather than the SemiBold every tab's content inherits
+             from its selected header. No splitter, so nothing for window-state.json. -->
+        <TabItem Header="Engineers">
+            <Grid TextElement.Foreground="{DynamicResource PanelText}" DataContext="{Binding Engineers}"
+                  TextElement.FontWeight="Normal" PreviewKeyDown="EngineersTab_PreviewKeyDown">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- TOP: whose standing, the search and Show boxes, the hint and the count. -->
+                <Border Grid.Row="0" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="10"
+                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding DistancesFromText}" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Bottom" Margin="12,0,2,1"/>
+                            <TextBlock Text="{Binding CommanderText}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        </DockPanel>
+                        <DockPanel Margin="0,8,0,0">
+                            <TextBlock DockPanel.Dock="Left" Text="Search" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Center" Margin="2,0,8,0"/>
+                            <TextBox x:Name="EngineersSearch" DockPanel.Dock="Left" Width="260"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Search engineers"
+                                     Background="{DynamicResource InputBackground}" Foreground="{DynamicResource InputText}" BorderBrush="{DynamicResource InputBorder}"
+                                     BorderThickness="1" Padding="8,6" VerticalAlignment="Center"/>
+                            <TextBlock DockPanel.Dock="Left" Text="Show" Foreground="{DynamicResource MutedText}"
+                                       VerticalAlignment="Center" Margin="16,0,8,0"/>
+                            <ComboBox x:Name="EngineersShow" DockPanel.Dock="Left" Width="180" VerticalAlignment="Center"
+                                      ItemsSource="{Binding ShowOptions}" SelectedItem="{Binding SelectedShowOption}"
+                                      AutomationProperties.Name="Show which engineers"/>
+                            <TextBlock x:Name="EngineersHint" Text="Nearest first. Click a name for everything that engineer does, a system to copy it."
+                                       Foreground="{DynamicResource MutedText}" VerticalAlignment="Center" Margin="16,0,0,0"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                        </DockPanel>
+                        <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource MutedText}" Margin="2,8,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- The cards: about a quarter of the page each, four across at Ali's 1720, two on
+                     the smallest window. Each row as tall as its tallest card. -->
+                <ScrollViewer x:Name="EngineersScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <ItemsControl x:Name="EngineerCards" ItemsSource="{Binding Cards}" Margin="-3,-3,-3,0" Focusable="False">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:CardRowsPanel MinColumnWidth="380"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="3" Background="{DynamicResource PanelBackground}" CornerRadius="6" Padding="12,10,12,12"
+                                        BorderBrush="{DynamicResource PanelBorder}" BorderThickness="1">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,0,0" Padding="6,1"
+                                                    CornerRadius="3" BorderThickness="1"
+                                                    Background="{DynamicResource TotalsBoxBackground}" BorderBrush="{DynamicResource TotalsBoxBorder}">
+                                                <TextBlock Text="{Binding Region}" FontSize="11" Foreground="{DynamicResource MutedText}"/>
+                                            </Border>
+                                            <Button Style="{StaticResource EngineerNameButton}" Content="{Binding Name}"
+                                                    Command="{Binding DataContext.OpenBreakdownCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}" ToolTip="Everything this engineer does"
+                                                    AutomationProperties.Name="{Binding Name}"/>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding StateText}" Foreground="{DynamicResource MutedText}" FontSize="12" Margin="0,1,0,0"/>
+                                        <DockPanel Margin="0,8,0,0">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding DistanceLabel}" Foreground="{DynamicResource MutedText}"
+                                                       VerticalAlignment="Center" Margin="8,0,0,0"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource LinkButton}" Content="{Binding System}" FontWeight="SemiBold"
+                                                        Command="{Binding DataContext.CopySystemCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                        CommandParameter="{Binding}" ToolTip="Copy the system name"
+                                                        AutomationProperties.Name="{Binding System}"/>
+                                                <Border Style="{StaticResource CopyNoteChip}">
+                                                    <TextBlock Text="{Binding CopyNote}"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding PlaceText}" Foreground="{DynamicResource MutedText}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Visibility="{Binding ShowPrerequisites, Converter={x:Static local:BoolToVis.Instance}}">
+                                            <TextBlock Style="{StaticResource EngineerHeading}" Text="Unlock Prerequisites"/>
+                                            <ItemsControl ItemsSource="{Binding Prerequisites}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource MainText}" Margin="0,1"><Run
+                                                                Text="{Binding Label, Mode=OneWay}" FontWeight="SemiBold"/><Run Text=": "/><Run
+                                                                Text="{Binding Text, Mode=OneWay}"/></TextBlock>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <StackPanel Visibility="{Binding HasSuitModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                            <TextBlock Style="{StaticResource EngineerHeading}" Text="Suit Modules"/>
+                                            <ItemsControl ItemsSource="{Binding SuitModules}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="{DynamicResource MainText}" Margin="0,1"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <StackPanel Visibility="{Binding HasWeaponModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                            <TextBlock Style="{StaticResource EngineerHeading}" Text="Weapon Modules"/>
+                                            <ItemsControl ItemsSource="{Binding WeaponModules}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Foreground="{DynamicResource MainText}" Margin="0,1"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding ReferralFooter}" Foreground="{DynamicResource MutedText}" FontSize="12"
+                                                   TextWrapping="Wrap" Margin="0,12,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ReferralFooter}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <TextBlock x:Name="EngineersEmpty" Grid.Row="2" Text="{Binding EmptyText}" Foreground="{DynamicResource MutedText}"
+                           TextWrapping="Wrap" TextAlignment="Center" Margin="24,48,24,0" VerticalAlignment="Top"
+                           IsHitTestVisible="False"
+                           Visibility="{Binding IsEmpty, Converter={x:Static local:BoolToVis.Instance}}"/>
+
+                <!-- The breakdown: everything one engineer offers, over the whole tab like the
+                     Settings dialogs. Close, Escape or a click on the dimmed tab shuts it. The card
+                     object it shows stays current while the journal grows. -->
+                <Border x:Name="EngineerBreakdownLayer" Grid.RowSpan="3" Background="{DynamicResource OverlayDim}"
+                        Visibility="{Binding IsBreakdownOpen, Converter={x:Static local:BoolToVis.Instance}}"
+                        MouseLeftButtonDown="EngineerBreakdownLayer_MouseLeftButtonDown"
+                        IsVisibleChanged="EngineerBreakdownLayer_IsVisibleChanged">
+                    <Border x:Name="EngineerBreakdownCard" DataContext="{Binding Breakdown}"
+                            Background="{DynamicResource DialogBackground}" BorderBrush="{DynamicResource DialogBorder}"
+                            BorderThickness="1" CornerRadius="8" Padding="20,16,20,20" Margin="24"
+                            MaxWidth="1160" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <DockPanel>
+                            <DockPanel DockPanel.Dock="Top">
+                                <Button x:Name="EngineerBreakdownClose" DockPanel.Dock="Right" VerticalAlignment="Top" Content="Close"
+                                        Padding="16,7" Command="{Binding DataContext.CloseBreakdownCommand, ElementName=EngineerBreakdownLayer}"/>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Card.Name}" FontSize="22" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource DialogTitle}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Card.KindText}" Foreground="{DynamicResource MutedText}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <ScrollViewer x:Name="EngineerBreakdownScroll" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0" Focusable="False">
+                                <StackPanel>
+                                    <WrapPanel>
+                                        <Button Style="{StaticResource LinkButton}" Content="{Binding Card.System}" FontSize="16" FontWeight="SemiBold"
+                                                Command="{Binding DataContext.CopySystemCommand, ElementName=EngineerBreakdownLayer}"
+                                                CommandParameter="{Binding Card}" ToolTip="Copy the system name"
+                                                AutomationProperties.Name="{Binding Card.System}"/>
+                                        <Border Style="{StaticResource CopyNoteChip}" DataContext="{Binding Card}">
+                                            <TextBlock Text="{Binding CopyNote}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Card.DistanceFromYouText}" Foreground="{DynamicResource MutedText}"
+                                                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+                                        <TextBlock Text="{Binding Card.PlaceText}" Foreground="{DynamicResource MutedText}"
+                                                   VerticalAlignment="Center" Margin="16,0,0,0"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="{Binding Card.ModulesText}" Foreground="{DynamicResource MainText}" Margin="0,8,0,0"/>
+                                    <ItemsControl ItemsSource="{Binding Card.BreakdownLines}" Margin="0,12,0,0" Focusable="False"
+                                                  Grid.IsSharedSizeScope="True">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" SharedSizeGroup="BreakdownLabel"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="{DynamicResource MutedText}"
+                                                               Margin="0,0,28,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{DynamicResource MainText}"
+                                                               TextWrapping="Wrap"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <Grid Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="28"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Visibility="{Binding HasSuitModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                            <TextBlock Style="{StaticResource EngineerHeading}" Text="Suit Modules"/>
+                                            <ItemsControl ItemsSource="{Binding SuitModules}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,2,0,4">
+                                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MainText}"/>
+                                                            <TextBlock Text="{Binding Materials}" Foreground="{DynamicResource MutedText}" FontSize="12"
+                                                                       TextWrapping="Wrap" Margin="10,1,0,0"
+                                                                       Visibility="{Binding HasMaterials, Converter={x:Static local:BoolToVis.Instance}}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" Visibility="{Binding HasWeaponModules, Converter={x:Static local:BoolToVis.Instance}}">
+                                            <TextBlock Style="{StaticResource EngineerHeading}" Text="Weapon Modules"/>
+                                            <ItemsControl ItemsSource="{Binding WeaponModules}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,2,0,4">
+                                                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource MainText}"/>
+                                                            <TextBlock Text="{Binding Materials}" Foreground="{DynamicResource MutedText}" FontSize="12"
+                                                                       TextWrapping="Wrap" Margin="10,1,0,0"
+                                                                       Visibility="{Binding HasMaterials, Converter={x:Static local:BoolToVis.Instance}}"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </DockPanel>
+                    </Border>
+                </Border>
             </Grid>
         </TabItem>
 

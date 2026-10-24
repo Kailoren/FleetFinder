@@ -450,7 +450,7 @@ internal sealed partial class SelfTest
 
         var window = new MainWindow { DataContext = new LockerHost(vm) };
         var tabs = (TabControl)window.FindName("MainTabs");
-        Equal("Ship Locker sits between Barter and Import", "Find Carriers,Modifications,Barter,Ship Locker,Import",
+        Equal("Ship Locker sits between Barter and Engineers", "Find Carriers,Modifications,Barter,Ship Locker,Engineers,Import",
             string.Join(",", tabs.Items.OfType<TabItem>().Where(t => t.Visibility == Visibility.Visible).Select(t => t.Header)));
         var tab = tabs.Items.OfType<TabItem>().Single(t => (t.Header as string) == "Ship Locker");
         var root = (Grid)tab.Content;

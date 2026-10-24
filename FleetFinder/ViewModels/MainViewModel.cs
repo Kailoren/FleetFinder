@@ -127,6 +127,13 @@ public sealed class MainViewModel : ObservableObject
         // Before the first RefreshInventory, which starts its first read.
         var lockerContents = new ShipLockerContentsReader(journal, locker.FilePath, catalog);
         ShipLocker = new ShipLockerViewModel(lockerContents.Read);
+        var engineers = EngineerLoader.Load();
+        var engineerStatus = new EngineerStatusSource(journal, engineers.Engineers, coords);
+        Engineers = new EngineersViewModel(engineers, engineerStatus.Read, modifications: modifications);
+        // Distances arrive after the systems are looked up, which a read does not wait for.
+        engineerStatus.CoordinatesFound += () =>
+            Application.Current?.Dispatcher.BeginInvoke(new Action(Engineers.Refresh));
+        _journalProbe = new JournalGrowthProbe(journal);
 
         RefreshInventory();
         LoadPendingSearchIfAny();
@@ -140,6 +147,13 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>The Ship Locker tab. It reads the locker again whenever the inventory does, so it
     /// follows the game on the same file watcher and one-second poll as Find Carriers.</summary>
     public ShipLockerViewModel ShipLocker { get; }
+
+    /// <summary>The Engineers tab. It reads again with the inventory and whenever the newest
+    /// journal grows (checked on the same one-second poll), which is what follows jumps and
+    /// engineer progress while the game plays.</summary>
+    public EngineersViewModel Engineers { get; }
+
+    private readonly JournalGrowthProbe _journalProbe;
 
     /// <summary>
     /// Rebuilds the inventory-derived state from ShipLocker.json.
@@ -165,6 +179,7 @@ public sealed class MainViewModel : ObservableObject
 
         // Off the UI thread: it reads journals as well as the locker file.
         ShipLocker.Refresh();
+        Engineers.Refresh();
     }
 
     private void RefreshInventoryCore()
@@ -333,8 +348,14 @@ public sealed class MainViewModel : ObservableObject
 
         _pollTimer = new System.Threading.Timer(_ =>
         {
+            // The journal grows on every jump and engineer change without the locker file
+            // changing, so the Engineers tab is asked on its own when it does. Looked at every
+            // tick, so a refresh that covers it anyway still moves the probe on.
+            bool journalGrew = _journalProbe.Changed();
             if (_locker.LastWriteUtc != _lastSeenWriteUtc)
                 Application.Current?.Dispatcher.BeginInvoke(new Action(RefreshInventory));
+            else if (journalGrew)
+                Application.Current?.Dispatcher.BeginInvoke(new Action(Engineers.Refresh));
         }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 

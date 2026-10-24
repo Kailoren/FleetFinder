@@ -1,0 +1,164 @@
+{
+  "about": "The on-foot engineers for FleetFinder's Engineers tab: where each one is, how to discover, unlock and get a referral from them, and the suit and weapon modifications they do. Distances are looked up by system name, so there are no coordinates here.",
+  "modificationNames": {
+    "Improved Hip Fire Accuracy": "Higher Accuracy"
+  },
+  "engineers": [
+    {
+      "name": "Hero Ferrari",
+      "region": "Bubble",
+      "system": "Siris",
+      "settlement": "Nevermore Terrace",
+      "find": "Common knowledge.",
+      "invite": "Complete 10 surface conflict zones.",
+      "referral": "Provide 5 Settlement Defence Plans.",
+      "refersTo": ["Wellington Beck"],
+      "suitModules": ["Increased Sprint Duration", "Improved Jump Assist", "Increased Air Reserves"],
+      "weaponModules": ["Faster Handling", "Noise Suppressor"]
+    },
+    {
+      "name": "Wellington Beck",
+      "region": "Bubble",
+      "system": "Jolapa",
+      "settlement": "Beck Facility",
+      "find": "From Hero Ferrari",
+      "invite": "Sell a total of 15 Multimedia Entertainment, Classic Entertainment and Cat Media to bartenders.",
+      "referral": "Provide 5 units of Insight Entertainment Suites.",
+      "refersTo": ["Uma Laszlo"],
+      "suitModules": ["Reduced Tool Battery Consumption", "Improved Battery Capacity", "Extra Backpack Capacity"],
+      "weaponModules": ["Greater Range", "Scope"]
+    },
+    {
+      "name": "Uma Laszlo",
+      "region": "Bubble",
+      "system": "Xuane",
+      "settlement": "Laszlo's Resolve",
+      "find": "From Wellington Beck",
+      "invite": "Reach Unfriendly reputation or lower with Sirius Corporation.",
+      "referral": "",
+      "refersTo": [],
+      "suitModules": ["Damage Resistance", "Faster Shield Regen"],
+      "weaponModules": ["Reload Speed", "Stowed Reloading", "Headshot Damage"]
+    },
+    {
+      "name": "Jude Navarro",
+      "region": "Bubble",
+      "system": "Aurai",
+      "settlement": "Marshall's Drift",
+      "find": "Common knowledge.",
+      "invite": "Complete 10 Restore or Reactivation missions.",
+      "referral": "Provide 5 units of Genetic Repair Meds.",
+      "refersTo": ["Terra Velasquez"],
+      "suitModules": ["Extra Ammo Capacity", "Damage Resistance", "Added Melee Damage"],
+      "weaponModules": ["Reload Speed", "Magazine Size"]
+    },
+    {
+      "name": "Terra Velasquez",
+      "region": "Bubble",
+      "system": "Shou Xing",
+      "settlement": "Rascal's Choice",
+      "find": "From Jude Navarro",
+      "invite": "Complete 6 Covert Theft and Covert Heist missions.",
+      "referral": "Provide 15 Financial Projections.",
+      "refersTo": ["Oden Geiger"],
+      "suitModules": ["Increased Sprint Duration", "Combat Movement Speed", "Increased Air Reserves"],
+      "weaponModules": ["Improved Hip Fire Accuracy", "Noise Suppressor"]
+    },
+    {
+      "name": "Oden Geiger",
+      "region": "Bubble",
+      "system": "Candiaei",
+      "settlement": "Ankh's Promise",
+      "find": "From Terra Velasquez",
+      "invite": "Sell a total of 20 Biological Sample, Employee Genetic Data and Genetic Research to bartenders.",
+      "referral": "",
+      "refersTo": [],
+      "suitModules": ["Enhanced Tracking", "Improved Battery Capacity", "Night Vision"],
+      "weaponModules": ["Stability", "Scope"]
+    },
+    {
+      "name": "Domino Green",
+      "region": "Bubble",
+      "system": "Orishis",
+      "settlement": "The Jackrabbit",
+      "find": "Common knowledge.",
+      "invite": "Travel at least 100 light years in shuttles.",
+      "referral": "Provide 5 doses of Push.",
+      "refersTo": ["Kit Fowler"],
+      "suitModules": ["Enhanced Tracking", "Extra Backpack Capacity", "Reduced Tool Battery Consumption"],
+      "weaponModules": ["Greater Range", "Stability"]
+    },
+    {
+      "name": "Kit Fowler",
+      "region": "Bubble",
+      "system": "Capoya",
+      "settlement": "The Last Call",
+      "find": "From Domino Green",
+      "invite": "Sell 5 Opinion Polls to bartenders.",
+      "referral": "Provide 5 units of Surveillance Equipment.",
+      "refersTo": ["Yarden Bond"],
+      "suitModules": ["Added Melee Damage", "Faster Shield Regen", "Extra Ammo Capacity"],
+      "weaponModules": ["Stowed Reloading", "Magazine Size"]
+    },
+    {
+      "name": "Yarden Bond",
+      "region": "Bubble",
+      "system": "Bayan",
+      "settlement": "Salamander Bank",
+      "find": "From Kit Fowler",
+      "invite": "Sell 5 Smear Campaign Plans to bartenders.",
+      "referral": "",
+      "refersTo": [],
+      "suitModules": ["Improved Jump Assist", "Combat Movement Speed", "Quieter Footsteps"],
+      "weaponModules": ["Faster Handling", "Improved Hip Fire Accuracy", "Audio Masking"]
+    },
+    {
+      "name": "Eleanor Bresa",
+      "region": "Colonia",
+      "system": "Desy",
+      "settlement": "Bresa Modifications",
+      "find": "Common knowledge.",
+      "invite": "Visit 5 settlements in the Colonia system.",
+      "referral": "Provide 10 Digital Designs.",
+      "refersTo": ["Yi Shen"],
+      "suitModules": ["Added Melee Damage", "Damage Resistance", "Extra Ammo Capacity", "Faster Shield Regen"],
+      "weaponModules": ["Magazine Size", "Reload Speed", "Stowed Reloading"]
+    },
+    {
+      "name": "Rosa Dayette",
+      "region": "Colonia",
+      "system": "Kojeara",
+      "settlement": "Rosa's Shop",
+      "find": "Common knowledge.",
+      "invite": "Sell a total of 10 Culinary Recipes or Cocktail Recipes to stations in Colonia.",
+      "referral": "Provide 10 units of Manufacturing Instructions data.",
+      "refersTo": ["Yi Shen"],
+      "suitModules": ["Extra Backpack Capacity", "Enhanced Tracking", "Reduced Tool Battery Consumption", "Improved Battery Capacity"],
+      "weaponModules": ["Greater Range", "Scope", "Stability"]
+    },
+    {
+      "name": "Baltanos",
+      "region": "Colonia",
+      "system": "Deriso",
+      "settlement": "The Divine Apparatus",
+      "find": "Common knowledge.",
+      "invite": "Reach Friendly reputation with the Colonia Council.",
+      "referral": "Provide 10 Faction Associates data.",
+      "refersTo": ["Yi Shen"],
+      "suitModules": ["Improved Jump Assist", "Increased Air Reserves", "Increased Sprint Duration", "Combat Movement Speed"],
+      "weaponModules": ["Noise Suppressor", "Improved Hip Fire Accuracy", "Faster Handling"]
+    },
+    {
+      "name": "Yi Shen",
+      "region": "Colonia",
+      "system": "Einheriar",
+      "settlement": "Eidolon Hold",
+      "find": "From Baltanos, Eleanor Bresa and Rosa Dayette",
+      "invite": "Complete referral tasks for Baltanos, Eleanor Bresa and Rosa Dayette.",
+      "referral": "",
+      "refersTo": [],
+      "suitModules": ["Quieter Footsteps", "Night Vision"],
+      "weaponModules": ["Audio Masking", "Headshot Damage"]
+    }
+  ]
+}

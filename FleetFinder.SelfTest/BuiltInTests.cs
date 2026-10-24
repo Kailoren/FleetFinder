@@ -297,10 +297,17 @@ internal sealed partial class SelfTest
         new("MenuText", "MenuHighlight over MenuBackground", BodyText, c => Blend(c["MenuHighlight"], c["MenuBackground"], c["MenuHighlight"].A / 255.0)),
         On("StatusText", "StatusBarBackground", BodyText),
         On("StatusDetailText", "StatusBarBackground", BodyText),
+        // The Engineers tab (T3): its cards are panels and its breakdown is a dialog, so the
+        // system link sits on both.
+        On("LinkText", "PanelBackground", BodyText),
+        On("LinkHoverText", "PanelBackground", BodyText),
+        On("LinkText", "DialogBackground", BodyText),
+        On("LinkHoverText", "DialogBackground", BodyText),
 
         // Headings, large text, icons and state.
         On("GroupHeaderText", "GridBackground", LargeText),
         On("GroupHeaderText", "PanelBackground", LargeText),  // the Settings list's group headings
+        On("GroupHeaderText", "DialogBackground", LargeText), // the engineer breakdown's headings
         On("DialogTitle", "DialogBackground", LargeText),
         On("BarterResult", "TotalsBoxBackground", LargeText), // 26 px bold
         On("CaptionButtonGlyph", "TitleBarBackground", LargeText),

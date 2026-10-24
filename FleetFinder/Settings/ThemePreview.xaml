@@ -431,6 +431,7 @@
                         <TabItem Header="Modifications" settings:PreviewTag.Roles="TabText"/>
                         <TabItem Header="Barter" settings:PreviewTag.Roles="TabText"/>
                         <TabItem Header="Ship Locker" settings:PreviewTag.Roles="TabText"/>
+                        <TabItem Header="Engineers" settings:PreviewTag.Roles="TabText"/>
                         <TabItem Header="Import" settings:PreviewTag.Roles="TabText"/>
                     </TabControl>
 
