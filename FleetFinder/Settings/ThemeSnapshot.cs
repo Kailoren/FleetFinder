@@ -20,12 +20,19 @@ public static class ThemeSnapshot
     public const double CardWidth = 160;
     public const double CardHeight = 160;
 
+    /// <summary>The bigger picture the Import code box shows, as wide as the box's content, so a
+    /// shared theme can be judged properly before it is added. The card it becomes still gets
+    /// its own card-sized picture.</summary>
+    public const double ImportWidth = 400;
+    public const double ImportHeight = 400;
+
     /// <summary>
-    /// The element as it is laid out now, scaled to fit the card's picture and encoded as PNG.
+    /// The element as it is laid out now, scaled to fit a picture of <paramref name="width"/> by
+    /// <paramref name="height"/> (the card's, unless given) and encoded as PNG.
     /// <paramref name="dpiScale"/> is the screen's scale (1.25 at 125%), so the picture has as many
-    /// pixels as the card shows and stays sharp. Null if the element has not been laid out.
+    /// pixels as it is shown at and stays sharp. Null if the element has not been laid out.
     /// </summary>
-    public static byte[]? Png(FrameworkElement source, double dpiScale = 1)
+    public static byte[]? Png(FrameworkElement source, double dpiScale = 1, double width = CardWidth, double height = CardHeight)
     {
         int fullWidth = (int)Math.Ceiling(source.ActualWidth), fullHeight = (int)Math.Ceiling(source.ActualHeight);
         if (fullWidth <= 0 || fullHeight <= 0) return null;
@@ -45,9 +52,9 @@ public static class ThemeSnapshot
         var full = new RenderTargetBitmap(fullWidth, fullHeight, 96, 96, PixelFormats.Pbgra32);
         full.Render(whole);
 
-        double scale = Math.Min(CardWidth * dpiScale / fullWidth, CardHeight * dpiScale / fullHeight);
-        int width = Math.Max(1, (int)Math.Round(fullWidth * scale)), height = Math.Max(1, (int)Math.Round(fullHeight * scale));
-        var small = Shrink(full, width, height);
+        double scale = Math.Min(width * dpiScale / fullWidth, height * dpiScale / fullHeight);
+        int pixelWidth = Math.Max(1, (int)Math.Round(fullWidth * scale)), pixelHeight = Math.Max(1, (int)Math.Round(fullHeight * scale));
+        var small = Shrink(full, pixelWidth, pixelHeight);
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(small));

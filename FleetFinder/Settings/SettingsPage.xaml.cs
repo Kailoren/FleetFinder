@@ -52,6 +52,7 @@ public partial class SettingsPage : UserControl
     private SaveThemeForm? _saveForm;
     private ThemeImport? _import;
     private byte[]? _importPng;
+    private byte[]? _importLargePng;
     private bool _fillingBoxes;
     private bool _commanderTyped;
     private int _commanderAsk;
@@ -718,7 +719,8 @@ public partial class SettingsPage : UserControl
     /// A picture of the preview in these colours, as PNG bytes, drawn on a second preview that is
     /// never shown (the real one shows the draft). Null if it could not be laid out.
     /// </summary>
-    public byte[]? RenderSnapshot(IReadOnlyDictionary<string, Color> colours)
+    public byte[]? RenderSnapshot(IReadOnlyDictionary<string, Color> colours,
+                                  double width = ThemeSnapshot.CardWidth, double height = ThemeSnapshot.CardHeight)
     {
         if (_snapshotPreview == null)
         {
@@ -731,7 +733,7 @@ public partial class SettingsPage : UserControl
         preview.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         preview.Arrange(new Rect(preview.DesiredSize));
         preview.UpdateLayout();
-        var png = ThemeSnapshot.Png(preview, DpiScale());
+        var png = ThemeSnapshot.Png(preview, DpiScale(), width, height);
         // Out of the way again, so it costs nothing while the page is in use.
         preview.Visibility = Visibility.Collapsed;
         return png;
@@ -801,6 +803,7 @@ public partial class SettingsPage : UserControl
         _saveForm = null;
         _import = null;
         _importPng = null;
+        _importLargePng = null;
         _importShown = null;
         ImportImage.Source = null;
         var opener = _dialogOpener;
@@ -947,6 +950,7 @@ public partial class SettingsPage : UserControl
         CloseDialog();
         _import = new ThemeImport(_shelf);
         _importPng = null;
+        _importLargePng = null;
         _importShown = null;
         SetBoxText(ImportCodeBox, "");
         ShowImport();
@@ -977,11 +981,14 @@ public partial class SettingsPage : UserControl
         if (theme == null)
         {
             _importPng = null;
+            _importLargePng = null;
             _importShown = null;
         }
         else if (_importShown == null || ThemeRoles.All.Any(r => _importShown.Colours[r.Key] != theme.Colours[r.Key]))
         {
+            // The box shows the big picture; the card it becomes keeps the card-sized one.
             _importPng = RenderSnapshot(theme.Colours);
+            _importLargePng = RenderSnapshot(theme.Colours, ThemeSnapshot.ImportWidth, ThemeSnapshot.ImportHeight);
             _importShown = theme;
         }
         ShowImport();
@@ -996,7 +1003,7 @@ public partial class SettingsPage : UserControl
         ImportMessage.SetResourceReference(TextBlock.ForegroundProperty, _import.State == ImportState.Empty ? "MutedText" : "MainText");
         bool found = _import.Theme != null;
         ImportFound.Visibility = found ? Visibility.Visible : Visibility.Collapsed;
-        ImportImage.Source = found && _importPng != null ? ThemeShelf.ReadSnapshot(_importPng) : null;
+        ImportImage.Source = found && _importLargePng != null ? ThemeShelf.ReadSnapshot(_importLargePng) : null;
         ImportCredit.Text = _import.Credit;
         ImportAddButton.IsEnabled = _import.CanAdd;
         FitDialog();

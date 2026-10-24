@@ -376,8 +376,8 @@
                     <TextBlock x:Name="ImportMessage" Margin="0,12,0,0" TextWrapping="Wrap"/>
                     <StackPanel x:Name="ImportFound" Margin="0,14,0,0" HorizontalAlignment="Center" Visibility="Collapsed">
                         <Border BorderThickness="1" BorderBrush="{DynamicResource Divider}" HorizontalAlignment="Center">
-                            <Image x:Name="ImportImage" Width="{x:Static settings:ThemeSnapshot.CardWidth}"
-                                   Height="{x:Static settings:ThemeSnapshot.CardHeight}" Stretch="Uniform"
+                            <Image x:Name="ImportImage" Width="{x:Static settings:ThemeSnapshot.ImportWidth}"
+                                   Height="{x:Static settings:ThemeSnapshot.ImportHeight}" Stretch="Uniform"
                                    RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Border>
                         <TextBlock x:Name="ImportCredit" Margin="0,8,0,0" FontWeight="SemiBold" TextAlignment="Center"
